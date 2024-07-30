@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "nightcrawler-ds-pipeline"
+version = "0.1.0"
+description = ""
+authors = ["alho94 <alexander.horst@swissmedic.ch>"]
+readme = "README.md"
+packages = [{include = "nightcrawler_ds_pipeline"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+argcomplete = "^3.4.0"
+pandas = "^2.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
