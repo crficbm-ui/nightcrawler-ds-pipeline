@@ -16,7 +16,6 @@ git pull
 poetry install --directory ./pyproject.toml
 ```
 
-
 ## Basic CLI usage
 First, activat the venv inside the `nightcrawler` directory:
 
@@ -64,6 +63,11 @@ Whatever configuration is needed, should be added in the `context.py` file.
 2. Write tests with HTML from blob storage.
 
 
+
+for helpers
+1. copy the helpers from medicrawl-master
+2. in repo `git clone helpers`
+3. 
 
 
 
