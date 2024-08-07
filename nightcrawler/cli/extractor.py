@@ -1,7 +1,9 @@
 import argparse
 import logging
 from dataclasses import asdict
+from nightcrawler.contex import Context
 from nightcrawler.extract.datacollector import DataCollector
+from nightcrawler.utils import write_json
 
 def parser_name():
     return "extract"
@@ -21,7 +23,7 @@ def add_parser(subparsers, parents_):
         help="Retrieve a list of URLs for a given keyword",
         parents=parents,
     )
-    serpapi.add_argument("keywords", help="Keywords to search for, comma-separated")
+    serpapi.add_argument("keywords", nargs="+", help="Keywords to search for, comma-separated")
 
     diffbot = subparser.add_parser(
         "diffbot",
@@ -34,11 +36,12 @@ def add_parser(subparsers, parents_):
 
 
 def apply(args):
-    dc_client = DataCollector()
+    context = Context()
+    dc_client = DataCollector(context)
     if args.extract == "serpapi":
-        urls = dc_client.get_urls_from_serpapi(keywords=args.keywords.split(","))
-        # logging.info(urls)
+        urls = dc_client.get_urls_from_serpapi(keywords=args.keywords)
+        write_json(context.output_path, context.diffbot_filename, urls)
 
     elif args.extract == "diffbot":
         results = dc_client.get_diffbot_bulk(urlpath=args.urlpath)
-        # logging.debug(results)
+        write_json(context.output_path, context.diffbot_filename, results)
