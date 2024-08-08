@@ -12,6 +12,7 @@ logs/
 __pycache__/
 *.py[cod]
 .DS_Store
+*.swp
 
 # Virtual environment
 venv/

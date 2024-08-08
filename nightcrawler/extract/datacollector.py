@@ -13,9 +13,9 @@ class DataCollector(ABC):
 
     _entity_name = __qualname__  # type: ignore
 
-    def __init__(self):
+    def __init__(self, context):
         logging.info(f"Initializing data collection : {self._entity_name}")
-        self.context = Context()
+        self.context = context
 
     def get_diffbot_bulk(self, urlpath: str = "") -> List[dict]:
         # TODO: implement diffbot bulk calls
@@ -26,11 +26,9 @@ class DataCollector(ABC):
         with open(urlpath, "r") as file:
             urls = file.read()
         results = [{"url": url, "title": "xxx"} for url in urls]
-        write_json(self.context.output_path, self.context.diffbot_filename, results)
         return results
 
     def get_urls_from_serpapi(self, keywords: List[str]) -> List[str]:
         # TODO: implement serpapi calls
         results = [f"www.{keyword}.ch" for keyword in keywords]  # toy
-        write_json(self.context.output_path, self.context.serpapi_filename, results)
         return results

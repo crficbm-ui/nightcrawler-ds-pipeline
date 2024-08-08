@@ -3,11 +3,12 @@ This file holds all configuration options.
 """
 
 from datetime import datetime
+from nightcrawler.settings import Settings
 
 
 class Context:
     def __init__(self, **kwargs):
-        self.kwargs = kwargs
+        self.settings = Settings()
 
         today = datetime.now()
         today_ts = today.strftime("%Y-%m-%d_%H-%M-%S")
