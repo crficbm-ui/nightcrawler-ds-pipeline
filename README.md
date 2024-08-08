@@ -1,8 +1,8 @@
 # Nightcrawler Datascience Pipeline Repository
 
-This repo is provides the Nightcrawler pipeline as well as a CLI to run it.
+This repo provides the Nightcrawler pipeline as well as a CLI to run it.
 
-## Simple start
+## Setting the CLI up in your local environment
 
 1. Pull the latest changes from the git repository.
 
@@ -10,11 +10,31 @@ This repo is provides the Nightcrawler pipeline as well as a CLI to run it.
 git pull
 ```
 
-2. Initiate and install the project dependencies.
+2. In the [pyproject.tml](./pyproject.toml) on line 14 specify the path to `nigthcralwer-ds-helpers` directory on your machine (if you need to develop in that repository) or use a tagged version from GitHub.
+
+```bash
+helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
+helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.0"} #for using a tagged version from GitHub
+```
+
+3. Create a virtual environment with Poetry and activate it.
+
+```bash
+poetry shell
+```
+
+> **_NOTE:_**  Run the following command to install Poetry if it was not installed:
+>```sh
+>curl -sSL https://install.python-poetry.org | python3 -
+>```
+
+4. Install the project dependencies.
 
 ```bash
 poetry install --directory ./pyproject.toml
 ```
+
+5. Copy `.env_template` to `.env`. Fill with your credentials and source it by running `source .env`.
 
 ## Basic CLI usage
 First, activat the venv inside the `nightcrawler` directory:
@@ -43,13 +63,24 @@ The processing steps are one of the following:
 ### Configuration
 Whatever configuration is needed, should be added in the `context.py` file.
 
+### Logging
+The default logging level is set to `INFO`, and by default, logs are not stored in a file but are output to the console. 
+If you want to change the default behavior, you can use the following command-line options:
+
+- **Change the log level**: Use the `--log-level` option to set the desired log level. Available levels include `DEBUG`, `INFO`, `WARNING`, `ERROR`, and `CRITICAL`. For example:
+  ```bash
+  python -m nightcrawler extract serpapi aspirin --log-level DEBUG
+  ```
+- **Log to a file**: Use the --log-file option to specify a file where the logs should be stored. For example:
+  ```bash
+  python -m nightcrawler extract serpapi aspirin --log-file logs/output.log
+  ```
+
 
 > **_NOTE:_**  For simplicity, the full CLI documentation can be found on [Confluence](https://swissmedic.atlassian.net/wiki/spaces/N/pages/7475365463/CLI).
 
 
-## Discussions with Nico (temp)
-
-### [Code] decision log
+## [Code] decision log (temp and too be deleted or documented elsewhere)
 
 1. argparse vs click -> we go with argparse
 2. how do we bring code that was writen outside of the 'nightcralwer' dir (i.e. helpers) into nc?
@@ -57,93 +88,3 @@ Whatever configuration is needed, should be added in the `context.py` file.
 3. Reusability of MediCrawl code
     - "steal with pride"
 
-
-### Next steps
-1. Review CLI if okay in general
-2. Write tests with HTML from blob storage.
-
-
-
-for helpers
-1. copy the helpers from medicrawl-master
-2. in repo `git clone helpers`
-3. 
-
-
-
-
-# Python Virtual Environment
-
-
-## Step 1: Install Pyenv (Python Version Management)
-
-Run the following command to install Pyenv:
-```bash
-curl https://pyenv.run | bash
-```
-
-Install the necessary dependencies:
-```sh
-sudo apt update
-sudo apt install build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev curl git libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
-```
-
-Install the desired Python version using Pyenv:
-```sh
-pyenv install 3.10
-```
-
-## Step 2: Configure Shell Initialization Files
-
-Create a local Zsh configuration file ~/.local_zshrc and insert the following code:
-```sh
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-export PATH="/home/bkopin/.local/bin:$PATH"
-echo "Local zshrc loaded!"
-```
-
-Update your ~/.zshrc file to source the local Zsh configuration file by adding:
-```sh
-source ~/.local_zshrc
-```
-
-Source the ~/.local_zshrc file to apply the changes:
-```sh
-source ~/.local_zshrc
-```
-
-Hint: The similar steps should be done for the Bash shell. Just replace the ~/.zshrc file with the ~/.bashrc file.
-
-## Step 3: Install Poetry (Python Dependency Management)
-
-Run the following command to install Poetry:
-```sh
-curl -sSL https://install.python-poetry.org | python3 -
-```
-
-## Step 4: Create and Activate a Virtual Environment
-
-Create a virtual environment using Pyenv:
-```sh
-pyenv virtualenv 3.10 env_nightcrawler
-```
-
-Navigate to your project directory:
-```sh
-cd IN_YOUR_PROJECT
-```
-
-Set the local Python version to use the newly created virtual environment every time you navigate to the project directory:
-```sh
-pyenv local env_nightcrawler
-```
-
-## Step 5: Install Dependencies
-
-Install the project dependencies using Poetry:
-```sh
-poetry install
-```
