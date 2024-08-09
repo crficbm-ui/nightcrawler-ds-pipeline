@@ -1,14 +1,19 @@
 import logging
+import json
 import pandas as pd
 from abc import ABC
 from typing import List, Dict
 from nightcrawler.contex import Context
-from nightcrawler.utils import write_json
+from helpers.utils import write_json
+from helpers.decorators import retry_on_requests_exception, log_start_and_end
+from helpers.serp_api import SerpAPI
+from helpers.zyte_api import ZyteAPI, DEFAULT_CONFIG
 
+from tqdm.auto import tqdm
 
 class DataCollector(ABC):
     """
-    Implements the data collection via DiffBot and SerpAPI.
+    Implements the data collection via Zyte and SerpAPI.
 
     Attributes:
         context (Context): The context object containing configuration and settings.
@@ -26,37 +31,81 @@ class DataCollector(ABC):
         logging.info(f"Initializing data collection : {self._entity_name}")
         self.context = context
 
-    def get_diffbot_bulk(self, urlpath: str = "") -> List[Dict[str, str]]:
+    def full_pipeline(self, keyword):
         """
-        Retrieves data in bulk from DiffBot using the provided URL path.
+        Performs both SerpAPI and Zyte extraction processes.
 
         Args:
-            urlpath (str): The path to the file containing URLs. If not provided, 
-                           it defaults to `self.context.diffbot_output_path`.
+            keyword (str): The keyword to search for.
+        """
+        urls = self.extract_serpapi(keyword=keyword, full_output=False)
+        results = self.extract_zyte(urls=urls)
+        return results
+
+    def extract_serpapi(self, keyword: str, full_output: bool, num_of_results: int = 50) -> List[str]:
+
+        serpapi_client = SerpAPI()
+
+        params = {
+            'q': keyword,
+            'tbm': '',
+            'start': 0,
+            'num': num_of_results,
+            'api_key': self.context.settings.serpapi.token
+        }
+
+        response = serpapi_client.call_serpapi(params, log_name='google_regular')
+        items = serpapi_client.get_organic_results(response)
+
+        if full_output:
+            results =  items
+        else:
+            urls = [item.get('link') for item in items]
+            results = serpapi_client._check_limit(urls, keyword)
+        
+        write_json(self.context.output_path, self.context.serpapi_filename, results)
+        return urls
+
+
+    def extract_zyte(self, urls: List[str]) -> List[Dict[str, str]]:
+        """
+        Retrieves data in bulk from Zyte using the provided URL path.
+
+        Args:
+            urls (List[str]): A list of URLs to fetch data from.
 
         Returns:
             List[Dict[str, str]]: A list of dictionaries containing the URL and a placeholder title.
         """
-        # TODO: Implement DiffBot bulk calls
 
-        if not urlpath:
-            urlpath = self.context.diffbot_output_path
+        api = ZyteAPI()
+        api_config = DEFAULT_CONFIG.copy()
+        api_config["screenshot"] = False
+        api_config["actions"] = []
+        api_config["screenshotOptions"] = None
+        api_config["viewport"] = None
+        api_config["browserHtml"] = False
+        api_config["javascript"] = False
 
-        with open(urlpath, "r") as file:
-            urls = file.read().splitlines()  # Assuming each URL is on a new line
-        results = [{"url": url, "title": "xxx"} for url in urls]
-        return results
+        urls = urls[0:1]
 
-    def get_urls_from_serpapi(self, keywords: List[str]) -> List[str]:
-        """
-        Retrieves URLs from SerpAPI based on the provided keywords.
+        results = []
+        with tqdm(total=len(urls)) as pbar:
+            for url in urls:
+                response = api.call_api(url, api_config)
+                if not response:
+                    continue
 
-        Args:
-            keywords (List[str]): A list of keywords to search for.
+                product = response["product"]
+                results.append(
+                    {
+                        "price": product.get("price", "") + product.get("currencyRaw", ""),
+                        "title": product.get("name", ""),
+                        "full_description": product.get("description", ""),
+                        "seconds_taken": response["seconds_taken"],
+                    }
+                )
+                pbar.update(1)
 
-        Returns:
-            List[str]: A list of URLs corresponding to the search keywords.
-        """
-        # TODO: Implement SerpAPI calls
-        results = [f"www.{keyword}.ch" for keyword in keywords]  # toy example
+        write_json(self.context.output_path, self.context.zyte_filename, results)
         return results

@@ -10,7 +10,7 @@ class Context:
         settings (Settings): An instance of the Settings class that holds application-specific settings.
         output_path (str): The directory path where output files will be saved.
         serpapi_filename (str): The filename for storing URLs retrieved from Serpapi, including a timestamp.
-        diffbot_filename (str): The filename for storing URLs retrieved from Diffbot, including a timestamp.
+        zyte_filename (str): The filename for storing URLs retrieved from zyte, including a timestamp.
     """
 
     def __init__(self, **kwargs: Any) -> None:
@@ -30,7 +30,7 @@ class Context:
         # ----------------------------------------------------------------------------------------
         self.output_path: str = "./data/output"
         self.serpapi_filename: str = f"serpapi_urls_{self.today_ts}.json"
-        self.diffbot_filename: str = f"diffbot_urls_{self.today_ts}.json"
+        self.zyte_filename: str = f"zyte_urls_{self.today_ts}.json"
 
         # ----------------------------------------------------------------------------------------
         # Modelling
