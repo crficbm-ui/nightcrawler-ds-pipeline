@@ -1,28 +1,43 @@
-"""
-This file holds all configuration options.
-"""
-
 from datetime import datetime
-
+from typing import Any
+from nightcrawler.settings import Settings
 
 class Context:
-    def __init__(self, **kwargs):
-        self.kwargs = kwargs
+    """
+    Context class that holds configuration options for the application.
+    
+    Attributes:
+        settings (Settings): An instance of the Settings class that holds application-specific settings.
+        output_path (str): The directory path where output files will be saved.
+        serpapi_filename (str): The filename for storing URLs retrieved from Serpapi, including a timestamp.
+        zyte_filename (str): The filename for storing URLs retrieved from zyte, including a timestamp.
+    """
 
-        today = datetime.now()
-        today_ts = today.strftime("%Y-%m-%d_%H-%M-%S")
+    def __init__(self, **kwargs: Any) -> None:
+        """
+        Initializes the Context with default configuration options.
+
+        Args:
+            **kwargs (Any): Additional keyword arguments that might be used to customize the context.
+        """
+        self.settings = Settings()
+
+        self.today = datetime.now()
+        self.today_ts = self.today.strftime("%Y-%m-%d_%H-%M-%S")
 
         # ----------------------------------------------------------------------------------------
         # Scraping
         # ----------------------------------------------------------------------------------------
-        self.output_path = "./data/output"
-        self.serpapi_filename = f"serpapi_urls_{today_ts}.json"
-        self.diffbot_filename = f"diffbot_urls_{today_ts}.json"
+        self.output_path: str = "./data/output"
+        self.serpapi_filename: str = f"serpapi_urls_{self.today_ts}.json"
+        self.zyte_filename: str = f"zyte_urls_{self.today_ts}.json"
 
         # ----------------------------------------------------------------------------------------
         # Modelling
+        # (Placeholder for future modelling attributes)
         # ----------------------------------------------------------------------------------------
 
         # ----------------------------------------------------------------------------------------
         # Storage
+        # (Placeholder for future storage attributes)
         # ----------------------------------------------------------------------------------------

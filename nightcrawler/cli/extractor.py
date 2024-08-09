@@ -1,44 +1,74 @@
 import argparse
-import logging
+from typing import List, Any
 from dataclasses import asdict
+from nightcrawler.contex import Context
 from nightcrawler.extract.datacollector import DataCollector
+from helpers.utils import write_json
 
-def parser_name():
+def parser_name() -> str:
+    """
+    Returns the name of the parser.
+
+    Returns:
+        str: The name of the parser, 'extract'.
+    """
     return "extract"
 
 
-def add_parser(subparsers, parents_):
+def add_parser(subparsers: argparse._SubParsersAction, parents_: List[argparse.ArgumentParser]) -> argparse.ArgumentParser:
+    """
+    Adds the 'extract' parser and its subparsers to the given subparsers collection.
+
+    Args:
+        subparsers (argparse._SubParsersAction): The subparsers collection to add to.
+        parents_ (List[argparse.ArgumentParser]): A list of parent parsers to inherit arguments from.
+
+    Returns:
+        argparse.ArgumentParser: The parser that was added to the subparsers collection.
+    """
     parents = parents_
     parser = subparsers.add_parser(
         parser_name(),
-        help="extract calls the extractor class ",
+        help="extract calls the extractor class",
         parents=parents,
     )
-    subparser = parser.add_subparsers(help="Modules", dest="extract", required=True)
+    parser.add_argument("keyword", help="Keyword to search for")
+    parser.add_argument("-n","--num-of-results", help="Set the number of results your want to include from serpapi %(default)s", default=50)
+
+
+    subparser = parser.add_subparsers(help="Modules", dest="extract", required=False)
 
     serpapi = subparser.add_parser(
         "serpapi",
         help="Retrieve a list of URLs for a given keyword",
         parents=parents,
     )
-    serpapi.add_argument("keywords", help="Keywords to search for, comma-separated")
+    serpapi.add_argument("--full-output", action="store_true", help="Set this argument, if you want to see the full results rather then only the URLs provided by SerpAPI. %(default)s")
 
-    diffbot = subparser.add_parser(
-        "diffbot",
-        help="Search URLs from Diffbot for a given keyword",
+    zyte = subparser.add_parser(
+        "zyte",
+        help="Search URLs from zyte for a given keyword",
         parents=parents,
     )
-    diffbot.add_argument("urlpath", help="Filetpath to URL file produced by Serpapi")
+    zyte.add_argument("urlpath", help="Filepath to URL file produced by Serpapi")
 
     return parser
 
 
-def apply(args):
-    dc_client = DataCollector()
-    if args.extract == "serpapi":
-        urls = dc_client.get_urls_from_serpapi(keywords=args.keywords.split(","))
-        # logging.info(urls)
+def apply(args: argparse.Namespace) -> None:
+    """
+    Applies the functionality specified by the parsed command-line arguments.
 
-    elif args.extract == "diffbot":
-        results = dc_client.get_diffbot_bulk(urlpath=args.urlpath)
-        # logging.debug(results)
+    Args:
+        args (argparse.Namespace): Parsed arguments as a namespace object.
+    """
+    context = Context()
+    dc_client = DataCollector(context)
+    if not args.extract:
+        dc_client.full_pipeline(args.keyword, args.num_of_results)
+    elif args.extract == "serpapi":
+        dc_client.extract_serpapi(args.keyword, args.full_output, args.num_of_results)
+    elif args.extract == "zyte":
+        with open(args.urlpath,"r") as file:
+            urls = eval(file.read())
+        dc_client.extract_zyte(urls)
