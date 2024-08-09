@@ -14,8 +14,10 @@ git pull
 
 ```bash
 helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
-helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.0"} #for using a tagged version from GitHub
+helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.2"} #for using a tagged version from GitHub
 ```
+
+> **_NOTE:_**  As of today, 15.08.2025 the current and tested helpers tag is v0.0.2
 
 3. Create a virtual environment with Poetry and activate it.
 
@@ -39,7 +41,7 @@ poetry install --directory ./pyproject.toml
 ## Basic CLI usage
 First, activate the venv inside the `nightcrawler` directory:
 
-```
+```bash
 poetry shell
 ```
 
@@ -60,8 +62,34 @@ The processing steps are one of the following:
 - ...
 
 
+### Extraction
+To run the full extraction pipeline you can use any of the following commands:
+```bash
+python -m nightcrawler extract aspirin #full extraction with keyword 'aspirin'
+python -m nightcrawler extract aspirin -n=3 #full extraction with keyword 'aspirin' for the first 3 entries
+
+```
+Running the extraction pipeline will log the results in the terminal (with default logging which is `--log-level INFO`) and store the scraped content into `./data/output/<extraction_step>_<timespamp>.json`.
+
+
+If you prefer, you can run the pipeline for a single extraction step:
+1. Collect only the URLs from serpapi: 
+```bash
+python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first URLs from serpapi for the keyword triofan
+```
+
+2. Collect only the parsed results from zyte (line 2 below):
+
+```bash
+python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first URLs from serpapi for the keyword triofan
+```
+
+## Development settings
 ### Configuration
-Whatever configuration is needed, should be added in the `context.py` file.
+The  [**settings**](nightcrawler/settings.py) component is designed to store all variables that are not tied to specific commands and do not change throughout the runtime of the CLI. On the other hand, [**context**](nightcrawler/context.py) is intended to include variables that originate from the command line, as well as any helpers or long-lived objects (e.g., database connections). While it’s possible to consolidate everything into the settings, having a separate Context object can be beneficial as the codebase expands. This distinction helps maintain organization and scalability as the project grows.
+
+> **_NOTE:_**  The same two components exist in the [helper repository](https://github.com/smc40/nightcrawler-ds-helpers), so be careful when importing.
+
 
 ### Logging
 The default logging level is set to `INFO`, and by default, logs are not stored in a file but are output to the console. 
@@ -80,11 +108,23 @@ If you want to change the default behavior, you can use the following command-li
 > **_NOTE:_**  For simplicity, the full CLI documentation can be found on [Confluence](https://swissmedic.atlassian.net/wiki/spaces/N/pages/7475365463/CLI).
 
 
-## [Code] decision log (temp and too be deleted or documented elsewhere)
 
-1. argparse vs click -> we go with argparse
-2. how do we bring code that was writen outside of the 'nightcralwer' dir (i.e. helpers) into nc?
-    - we will use the 'helpers' dir and make sure that whenever a change is done in that dir, it does not affect the prod. code (PR to Nico / Alex)
-3. Reusability of MediCrawl code
-    - "steal with pride"
+### Linting and Formatting
+Based on Thomas recommendation we will be using [ruff](https://docs.astral.sh/ruff/) as linting and formatting tool.
+For linting preview run:
+```bash
+ruff check
+```
+For linting run:
+```bash
+ruff check --fix
+```
 
+Ruff also provides a formatting tool that should be run prior commiting changes:
+```bash
+ruff format
+``` 
+
+
+## Git Tag History
+So far, no tags have been created (alho, 12.08.2024).
