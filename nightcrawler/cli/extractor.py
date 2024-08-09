@@ -1,5 +1,4 @@
 import argparse
-import logging
 from typing import List, Any
 from dataclasses import asdict
 from nightcrawler.contex import Context
@@ -34,6 +33,8 @@ def add_parser(subparsers: argparse._SubParsersAction, parents_: List[argparse.A
         parents=parents,
     )
     parser.add_argument("keyword", help="Keyword to search for")
+    parser.add_argument("-n","--num-of-results", help="Set the number of results your want to include from serpapi %(default)s", default=50)
+
 
     subparser = parser.add_subparsers(help="Modules", dest="extract", required=False)
 
@@ -64,8 +65,10 @@ def apply(args: argparse.Namespace) -> None:
     context = Context()
     dc_client = DataCollector(context)
     if not args.extract:
-        dc_client.full_pipeline(args.keyword)
+        dc_client.full_pipeline(args.keyword, args.num_of_results)
     elif args.extract == "serpapi":
-        dc_client.extract_serpapi(args.keyword, args.full_output)
+        dc_client.extract_serpapi(args.keyword, args.full_output, args.num_of_results)
     elif args.extract == "zyte":
-        dc_client.extract_zyte(args.urlpath)
+        with open(args.urlpath,"r") as file:
+            urls = eval(file.read())
+        dc_client.extract_zyte(urls)

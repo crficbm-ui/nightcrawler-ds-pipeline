@@ -1,5 +1,4 @@
 import logging
-import json
 import pandas as pd
 from abc import ABC
 from typing import List, Dict
@@ -10,6 +9,10 @@ from helpers.serp_api import SerpAPI
 from helpers.zyte_api import ZyteAPI, DEFAULT_CONFIG
 
 from tqdm.auto import tqdm
+
+from helpers import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 
 class DataCollector(ABC):
     """
@@ -28,21 +31,22 @@ class DataCollector(ABC):
         Args:
             context (Context): The context object containing configuration and settings.
         """
-        logging.info(f"Initializing data collection : {self._entity_name}")
+        logger.info(f"Initializing data collection : {self._entity_name}")
         self.context = context
 
-    def full_pipeline(self, keyword):
+    def full_pipeline(self, keyword:str, num_of_results: int):
         """
         Performs both SerpAPI and Zyte extraction processes.
 
         Args:
             keyword (str): The keyword to search for.
         """
-        urls = self.extract_serpapi(keyword=keyword, full_output=False)
+        urls = self.extract_serpapi(keyword=keyword, full_output=False, num_of_results= num_of_results)
         results = self.extract_zyte(urls=urls)
         return results
 
-    def extract_serpapi(self, keyword: str, full_output: bool, num_of_results: int = 50) -> List[str]:
+    def extract_serpapi(self, keyword: str, full_output: bool, num_of_results: int) -> List[str]:
+        logger.info(f"Extracting URLs from serpapi for '{keyword}'")
 
         serpapi_client = SerpAPI()
 
@@ -50,7 +54,7 @@ class DataCollector(ABC):
             'q': keyword,
             'tbm': '',
             'start': 0,
-            'num': num_of_results,
+            'num': int(num_of_results) + 1,
             'api_key': self.context.settings.serpapi.token
         }
 
@@ -77,6 +81,7 @@ class DataCollector(ABC):
         Returns:
             List[Dict[str, str]]: A list of dictionaries containing the URL and a placeholder title.
         """
+        logger.info(f"Extracting product details from zyte for {len(urls)} URLs.")
 
         api = ZyteAPI()
         api_config = DEFAULT_CONFIG.copy()
@@ -86,8 +91,6 @@ class DataCollector(ABC):
         api_config["viewport"] = None
         api_config["browserHtml"] = False
         api_config["javascript"] = False
-
-        urls = urls[0:1]
 
         results = []
         with tqdm(total=len(urls)) as pbar:

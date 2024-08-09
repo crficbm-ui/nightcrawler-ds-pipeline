@@ -7,6 +7,9 @@ from typing import List
 import nightcrawler.cli.extractor as extractor
 import nightcrawler.cli.version
 
+from helpers import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 MODULES = [extractor]
 
 
@@ -60,20 +63,30 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
     # Log management
     numeric_level = getattr(logging, args.log_level.upper(), None)
     if not isinstance(numeric_level, int):
-        raise ValueError(f"Invalid log level: {args.log_level}")  # pragma: no cover
-    logging.basicConfig(
-        level=numeric_level,
-        format="%(asctime)s.%(msecs)03d | %(name)s | %(levelname)s | %(message)s",
-        datefmt="%Y-%m-%dT%H:%M:%S",
-        handlers=[
-            (
-                logging.StreamHandler()
-                if args.log_file is None
-                else logging.FileHandler(args.log_file)
-            )
-        ],
+        raise ValueError(f"Invalid log level: {args.log_level}")
+    
+    # Remove all existing handlers to prevent duplicate logs
+    logger.handlers.clear()
+
+    # Conditionally create a StreamHandler or FileHandler
+    handler = (
+        logging.StreamHandler()
+        if args.log_file is None
+        else logging.FileHandler(args.log_file)
     )
-    logging.debug(args)
+
+    # Set the formatter
+    formatter = logging.Formatter('%(asctime)s | %(name)s | %(levelname)s | %(message)s')
+    handler.setFormatter(formatter)
+
+    # Add the handler to the logger
+    logger.addHandler(handler)
+
+    # Set the log level
+    logger.setLevel(numeric_level)
+
+    # Example log statement
+    logger.debug(args)
     return args
 
 

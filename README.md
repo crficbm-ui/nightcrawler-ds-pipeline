@@ -79,12 +79,3 @@ If you want to change the default behavior, you can use the following command-li
 
 > **_NOTE:_**  For simplicity, the full CLI documentation can be found on [Confluence](https://swissmedic.atlassian.net/wiki/spaces/N/pages/7475365463/CLI).
 
-
-## [Code] decision log (temp and too be deleted or documented elsewhere)
-
-1. argparse vs click -> we go with argparse
-2. how do we bring code that was writen outside of the 'nightcralwer' dir (i.e. helpers) into nc?
-    - we will use the 'helpers' dir and make sure that whenever a change is done in that dir, it does not affect the prod. code (PR to Nico / Alex)
-3. Reusability of MediCrawl code
-    - "steal with pride"
-
