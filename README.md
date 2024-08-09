@@ -60,6 +60,22 @@ The processing steps are one of the following:
 - ...
 
 
+### Extraction
+The run the full pipeline you can use any of the following commands:
+```
+python -m nightcrawler extract aspirin #full extraction with keyword 'aspirin'
+python -m nightcrawler extract aspirin -n=3 #full extraction with keyword 'aspirin' for the first 3 entries
+
+```
+
+To run the pipeline step-by-step you can run the following
+```
+python -m nightcrawler extract triofan -n=3 serpapi #get only first 3 URLS from serpapi 
+python -m nightcrawler extract triofan zyte <path_to_serpapi_file> #extract results from previous step with zyte
+
+```
+
+## Development settings
 ### Configuration
 Whatever configuration is needed, should be added in the `context.py` file.
 
@@ -80,11 +96,23 @@ If you want to change the default behavior, you can use the following command-li
 > **_NOTE:_**  For simplicity, the full CLI documentation can be found on [Confluence](https://swissmedic.atlassian.net/wiki/spaces/N/pages/7475365463/CLI).
 
 
-## [Code] decision log (temp and too be deleted or documented elsewhere)
 
-1. argparse vs click -> we go with argparse
-2. how do we bring code that was writen outside of the 'nightcralwer' dir (i.e. helpers) into nc?
-    - we will use the 'helpers' dir and make sure that whenever a change is done in that dir, it does not affect the prod. code (PR to Nico / Alex)
-3. Reusability of MediCrawl code
-    - "steal with pride"
+### Linting and Formatting
+Based on Thomas recommendation we will be using [ruff](https://docs.astral.sh/ruff/) as linting and formatting tool.
+For linting preview run:
+```bash
+ruff check
+```
+For linting run:
+```bash
+ruff check --fix
+```
 
+Ruff also provides a formatting tool that should be run prior commiting changes:
+```bash
+ruff format
+``` 
+
+
+## Git Tag History
+So far, no tags have been created (alho, 12.08.2024).

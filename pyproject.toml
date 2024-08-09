@@ -8,10 +8,8 @@ packages = [{include = "nightcrawler"}]
 
 [tool.poetry.dependencies]
 python = "~3.10"
-pandas = "^2.2.2"
 python-dotenv = "^1.0.1"
 helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  
-pydantic-settings = "^2.4.0"
 
 
 
