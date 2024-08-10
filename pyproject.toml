@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "nightcrawler"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "~3.10"
 pandas = "^2.2.2"
 python-dotenv = "^1.0.1"
 helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  

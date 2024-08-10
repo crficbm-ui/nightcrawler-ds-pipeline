@@ -2,7 +2,7 @@ import logging
 import pandas as pd
 from abc import ABC
 from typing import List, Dict
-from nightcrawler.contex import Context
+from nightcrawler.context import Context
 from nightcrawler.utils import write_json
 
 

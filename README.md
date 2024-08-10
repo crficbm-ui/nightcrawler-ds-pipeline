@@ -37,7 +37,7 @@ poetry install --directory ./pyproject.toml
 5. Copy `.env_template` to `.env`. Fill with your credentials and source it by running `source .env`.
 
 ## Basic CLI usage
-First, activat the venv inside the `nightcrawler` directory:
+First, activate the venv inside the `nightcrawler` directory:
 
 ```
 poetry shell

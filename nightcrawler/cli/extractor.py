@@ -2,7 +2,7 @@ import argparse
 import logging
 from typing import List, Any
 from dataclasses import asdict
-from nightcrawler.contex import Context
+from nightcrawler.context import Context
 from nightcrawler.extract.datacollector import DataCollector
 from nightcrawler.utils import write_json
 
