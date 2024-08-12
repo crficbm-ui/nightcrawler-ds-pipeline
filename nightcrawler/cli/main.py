@@ -1,28 +1,37 @@
-import argcomplete
 import argparse
 import logging
 import os
 import sys
+from typing import List
 
-import nightcrawler.cli.extractor as ncdc
+import nightcrawler.cli.extractor as extractor
 import nightcrawler.cli.version
 
-MODULES = [ncdc]
+MODULES = [extractor]
 
 
-def parse_args(args_):
+def parse_args(args_: List[str]) -> argparse.Namespace:
+    """
+    Parse command-line arguments and set up logging configuration.
+
+    Args:
+        args_ (List[str]): List of command-line arguments.
+
+    Returns:
+        argparse.Namespace: Parsed arguments as a namespace object.
+    """
     # Create global parser for logs
     global_parser = argparse.ArgumentParser(add_help=False)
     group = global_parser.add_argument_group("Global options")
     group.add_argument(
         "--log-level",
         default=os.getenv("NIGHTCRAWLER_LOG_LEVEL", "INFO"),
-        help="log level (%(default)s)",
+        help="Log level (%(default)s)",
     )
     group.add_argument(
         "--log-file",
         default=os.getenv("NIGHTCRAWLER_LOG_FILE", None),
-        help="log to file (%(default)s)",
+        help="Log to file (%(default)s)",
     )
     group.add_argument(
         "-v",
@@ -39,14 +48,19 @@ def parse_args(args_):
     for module in MODULES:
         module.add_parser(subparsers, [global_parser])
 
-    # Concatenate arguments
-    argcomplete.autocomplete(parser)
+
     args = parser.parse_args(args_)
+
+    # Ensure log directory exists if a log file is specified
+    if args.log_file:
+        log_dir = os.path.dirname(args.log_file)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir)
 
     # Log management
     numeric_level = getattr(logging, args.log_level.upper(), None)
     if not isinstance(numeric_level, int):
-        raise ValueError("Invalid log level: %s" % args.log_level)  # pragma: no cover
+        raise ValueError(f"Invalid log level: {args.log_level}")  # pragma: no cover
     logging.basicConfig(
         level=numeric_level,
         format="%(asctime)s.%(msecs)03d | %(name)s | %(levelname)s | %(message)s",
@@ -63,18 +77,33 @@ def parse_args(args_):
     return args
 
 
-def apply(args):
+def apply(args: argparse.Namespace) -> None:
+    """
+    Apply the selected module's functionality based on the parsed arguments.
+
+    Args:
+        args (argparse.Namespace): Parsed arguments as a namespace object.
+    """
     for module in MODULES:
         if args.module == module.parser_name():
             module.apply(args)
 
 
-def run(args_):
+def run(args_: List[str]) -> None:
+    """
+    Run the argument parsing and apply the selected module.
+
+    Args:
+        args_ (List[str]): List of command-line arguments.
+    """
     args = parse_args(args_)
     apply(args)
 
 
-def main():
+def main() -> None:
+    """
+    Main entry point for the script.
+    """
     run(sys.argv[1:])
 
 
