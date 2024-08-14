@@ -5,12 +5,13 @@ import sys
 from typing import List
 
 import nightcrawler.cli.extractor as extractor
+import nightcrawler.cli.processor as processor
 import nightcrawler.cli.version
 
 from helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
-MODULES = [extractor]
+MODULES = [extractor, processor]
 
 
 def parse_args(args_: List[str]) -> argparse.Namespace:
