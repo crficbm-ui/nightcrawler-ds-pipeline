@@ -2,6 +2,8 @@ import logging
 import pandas as pd
 from abc import ABC
 from typing import List, Dict
+from nightcrawler.context import Context
+from nightcrawler.utils import write_json
 from nightcrawler.contex import Context
 from helpers.utils import write_json
 from helpers.decorators import retry_on_requests_exception, log_start_and_end
@@ -66,7 +68,7 @@ class DataCollector(ABC):
         else:
             urls = [item.get('link') for item in items]
             results = serpapi_client._check_limit(urls, keyword)
-        
+
         write_json(self.context.output_path, self.context.serpapi_filename, results)
         return urls
 
