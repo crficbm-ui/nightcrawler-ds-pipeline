@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nightcrawler-ds-pipeline"
-version = "0.1.0"
+version = "v0.0.1"
 description = ""
 authors = ["alho94 <alexander.horst@swissmedic.ch>"]
 readme = "README.md"
@@ -8,13 +8,8 @@ packages = [{include = "nightcrawler"}]
 
 [tool.poetry.dependencies]
 python = "~3.10"
-argcomplete = "^3.4.0"
-pandas = "^2.2.2"
 python-dotenv = "^1.0.1"
-helpers = { path = "../nightcrawler-ds-helpers/", develop = true }
-pydantic-settings = "^2.4.0"
-
-
+helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.0"}
 
 [build-system]
 requires = ["poetry-core"]
