@@ -1,130 +1,90 @@
 import logging
-from typing import List, Dict, Union
-from tqdm.auto import tqdm
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Union
 
-from helpers.context import Context
-from helpers.utils import write_json
-from helpers.api.serp_api import SerpAPI
-from helpers.api.zyte_api import ZyteAPI, DEFAULT_CONFIG
 from helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 
-
-class DataCollector:
+class DataCollector(ABC):
     """
-    Implements the data collection via Zyte and SerpAPI.
+    Abstract base class that enforces methods to interact with an API, process its results, 
+    and store the data. Subclasses should implement the following methods:
+    
+        - initiate_client: Initiate the API client.
+        - retrieve_response: Make the API calls and retrieve data.
+        - structure_results: Postprocess the API results into the desired format.
+        - store_results: Write the results to the file system.
+        - apply: Run the entire data collection process.
 
     Attributes:
         context (Context): The context object containing configuration and settings.
     """
 
-    _entity_name: str = __qualname__
-
-    def __init__(self, context: Context) -> None:
+    @abstractmethod
+    def initiate_client(self) -> Any:
         """
-        Initializes the DataCollector with the given context.
-
-        Args:
-            context (Context): The context object containing configuration and settings.
-        """
-        logger.info(f"Initializing data collection : {self._entity_name}")
-        self.context = context
-
-    def full_pipeline(self, keyword: str, num_of_results: int):
-        """
-        Performs both SerpAPI and Zyte extraction processes.
-
-        Args:
-            keyword (str): The keyword to search for.
-        """
-        urls = self.extract_serpapi(
-            keyword=keyword, full_output=False, num_of_results=num_of_results
-        )
-        results = self.extract_zyte(urls=urls)
-        return results
-
-    def extract_serpapi(
-        self, keyword: str, full_output: bool, num_of_results: int
-    ) -> Union[List[str], None]:
-        """
-        Extracts URLs or full results from SerpAPI based on the provided keyword.
-
-        This method queries the SerpAPI using the specified keyword and retrieves a list of search results.
-        Depending on the `full_output` flag, it can either return full search result items or just the URLs.
-        The results are saved to a JSON file at the specified output path.
-
-        Args:
-            keyword (str): The search term to query on SerpAPI.
-            full_output (bool): If True, the full search result items will be returned. Otherwise, only URLs will be returned.
-            num_of_results (int): The number of results to retrieve from SerpAPI.
+        Initializes the API client necessary for making requests.
+        Should set up any authentication or connection requirements.
 
         Returns:
-            Union[List[str], None]: A list of URLs if `full_output` is False, or None if `full_output` is True.
+            Any: An initialized API client instance.
         """
-        logger.info(f"Extracting URLs from serpapi for '{keyword}'")
-
-        serpapi_client = SerpAPI()
-
-        params = {
-            "q": keyword,
-            "tbm": "",
-            "start": 0,
-            "num": int(num_of_results) + 1,
-            "api_key": self.context.settings.serpapi.token,
-        }
-
-        response = serpapi_client.call_serpapi(params, log_name="google_regular")
-        items = serpapi_client.get_organic_results(response)
-
-        if full_output:
-            results = items
-        else:
-            urls = [item.get("link") for item in items]
-            results = serpapi_client._check_limit(urls, keyword)
-
-        write_json(self.context.output_path, self.context.serpapi_filename, results)
-        return urls
-
-    def extract_zyte(self, urls: List[str]) -> List[Dict[str, str]]:
+        pass
+    
+    @abstractmethod
+    def retrieve_response(self, *args: Any, **kwargs: Any) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
-        Retrieves data in bulk from Zyte using the provided URL path.
+        Makes the API calls to retrieve data.
 
         Args:
-            urls (List[str]): A list of URLs to fetch data from.
-
+            *args (Any): Positional arguments required by the API call.
+            **kwargs (Any): Keyword arguments required by the API call.
+        
         Returns:
-            List[Dict[str, str]]: A list of dictionaries containing the URL and a placeholder title.
+            Union[Dict[str, Any], List[Dict[str, Any]]]: The raw response data from the API, either as a dictionary or a list of dictionaries.
         """
-        logger.info(f"Extracting product details from zyte for {len(urls)} URLs.")
+        pass
+    
+    @abstractmethod
+    def structure_results(self, data: Union[Dict[str, Any], List[Dict[str, Any]]], *args: Any, **kwargs: Any) -> Union[List[str], List[Dict[str, Any]]]:
+        """
+        Processes and structures the raw API response data into the desired format.
+        
+        Args:
+            data (Union[Dict[str, Any], List[Dict[str, Any]]]): The raw data returned from the API.
+            *args (Any): Additional positional arguments for structuring the data.
+            **kwargs (Any): Additional keyword arguments for structuring the data.
+        
+        Returns:
+            Union[List[str], List[Dict[str, Any]]]: The structured and processed data, either as a list of URLs (strings) or a list of dictionaries.
+        """
+        pass
+    
+    @abstractmethod
+    def store_results(self, structured_data: Union[List[str], List[Dict[str, Any]]]) -> None:
+        """
+        Stores the structured data into the file system or another storage mechanism.
+        
+        Args:
+            structured_data (Union[List[str], List[Dict[str, Any]]]): The processed data that needs to be stored, either as a list of URLs or a list of dictionaries.
+        """
+        pass
 
-        api = ZyteAPI()
-        api_config = DEFAULT_CONFIG.copy()
-        api_config["screenshot"] = False
-        api_config["actions"] = []
-        api_config["screenshotOptions"] = None
-        api_config["viewport"] = None
-        api_config["browserHtml"] = False
-        api_config["javascript"] = False
+    @abstractmethod
+    def apply(self, *args: Any, **kwargs: Any) -> Union[List[str], List[Dict[str, Any]]]:
+        """
+        Orchestrates the entire process by calling the other methods in sequence:
+        - initiate_client
+        - retrieve_response
+        - structure_results
+        - store_results
 
-        results = []
-        with tqdm(total=len(urls)) as pbar:
-            for url in urls:
-                response = api.call_api(url, api_config)
-                if not response:
-                    continue
-
-                product = response["product"]
-                results.append(
-                    {
-                        "price": product.get("price", "")
-                        + product.get("currencyRaw", ""),
-                        "title": product.get("name", ""),
-                        "full_description": product.get("description", ""),
-                        "seconds_taken": response["seconds_taken"],
-                    }
-                )
-                pbar.update(1)
-
-        write_json(self.context.output_path, self.context.zyte_filename, results)
-        return results
+        Args:
+            *args (Any): Positional arguments required for the process.
+            **kwargs (Any): Keyword arguments required for the process.
+        
+        Returns:
+            Union[List[str], List[Dict[str, Any]]]: The final structured results.
+        """
+        pass

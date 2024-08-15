@@ -1,7 +1,14 @@
 import argparse
+import logging
+
 from typing import List
+from nightcrawler.extract.serp_api import SerpapiExtractor
+from nightcrawler.extract.zyte import ZyteExtractor
+
 from helpers.context import Context
-from nightcrawler.extract.datacollector import DataCollector
+from helpers import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 
 
 def parser_name() -> str:
@@ -72,12 +79,17 @@ def apply(args: argparse.Namespace) -> None:
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
-    dc_client = DataCollector(context)
+
     if not args.extract:
-        dc_client.full_pipeline(args.keyword, args.num_of_results)
+        urls = SerpapiExtractor(context).apply(keyword = args.keyword, number_of_results = args.num_of_results)
+        ZyteExtractor(context).apply(urls)
+
     elif args.extract == "serpapi":
-        dc_client.extract_serpapi(args.keyword, args.full_output, args.num_of_results)
+        SerpapiExtractor(context).apply(keyword = args.keyword, number_of_results = args.num_of_results, full_output = args.full_output)
     elif args.extract == "zyte":
         with open(args.urlpath, "r") as file:
             urls = eval(file.read())
-        dc_client.extract_zyte(urls)
+        ZyteExtractor(context).apply(urls)
+
+    else:
+        logger.error(f"{args} not yet implemented")

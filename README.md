@@ -14,8 +14,10 @@ git pull
 
 ```bash
 helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
-helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.0"} #for using a tagged version from GitHub
+helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.2"} #for using a tagged version from GitHub
 ```
+
+> **_NOTE:_**  As of today, 15.08.2025 the current and tested helpers tag is v0.0.2
 
 3. Create a virtual environment with Poetry and activate it.
 
@@ -39,7 +41,7 @@ poetry install --directory ./pyproject.toml
 ## Basic CLI usage
 First, activate the venv inside the `nightcrawler` directory:
 
-```
+```bash
 poetry shell
 ```
 
@@ -61,23 +63,33 @@ The processing steps are one of the following:
 
 
 ### Extraction
-The run the full pipeline you can use any of the following commands:
-```
+To run the full extraction pipeline you can use any of the following commands:
+```bash
 python -m nightcrawler extract aspirin #full extraction with keyword 'aspirin'
 python -m nightcrawler extract aspirin -n=3 #full extraction with keyword 'aspirin' for the first 3 entries
 
 ```
+Running the extraction pipeline will log the results in the terminal (with default logging which is `--log-level INFO`) and store the scraped content into `./data/output/<extraction_step>_<timespamp>.json`.
 
-To run the pipeline step-by-step you can run the following
+
+If you prefer, you can run the pipeline for a single extraction step:
+1. Collect only the URLs from serpapi: 
+```bash
+python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first URLs from serpapi for the keyword triofan
 ```
-python -m nightcrawler extract triofan -n=3 serpapi #get only first 3 URLS from serpapi 
-python -m nightcrawler extract triofan zyte <path_to_serpapi_file> #extract results from previous step with zyte
 
+2. Collect only the parsed results from zyte (line 2 below):
+
+```bash
+python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first URLs from serpapi for the keyword triofan
 ```
 
 ## Development settings
 ### Configuration
-Whatever configuration is needed, should be added in the `context.py` file.
+The  [**settings**](nightcrawler/settings.py) component is designed to store all variables that are not tied to specific commands and do not change throughout the runtime of the CLI. On the other hand, [**context**](nightcrawler/context.py) is intended to include variables that originate from the command line, as well as any helpers or long-lived objects (e.g., database connections). While it’s possible to consolidate everything into the settings, having a separate Context object can be beneficial as the codebase expands. This distinction helps maintain organization and scalability as the project grows.
+
+> **_NOTE:_**  The same two components exist in the [helper repository](https://github.com/smc40/nightcrawler-ds-helpers), so be careful when importing.
+
 
 ### Logging
 The default logging level is set to `INFO`, and by default, logs are not stored in a file but are output to the console. 

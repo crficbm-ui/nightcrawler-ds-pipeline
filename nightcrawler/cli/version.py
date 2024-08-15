@@ -1,4 +1,5 @@
 import os
 
-__version__ = os.getenv("CLI_VERSION", "0.0.0")
+DEFAULT_VERSION="0.0.0"
+__version__ = os.getenv("CLI_VERSION", DEFAULT_VERSION)
 # TODO inject github tag to env
