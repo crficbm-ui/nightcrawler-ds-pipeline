@@ -1,62 +1,90 @@
 import logging
-import pandas as pd
-from abc import ABC
-from typing import List, Dict
-from nightcrawler.context import Context
-from nightcrawler.utils import write_json
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Union
 
+from helpers import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 
 class DataCollector(ABC):
     """
-    Implements the data collection via DiffBot and SerpAPI.
+    Abstract base class that enforces methods to interact with an API, process its results, 
+    and store the data. Subclasses should implement the following methods:
+    
+        - initiate_client: Initiate the API client.
+        - retrieve_response: Make the API calls and retrieve data.
+        - structure_results: Postprocess the API results into the desired format.
+        - store_results: Write the results to the file system.
+        - apply: Run the entire data collection process.
 
     Attributes:
         context (Context): The context object containing configuration and settings.
     """
 
-    _entity_name: str = __qualname__
-
-    def __init__(self, context: Context) -> None:
+    @abstractmethod
+    def initiate_client(self) -> Any:
         """
-        Initializes the DataCollector with the given context.
-
-        Args:
-            context (Context): The context object containing configuration and settings.
-        """
-        logging.info(f"Initializing data collection : {self._entity_name}")
-        self.context = context
-
-    def get_diffbot_bulk(self, urlpath: str = "") -> List[Dict[str, str]]:
-        """
-        Retrieves data in bulk from DiffBot using the provided URL path.
-
-        Args:
-            urlpath (str): The path to the file containing URLs. If not provided, 
-                           it defaults to `self.context.diffbot_output_path`.
+        Initializes the API client necessary for making requests.
+        Should set up any authentication or connection requirements.
 
         Returns:
-            List[Dict[str, str]]: A list of dictionaries containing the URL and a placeholder title.
+            Any: An initialized API client instance.
         """
-        # TODO: Implement DiffBot bulk calls
-
-        if not urlpath:
-            urlpath = self.context.diffbot_output_path
-
-        with open(urlpath, "r") as file:
-            urls = file.read().splitlines()  # Assuming each URL is on a new line
-        results = [{"url": url, "title": "xxx"} for url in urls]
-        return results
-
-    def get_urls_from_serpapi(self, keywords: List[str]) -> List[str]:
+        pass
+    
+    @abstractmethod
+    def retrieve_response(self, *args: Any, **kwargs: Any) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
-        Retrieves URLs from SerpAPI based on the provided keywords.
+        Makes the API calls to retrieve data.
 
         Args:
-            keywords (List[str]): A list of keywords to search for.
-
+            *args (Any): Positional arguments required by the API call.
+            **kwargs (Any): Keyword arguments required by the API call.
+        
         Returns:
-            List[str]: A list of URLs corresponding to the search keywords.
+            Union[Dict[str, Any], List[Dict[str, Any]]]: The raw response data from the API, either as a dictionary or a list of dictionaries.
         """
-        # TODO: Implement SerpAPI calls
-        results = [f"www.{keyword}.ch" for keyword in keywords]  # toy example
-        return results
+        pass
+    
+    @abstractmethod
+    def structure_results(self, data: Union[Dict[str, Any], List[Dict[str, Any]]], *args: Any, **kwargs: Any) -> Union[List[str], List[Dict[str, Any]]]:
+        """
+        Processes and structures the raw API response data into the desired format.
+        
+        Args:
+            data (Union[Dict[str, Any], List[Dict[str, Any]]]): The raw data returned from the API.
+            *args (Any): Additional positional arguments for structuring the data.
+            **kwargs (Any): Additional keyword arguments for structuring the data.
+        
+        Returns:
+            Union[List[str], List[Dict[str, Any]]]: The structured and processed data, either as a list of URLs (strings) or a list of dictionaries.
+        """
+        pass
+    
+    @abstractmethod
+    def store_results(self, structured_data: Union[List[str], List[Dict[str, Any]]]) -> None:
+        """
+        Stores the structured data into the file system or another storage mechanism.
+        
+        Args:
+            structured_data (Union[List[str], List[Dict[str, Any]]]): The processed data that needs to be stored, either as a list of URLs or a list of dictionaries.
+        """
+        pass
+
+    @abstractmethod
+    def apply(self, *args: Any, **kwargs: Any) -> Union[List[str], List[Dict[str, Any]]]:
+        """
+        Orchestrates the entire process by calling the other methods in sequence:
+        - initiate_client
+        - retrieve_response
+        - structure_results
+        - store_results
+
+        Args:
+            *args (Any): Positional arguments required for the process.
+            **kwargs (Any): Keyword arguments required for the process.
+        
+        Returns:
+            Union[List[str], List[Dict[str, Any]]]: The final structured results.
+        """
+        pass

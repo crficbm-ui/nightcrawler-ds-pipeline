@@ -7,8 +7,42 @@ from typing import List
 import nightcrawler.cli.extractor as extractor
 import nightcrawler.cli.version
 
+from helpers import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 MODULES = [extractor]
 
+def config_logs(args: List[str])-> None:
+    # Ensure log directory exists if a log file is specified
+    if args.log_file:
+        log_dir = os.path.dirname(args.log_file)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+    # Log management
+    numeric_level = getattr(logging, args.log_level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f"Invalid log level: {args.log_level}. Choose any of {', '.join([name for name in logging._nameToLevel.keys()][:-1])}")
+
+    # Remove all existing handlers to prevent duplicate logs
+    logger.handlers.clear()
+
+    # Always add a StreamHandler for logging to the terminal
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
+    logger.addHandler(stream_handler)
+
+    # Conditionally add a FileHandler if a log file is specified
+    if args.log_file:
+        file_handler = logging.FileHandler(args.log_file)
+        file_handler.setFormatter(logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
+        logger.addHandler(file_handler)
+
+    # Set the log level
+    logger.setLevel(numeric_level)
+
+    # Example log statement
+    logger.debug(args)
 
 def parse_args(args_: List[str]) -> argparse.Namespace:
     """
@@ -48,32 +82,8 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
     for module in MODULES:
         module.add_parser(subparsers, [global_parser])
 
-
     args = parser.parse_args(args_)
-
-    # Ensure log directory exists if a log file is specified
-    if args.log_file:
-        log_dir = os.path.dirname(args.log_file)
-        if log_dir and not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-
-    # Log management
-    numeric_level = getattr(logging, args.log_level.upper(), None)
-    if not isinstance(numeric_level, int):
-        raise ValueError(f"Invalid log level: {args.log_level}")  # pragma: no cover
-    logging.basicConfig(
-        level=numeric_level,
-        format="%(asctime)s.%(msecs)03d | %(name)s | %(levelname)s | %(message)s",
-        datefmt="%Y-%m-%dT%H:%M:%S",
-        handlers=[
-            (
-                logging.StreamHandler()
-                if args.log_file is None
-                else logging.FileHandler(args.log_file)
-            )
-        ],
-    )
-    logging.debug(args)
+    
     return args
 
 
@@ -98,6 +108,7 @@ def run(args_: List[str]) -> None:
     """
     args = parse_args(args_)
     apply(args)
+    config_logs(args)
 
 
 def main() -> None:
