@@ -9,6 +9,7 @@ from nightcrawler.extract.datacollector import DataCollector
 
 logger = logging.getLogger(LOGGER_NAME)
 
+
 class SerpapiExtractor(DataCollector):
     """
     Implements data collection using Zyte and SerpAPI.
@@ -38,8 +39,10 @@ class SerpapiExtractor(DataCollector):
         """
         client = SerpAPI()
         return client
-    
-    def retrieve_response(self, keyword: str, client: SerpAPI, number_of_results: int) -> Dict[str, Any]:
+
+    def retrieve_response(
+        self, keyword: str, client: SerpAPI, number_of_results: int
+    ) -> Dict[str, Any]:
         """
         Makes the API call to SerpAPI to retrieve search results for the given keyword.
 
@@ -62,7 +65,9 @@ class SerpapiExtractor(DataCollector):
         response = client.call_serpapi(params, log_name="google_regular")
         return response
 
-    def structure_results(self, response: Dict[str, Any], client: SerpAPI, full_output: bool, keyword: str) -> Union[List[str], List[Dict[str, Any]]]:
+    def structure_results(
+        self, response: Dict[str, Any], client: SerpAPI, full_output: bool, keyword: str
+    ) -> Union[List[str], List[Dict[str, Any]]]:
         """
         Processes and structures the raw API response data into the desired format.
 
@@ -84,24 +89,35 @@ class SerpapiExtractor(DataCollector):
             results = client._check_limit(urls, keyword)
 
         return results
-    
-    def store_results(self, structured_results: Union[List[str], List[Dict[str, Any]]]) -> None:
+
+    def store_results(
+        self,
+        structured_results: Union[List[str], List[Dict[str, Any]]],
+        output_dir: str,
+    ) -> None:
         """
         Stores the structured search results to a JSON file.
 
         Args:
             structured_results (Union[List[str], List[Dict[str, Any]]]): The structured search results.
         """
-        write_json(self.context.output_path, self.context.serpapi_filename, structured_results)
+        write_json(output_dir, self.context.serpapi_filename, structured_results)
 
-    def apply(self, keyword: str, number_of_results: int, full_output: bool= False) -> Union[List[str], List[Dict[str, Any]]]:
+    def apply(
+        self,
+        keyword: str,
+        number_of_results: int,
+        output_dir: str,
+        full_output: bool = False,
+    ) -> Union[List[str], List[Dict[str, Any]]]:
         """
-        Orchestrates the entire process of data collection: client initiation, 
+        Orchestrates the entire process of data collection: client initiation,
         response retrieval, structuring results, and storing results.
 
         Args:
             keyword (str): The search keyword.
             number_of_results (int): The number of search results to retrieve.
+            output_dir: Path to directory where the results will be stored.
             full_output (bool): Flag indicating whether to return the full output or just the URLs.
 
         Returns:
@@ -110,6 +126,8 @@ class SerpapiExtractor(DataCollector):
 
         client = self.initiate_client()
         response = self.retrieve_response(keyword, client, number_of_results)
-        structured_results = self.structure_results(response, client, full_output, keyword)
-        self.store_results(structured_results)
+        structured_results = self.structure_results(
+            response, client, full_output, keyword
+        )
+        self.store_results(structured_results, output_dir)
         return structured_results

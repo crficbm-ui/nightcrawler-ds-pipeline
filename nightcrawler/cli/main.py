@@ -13,7 +13,8 @@ from helpers import LOGGER_NAME
 logger = logging.getLogger(LOGGER_NAME)
 MODULES = [extractor, processor]
 
-def config_logs(args: List[str])-> None:
+
+def config_logs(args: List[str]) -> None:
     # Ensure log directory exists if a log file is specified
     if args.log_file:
         log_dir = os.path.dirname(args.log_file)
@@ -23,20 +24,26 @@ def config_logs(args: List[str])-> None:
     # Log management
     numeric_level = getattr(logging, args.log_level.upper(), None)
     if not isinstance(numeric_level, int):
-        raise ValueError(f"Invalid log level: {args.log_level}. Choose any of {', '.join([name for name in logging._nameToLevel.keys()][:-1])}")
+        raise ValueError(
+            f"Invalid log level: {args.log_level}. Choose any of {', '.join([name for name in logging._nameToLevel.keys()][:-1])}"
+        )
 
     # Remove all existing handlers to prevent duplicate logs
     logger.handlers.clear()
 
     # Always add a StreamHandler for logging to the terminal
     stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
+    stream_handler.setFormatter(
+        logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
+    )
     logger.addHandler(stream_handler)
 
     # Conditionally add a FileHandler if a log file is specified
     if args.log_file:
         file_handler = logging.FileHandler(args.log_file)
-        file_handler.setFormatter(logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s"))
+        file_handler.setFormatter(
+            logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
+        )
         logger.addHandler(file_handler)
 
     # Set the log level
@@ -44,6 +51,7 @@ def config_logs(args: List[str])-> None:
 
     # Example log statement
     logger.debug(args)
+
 
 def parse_args(args_: List[str]) -> argparse.Namespace:
     """

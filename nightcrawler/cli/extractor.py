@@ -6,6 +6,7 @@ from nightcrawler.extract.serp_api import SerpapiExtractor
 from nightcrawler.extract.zyte import ZyteExtractor
 
 from helpers.context import Context
+from helpers.utils import create_output_dir
 from helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -80,16 +81,30 @@ def apply(args: argparse.Namespace) -> None:
     """
     context = Context()
 
+    if args.extract != "zyte":
+        # create the output directory only if the full extract pipeline is run of if the serpapi step is performed
+        output_dir = create_output_dir(args.keyword, context.output_path)
+
     if not args.extract:
-        urls = SerpapiExtractor(context).apply(keyword = args.keyword, number_of_results = args.num_of_results)
-        ZyteExtractor(context).apply(urls)
+        urls = SerpapiExtractor(context).apply(
+            keyword=args.keyword,
+            number_of_results=args.num_of_results,
+            output_dir=output_dir,
+        )
+        ZyteExtractor(context).apply(urls, output_dir=output_dir)
 
     elif args.extract == "serpapi":
-        SerpapiExtractor(context).apply(keyword = args.keyword, number_of_results = args.num_of_results, full_output = args.full_output)
+        SerpapiExtractor(context).apply(
+            keyword=args.keyword,
+            number_of_results=args.num_of_results,
+            full_output=args.full_output,
+            output_dir=output_dir,
+        )
     elif args.extract == "zyte":
         with open(args.urlpath, "r") as file:
             urls = eval(file.read())
-        ZyteExtractor(context).apply(urls)
+        output_dir = "/".join(args.urlpath.split("/")[:-1])
+        ZyteExtractor(context).apply(urls, output_dir=output_dir)
 
     else:
         logger.error(f"{args} not yet implemented")

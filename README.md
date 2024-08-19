@@ -17,7 +17,7 @@ helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a
 helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.2"} #for using a tagged version from GitHub
 ```
 
-> **_NOTE:_**  As of today, 15.08.2025 the current and tested helpers tag is v0.0.2
+> **_NOTE:_**  As of today, 19.08.2025 the current and tested helpers tag is v0.1.1. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
 3. Create a virtual environment with Poetry and activate it.
 
@@ -81,7 +81,7 @@ python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first UR
 2. Collect only the parsed results from zyte (line 2 below):
 
 ```bash
-python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first URLs from serpapi for the keyword triofan
+python -m nightcrawler extract triofan -n=3 zyte <url_path>-- #collect the parsed results for keyword triofan from zyte
 ```
 ### Processing
 

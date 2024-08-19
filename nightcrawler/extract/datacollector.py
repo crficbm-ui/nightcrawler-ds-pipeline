@@ -6,6 +6,7 @@ from helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 
+
 class DataCollector(ABC):
     """
     Abstract base class that enforces methods to interact with an API, process its results,
@@ -33,7 +34,9 @@ class DataCollector(ABC):
         pass
 
     @abstractmethod
-    def retrieve_response(self, *args: Any, **kwargs: Any) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    def retrieve_response(
+        self, *args: Any, **kwargs: Any
+    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
         Makes the API calls to retrieve data.
 
@@ -47,7 +50,12 @@ class DataCollector(ABC):
         pass
 
     @abstractmethod
-    def structure_results(self, data: Union[Dict[str, Any], List[Dict[str, Any]]], *args: Any, **kwargs: Any) -> Union[List[str], List[Dict[str, Any]]]:
+    def structure_results(
+        self,
+        data: Union[Dict[str, Any], List[Dict[str, Any]]],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Union[List[str], List[Dict[str, Any]]]:
         """
         Processes and structures the raw API response data into the desired format.
 
@@ -62,7 +70,9 @@ class DataCollector(ABC):
         pass
 
     @abstractmethod
-    def store_results(self, structured_data: Union[List[str], List[Dict[str, Any]]]) -> None:
+    def store_results(
+        self, structured_data: Union[List[str], List[Dict[str, Any]]]
+    ) -> None:
         """
         Stores the structured data into the file system or another storage mechanism.
 
@@ -72,7 +82,9 @@ class DataCollector(ABC):
         pass
 
     @abstractmethod
-    def apply(self, *args: Any, **kwargs: Any) -> Union[List[str], List[Dict[str, Any]]]:
+    def apply(
+        self, *args: Any, **kwargs: Any
+    ) -> Union[List[str], List[Dict[str, Any]]]:
         """
         Orchestrates the entire process by calling the other methods in sequence:
         - initiate_client
