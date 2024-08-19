@@ -82,7 +82,7 @@ def apply(args: argparse.Namespace) -> None:
     context = Context()
 
     if args.extract != "zyte":
-        # create the output directory only if the full extract pipeline is run of if the serpapi step is performed
+        # create the output directory only if the full extract pipeline is run or if the serpapi extraction is performed as a single step
         output_dir = create_output_dir(args.keyword, context.output_path)
 
     if not args.extract:
