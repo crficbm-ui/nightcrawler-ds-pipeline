@@ -1,5 +1,13 @@
-from nightcrawler.contex import Context
+import argparse
+import logging
+
+from typing import List
 from nightcrawler.process.dataprocessor import DataProcessor
+from helpers import LOGGER_NAME
+from helpers.context import Context
+
+logger = logging.getLogger(LOGGER_NAME)
+
 
 def parser_name() -> str:
     """
@@ -10,7 +18,9 @@ def parser_name() -> str:
     """
     return "process"
 
-def add_parser(subparsers: argparse._SubParsersAction, parents_: List[argparse.ArgumentParser]) -> argparse.ArgumentParser:
+def add_parser(
+        subparsers: argparse._SubParsersAction, parents_: List[argparse.ArgumentParser]
+               ) -> argparse.ArgumentParser:
     """
     Adds the 'process' parser and its subparsers to the given subparsers collection.
 
@@ -27,21 +37,27 @@ def add_parser(subparsers: argparse._SubParsersAction, parents_: List[argparse.A
         help="process calls the processor class",
         parents=parents,
     )
-    parser.add_argument("urlspath", help="Indicates the URL path to be produced through the processor")
+    #parser.add_argument("processorpath", help="Indicates the URL path to be produced through the processor")
 
-    subparser = parser.add_subparsers(help="Modules", dest="process", required=True)
+    subparser = parser.add_subparsers(help="Modules", dest="process", required=False)
 
     country = subparser.add_parser(
         "country",
         help="Processes URLs using a country specific pipeline",
         parents=parents,
     )
-    country.add_argument("country", help="country used from set [CH,AT,CL]")
+    country.add_argument("country", help="country used from set [CH,AT,CL]",
+                         choices=["CH", "AT", "CL"])  # Restrict to the specified choices)
+
+    country.add_argument("countryinputpath",
+                         help="Filepath to be produced by zyte and consumed by country filter",
+                         nargs="?",  # Makes this argument optional
+                         )
 
     return parser
 
 
-def apply(args):
+def apply(args: argparse.Namespace) -> None:
     """
     Applies the functionality specified by the parsed command-line arguments.
 
@@ -49,8 +65,17 @@ def apply(args):
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
-    dp_client = DataProcessor()
-    if args.extract == "country":
-        processed_urls = dp_client.process_urls_from_datacollector(country=args.country)
-        # logging.info(processed_urls)
 
+    # Individual components run through CLI: COUNTRY
+    if args.process == "country":
+        if not args.countryinputpath:
+            logger.error(f"No country input path argument was provided (zyte output). No can do amigo")
+        else:
+            DataProcessor(context).step_country_filtering(country=args.country, urlpath=args.countryinputpath)
+
+    # Fill pipeline
+    elif not args.extract:
+        DataProcessor(context).apply_pipeline()
+
+    else:
+        logger.error(f"{args} not yet implemented")

@@ -1,8 +1,10 @@
-
+import os
+import json
 import logging
 
-from typing import List
-from nightcrawler.contex import Context
+from typing import List, Dict, Union, Any
+from helpers.context import Context
+from ..process.filter_swiss_result import filter_per_country_results
 
 class DataProcessor:
     """
@@ -14,7 +16,7 @@ class DataProcessor:
 
     _entity_name = __qualname__  # type: ignore
 
-    def __init__(self):
+    def __init__(self, context: Context) -> None:
         """
         Initializes the DataProcessor with the given context.
 
@@ -24,27 +26,36 @@ class DataProcessor:
         logging.info(f"Initializing data collection : {self._entity_name}")
         self.context = Context()
 
-        processed_urls = dp_client.process_urls_from_datacollector(country=args.country)
 
-    def full_pipeline(self, urls:List[str], num_of_results: int):
+    def step_country_filtering(self, country: str = "", urlpath: str = "") -> List[Dict[str, str]]:
+        """
+        Filters results based on the specified country and returns the filtered data. This method filters results
+        according to the provided country and URL path. If no URL path is provided, it defaults to test data from the
+        repository.
+
+        Args:
+            country (str, optional): The country code used to filter results. Defaults to an empty string.
+            urlpath (str, optional): The path to the JSON file containing the raw data to be processed. If not provided,
+            the method uses `self.zyte_filename`. Defaults to an empty string.
+
+        Returns:
+            country_filtered_results (List[Dict[str, str]]): A list of dictionaries representing the filtered results
+            for the specified country.
+        """
+        if not urlpath:
+            # TODO: url what happens in the exception that no path is provided?
+            # TODO: Make sure with unit tests that you cannot get this far. You should not be able to.
+            urlpath = self.zyte_filename
+
+        country_filtered_results = filter_per_country_results(self.context, country, urlpath)
+        return country_filtered_results
+
+    def apply_pipeline(self, urls: List[Dict[str, str]]):
+        # TODO: Depending in the arguments, we run a full pipeline
         """
         Performs data processing.
 
         Args:
             keyword (str): The keyword to search for.
         """
-        urls = self.extract_serpapi(keyword=keyword, full_output=False, num_of_results= num_of_results)
-        results = self.extract_zyte(urls=urls)
-        return results
-
-    def process_urls_from_datacollector(self, urlpath: str = "") -> List[dict]:
-        # TODO: implement data proessing
-        print('testing here')
-        if not urlpath:
-            urlpath = self.context.processing_country_filter_output_path
-
-        with open(urlpath, "r") as file:
-            urls = file.read()
-        results = [{"url": url, "title": "xxx"} for url in urls]
-        write_json(self.context.output_path, self.context.diffbot_filename, results)
-        return results
+        pass

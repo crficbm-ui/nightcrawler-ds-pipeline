@@ -83,6 +83,13 @@ python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first UR
 ```bash
 python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first URLs from serpapi for the keyword triofan
 ```
+### Processing
+
+```bash
+python -m nightcrawler process country CH zyte_urls_2026-09-08_12-23-10 --log-level DEBUG
+```
+
+
 
 ## Development settings
 ### Configuration

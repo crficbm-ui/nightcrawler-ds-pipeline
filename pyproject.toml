@@ -2,7 +2,8 @@
 name = "nightcrawler-ds-pipeline"
 version = "v0.0.1"
 description = ""
-authors = ["alho94 <alexander.horst@swissmedic.ch>"]
+authors = ["alho94 <alexander.horst@swissmedic.ch>",
+           "nicoapg <nicolas.perezgonzalez@swissmedic.ch>"]
 readme = "README.md"
 packages = [{include = "nightcrawler"}]
 
@@ -10,6 +11,7 @@ packages = [{include = "nightcrawler"}]
 python = "~3.10"
 python-dotenv = "^1.0.1"
 helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.0"}
+
 
 [build-system]
 requires = ["poetry-core"]
