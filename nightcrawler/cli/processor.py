@@ -18,9 +18,10 @@ def parser_name() -> str:
     """
     return "process"
 
+
 def add_parser(
-        subparsers: argparse._SubParsersAction, parents_: List[argparse.ArgumentParser]
-               ) -> argparse.ArgumentParser:
+    subparsers: argparse._SubParsersAction, parents_: List[argparse.ArgumentParser]
+) -> argparse.ArgumentParser:
     """
     Adds the 'process' parser and its subparsers to the given subparsers collection.
 
@@ -37,7 +38,7 @@ def add_parser(
         help="process calls the processor class",
         parents=parents,
     )
-    #parser.add_argument("processorpath", help="Indicates the URL path to be produced through the processor")
+    # parser.add_argument("processorpath", help="Indicates the URL path to be produced through the processor")
 
     subparser = parser.add_subparsers(help="Modules", dest="process", required=False)
 
@@ -47,10 +48,11 @@ def add_parser(
         parents=parents,
     )
 
-    country.add_argument("countryinputpath",
-                         help="Filepath to be produced by zyte and consumed by country filter",
-                         nargs="?",  # Makes this argument optional
-                         )
+    country.add_argument(
+        "countryinputpath",
+        help="Filepath to be produced by zyte and consumed by country filter",
+        nargs="?",  # Makes this argument optional
+    )
 
     return parser
 
@@ -67,9 +69,13 @@ def apply(args: argparse.Namespace) -> None:
     # Individual components run through CLI: COUNTRY
     if args.process == "country":
         if not args.countryinputpath:
-            logger.error("No country input path argument was provided (zyte output). No can do amigo")
+            logger.error(
+                "No country input path argument was provided (zyte output). No can do amigo"
+            )
         else:
-            DataProcessor(context).step_country_filtering(country=args.country, urlpath=args.countryinputpath)
+            DataProcessor(context).step_country_filtering(
+                country=args.country, urlpath=args.countryinputpath
+            )
 
     # Fill pipeline
     elif not args.extract:

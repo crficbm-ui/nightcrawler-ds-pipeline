@@ -14,6 +14,7 @@ from helpers import LOGGER_NAME
 logger = logging.getLogger(LOGGER_NAME)
 MODULES = [extractor, processor, fullrun]
 
+
 def config_logs(args: List[str]) -> None:
     # Ensure log directory exists if a log file is specified
     if args.log_file:

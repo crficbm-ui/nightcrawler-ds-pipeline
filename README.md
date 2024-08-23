@@ -17,7 +17,7 @@ helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a
 helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.2"} #for using a tagged version from GitHub
 ```
 
-> **_NOTE:_**  As of today, 19.08.2025 the current and tested helpers tag is v0.1.1. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
+> **_NOTE:_**  As of today, 23.08.2025 the current and tested helpers tag is v0.1.2. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
 3. Create a virtual environment with Poetry and activate it.
 
@@ -75,7 +75,7 @@ python -m nightcrawler extract aspirin #full extraction with keyword 'aspirin'
 python -m nightcrawler extract aspirin -n=3 #full extraction with keyword 'aspirin' for the first 3 entries
 
 ```
-Running the extraction pipeline will log the results in the terminal (with default logging which is `--log-level INFO`) and store the scraped content into `./data/output/<extraction_step>_<timespamp>.json`.
+Running the extraction pipeline will log the results in the terminal (with default logging which is `--log-level INFO`) and store the scraped content into `./data/output/<extraction_step>_<timespamp>_<user>.json`.
 
 
 If you prefer, you can run the pipeline for a single extraction step:
@@ -87,7 +87,7 @@ python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first UR
 2. Collect only the parsed results from zyte (line 2 below):
 
 ```bash
-python -m nightcrawler extract triofan -n=3 zyte <url_path>-- #collect the parsed results for keyword triofan from zyte
+python -m nightcrawler extract triofan -n=3 zyte <url_path>-- #collect the parsed results for keyword triofan from zyte. the url path should reference to the results of the previous step, typically in ./data/output/<timestamp>_<keyword>_<user>
 ```
 ### Processing
 

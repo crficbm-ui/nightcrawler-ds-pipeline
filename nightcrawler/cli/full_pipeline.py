@@ -11,6 +11,7 @@ from helpers.utils import create_output_dir
 
 logger = logging.getLogger(LOGGER_NAME)
 
+
 def parser_name() -> str:
     """
     Returns the name of the parser.
@@ -20,9 +21,10 @@ def parser_name() -> str:
     """
     return "fullrun"
 
+
 def add_parser(
-        subparsers: argparse._SubParsersAction, parents_: List[argparse.ArgumentParser]
-               ) -> argparse.ArgumentParser:
+    subparsers: argparse._SubParsersAction, parents_: List[argparse.ArgumentParser]
+) -> argparse.ArgumentParser:
     """
     Adds the 'fullrun' parser and its subparsers to the given subparsers collection.
 
@@ -48,6 +50,7 @@ def add_parser(
 
     return parser
 
+
 def apply(args: argparse.Namespace) -> None:
     """
     Applies the full pipeline, combining extraction and processing.
@@ -71,9 +74,11 @@ def apply(args: argparse.Namespace) -> None:
 
     # Step 3: Process the results using DataProcessor based on the country
     if args.country:
-        DataProcessor(context).step_country_filtering(country=args.country, urlpath=output_dir.split("/")[-1])
+        DataProcessor(context).step_country_filtering(
+            country=args.country, urlpath=output_dir.split("/")[-1]
+        )
     else:
-        #TODO implement full run across countries
+        # TODO implement full run across countries
         logger.error("No country argument provided. Cannot proceed with processing.")
 
     logger.info("Full pipeline executed successfully.")
