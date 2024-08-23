@@ -3,26 +3,28 @@ import logging
 
 from typing import List
 from nightcrawler.process.dataprocessor import DataProcessor
+from nightcrawler.extract.serp_api import SerpapiExtractor
+from nightcrawler.extract.zyte import ZyteExtractor
 from helpers import LOGGER_NAME
 from helpers.context import Context
+from helpers.utils import create_output_dir
 
 logger = logging.getLogger(LOGGER_NAME)
-
 
 def parser_name() -> str:
     """
     Returns the name of the parser.
 
     Returns:
-        str: The name of the parser, 'full_pipeline'.
+        str: The name of the parser, 'fullrun'.
     """
-    return "full_pipeline"
+    return "fullrun"
 
 def add_parser(
         subparsers: argparse._SubParsersAction, parents_: List[argparse.ArgumentParser]
                ) -> argparse.ArgumentParser:
     """
-    Adds the 'full_pipeline' parser and its subparsers to the given subparsers collection.
+    Adds the 'fullrun' parser and its subparsers to the given subparsers collection.
 
     Args:
         subparsers (argparse._SubParsersAction): The subparsers collection to add to.
@@ -34,47 +36,57 @@ def add_parser(
     parents = parents_
     parser = subparsers.add_parser(
         parser_name(),
-        help="process calls the processor class",
+        help="Run the full pipeline from extraction to processing",
         parents=parents,
     )
 
-    subparser = parser.add_subparsers(help="Modules", dest="process", required=False)
-
-    country = subparser.add_parser(
-        "country",
-        help="Processes URLs using a country specific pipeline",
-        parents=parents,
+    parser.add_argument("keyword", help="Keyword to search for")
+    parser.add_argument(
+        "-n",
+        "--num-of-results",
+        help="Set the number of results you want to include from Serpapi (default: %(default)s)",
+        default=50,
+        type=int,
     )
-    country.add_argument("keyword", help="country used from given set",
-                         choices=["CH", "AT", "CL"])  # Restrict to the specified choices)
-
-    country.add_argument("countryinputpath",
-                         help="Filepath to be produced by zyte and consumed by country filter",
-                         nargs="?",  # Makes this argument optional
-                         )
+    parser.add_argument(
+        "--country",
+        help="Country to use for processing (CH, AT, CL)",
+        choices=["CH", "AT", "CL"],
+    )
+    parser.add_argument(
+        "--full-output",
+        action="store_true",
+        help="Set this argument if you want to see the full results rather than only the URLs provided by SerpAPI. (default: %(default)s)",
+    )
 
     return parser
 
-
 def apply(args: argparse.Namespace) -> None:
     """
-    Applies the functionality specified by the parsed command-line arguments.
+    Applies the full pipeline, combining extraction and processing.
 
     Args:
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
 
-    # Individual components run through CLI: COUNTRY
-    if args.process == "country":
-        if not args.countryinputpath:
-            logger.error("No country input path argument was provided (zyte output). No can do amigo")
-        else:
-            DataProcessor(context).step_country_filtering(country=args.country, urlpath=args.countryinputpath)
+    # Step 1: Extract URLs using Serpapi
+    output_dir = create_output_dir(args.keyword, context.output_path)
+    urls = SerpapiExtractor(context).apply(
+        keyword=args.keyword,
+        number_of_results=args.num_of_results,
+        full_output=args.full_output,
+        output_dir=output_dir,
+    )
 
-    # Fill pipeline
-    elif not args.extract:
-        DataProcessor(context).apply()
+    # Step 2: Use Zyte to process the URLs further
+    ZyteExtractor(context).apply(urls, output_dir=output_dir)
 
+    # Step 3: Process the results using DataProcessor based on the country
+    if args.country:
+        DataProcessor(context).step_country_filtering(country=args.country, urlpath=output_dir.split("/")[-1])
     else:
-        logger.error(f"{args} not yet implemented")
+        #TODO implement full run across countries
+        logger.error("No country argument provided. Cannot proceed with processing.")
+
+    logger.info("Full pipeline executed successfully.")

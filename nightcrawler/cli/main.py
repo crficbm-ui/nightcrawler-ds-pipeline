@@ -6,12 +6,13 @@ from typing import List
 
 import nightcrawler.cli.extractor as extractor
 import nightcrawler.cli.processor as processor
+import nightcrawler.cli.full_pipeline as fullrun
 import nightcrawler.cli.version
 
 from helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
-MODULES = [extractor, processor]
+MODULES = [extractor, processor, fullrun]
 
 
 def config_logs(args: List[str]) -> None:

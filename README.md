@@ -61,6 +61,12 @@ The processing steps are one of the following:
 - process -> merge all sources into one single file
 - ...
 
+### Full Pipeline Run
+To perform a full pipeline run end-to-end (and what ultimatelly will be deploey via Azure functions), run:
+
+```bash
+python -m nightcrawler fullrun viagra -n=3 --country=CH
+```
 
 ### Extraction
 To run the full extraction pipeline you can use any of the following commands:
