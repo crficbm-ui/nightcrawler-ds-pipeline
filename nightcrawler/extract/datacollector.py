@@ -8,9 +8,9 @@ logger = logging.getLogger(LOGGER_NAME)
 
 class DataCollector(ABC):
     """
-    Abstract base class that enforces methods to interact with an API, process its results, 
+    Abstract base class that enforces methods to interact with an API, process its results,
     and store the data. Subclasses should implement the following methods:
-    
+
         - initiate_client: Initiate the API client.
         - retrieve_response: Make the API calls and retrieve data.
         - structure_results: Postprocess the API results into the desired format.
@@ -31,7 +31,7 @@ class DataCollector(ABC):
             Any: An initialized API client instance.
         """
         pass
-    
+
     @abstractmethod
     def retrieve_response(self, *args: Any, **kwargs: Any) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
         """
@@ -40,32 +40,32 @@ class DataCollector(ABC):
         Args:
             *args (Any): Positional arguments required by the API call.
             **kwargs (Any): Keyword arguments required by the API call.
-        
+
         Returns:
             Union[Dict[str, Any], List[Dict[str, Any]]]: The raw response data from the API, either as a dictionary or a list of dictionaries.
         """
         pass
-    
+
     @abstractmethod
     def structure_results(self, data: Union[Dict[str, Any], List[Dict[str, Any]]], *args: Any, **kwargs: Any) -> Union[List[str], List[Dict[str, Any]]]:
         """
         Processes and structures the raw API response data into the desired format.
-        
+
         Args:
             data (Union[Dict[str, Any], List[Dict[str, Any]]]): The raw data returned from the API.
             *args (Any): Additional positional arguments for structuring the data.
             **kwargs (Any): Additional keyword arguments for structuring the data.
-        
+
         Returns:
             Union[List[str], List[Dict[str, Any]]]: The structured and processed data, either as a list of URLs (strings) or a list of dictionaries.
         """
         pass
-    
+
     @abstractmethod
     def store_results(self, structured_data: Union[List[str], List[Dict[str, Any]]]) -> None:
         """
         Stores the structured data into the file system or another storage mechanism.
-        
+
         Args:
             structured_data (Union[List[str], List[Dict[str, Any]]]): The processed data that needs to be stored, either as a list of URLs or a list of dictionaries.
         """
@@ -83,7 +83,7 @@ class DataCollector(ABC):
         Args:
             *args (Any): Positional arguments required for the process.
             **kwargs (Any): Keyword arguments required for the process.
-        
+
         Returns:
             Union[List[str], List[Dict[str, Any]]]: The final structured results.
         """
