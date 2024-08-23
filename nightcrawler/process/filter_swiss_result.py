@@ -1,7 +1,7 @@
 from typing import Dict, List
 from helpers.utils import read_json, write_json, evaluate_not_na
 
-def filter_per_country_results(context, country: str, urlpath: str) -> List[Dict]:
+def filter_per_country_results(context, country: str, input_dir_name: str) -> List[Dict]:
     """
     Filters and processes results based on the specified country and writes the filtered results to a designated output
     path.
@@ -13,20 +13,21 @@ def filter_per_country_results(context, country: str, urlpath: str) -> List[Dict
     Args:
         context (object): The context object containing paths for input and output processing.
         country (str): The country code to filter results by.
-        urlpath (str): The path to the JSON file containing the raw URLs to be processed.
+        input_dir_name (str): The dynamically constracted name of the directory containing the raw JSON files with the URLs to be processed.
 
     Returns:
-        country_filtered_results (List[Dict]): filtered results based on the chosen country
+        filtered_results (List[Dict]): filtered results based on the chosen country
     """
     #TODO: Add the KEYWORD FILTER - input is NOT ZYTE - it is keyword filter.
-    raw_json_urls = read_json(context.output_path, urlpath)
+    raw_json_urls = read_json(f"{context.output_path}/{input_dir_name}", context.zyte_filename)
     raw_results = _add_individual_features_swiss_url(raw_json_urls)
-    write_json(context.processing_output_path, context.step_country_raw_output_path, raw_results)
+    write_json(f"{context.output_path}/{input_dir_name}", context.processing_filename_raw, raw_results)
 
     if country == "CH":
         country_filtered_results = [item for item in raw_results if item["result_sold_CH"]]
+        write_json(f"{context.output_path}/{input_dir_name}", context.processing_filename_filtered, country_filtered_results)
 
-    write_json(context.processing_output_path, context.step_country_filter_output_path, country_filtered_results)
+    
     return country_filtered_results
 
 def _add_individual_features_swiss_url(raw_json_urls: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -48,6 +49,8 @@ def _add_individual_features_swiss_url(raw_json_urls: List[Dict[str, str]]) -> L
              ]
     web_extensions = ['.ch', 'ch.']
     price_swiss_francs = ['CHF', 'SFr']
+
+    print(raw_json_urls)
 
     CH_processed_json = [{**url_item, "ch-de_in_url": _is_substring_in_column(url_item["url"], languages)}
                          for url_item in raw_json_urls]
