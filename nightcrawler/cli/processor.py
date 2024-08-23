@@ -38,17 +38,8 @@ def add_parser(
         help="process calls the processor class",
         parents=parents,
     )
-    # parser.add_argument("processorpath", help="Indicates the URL path to be produced through the processor")
 
-    subparser = parser.add_subparsers(help="Modules", dest="process", required=False)
-
-    country = subparser.add_parser(
-        "country",
-        help="Processes URLs using a country specific pipeline",
-        parents=parents,
-    )
-
-    country.add_argument(
+    parser.add_argument(
         "countryinputpath",
         help="Filepath to be produced by zyte and consumed by country filter",
         nargs="?",  # Makes this argument optional
@@ -67,7 +58,7 @@ def apply(args: argparse.Namespace) -> None:
     context = Context()
 
     # Individual components run through CLI: COUNTRY
-    if args.process == "country":
+    if args.country:
         if not args.countryinputpath:
             logger.error(
                 "No country input path argument was provided (zyte output). No can do amigo"
@@ -77,9 +68,6 @@ def apply(args: argparse.Namespace) -> None:
                 country=args.country, urlpath=args.countryinputpath
             )
 
-    # Fill pipeline
-    elif not args.extract:
-        DataProcessor(context).apply()
-
     else:
-        logger.error(f"{args} not yet implemented")
+        # Full pipeline
+        DataProcessor(context).apply()

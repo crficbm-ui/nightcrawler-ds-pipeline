@@ -2655,7 +2655,7 @@ description = ""
 optional = false
 python-versions = "~3.10"
 files = []
-develop = true
+develop = false
 
 [package.dependencies]
 black = {version = "^24.4.2", extras = ["jupyter"]}
@@ -2680,8 +2680,10 @@ seaborn = "^0.13.2"
 serpapi = "^0.1.5"
 
 [package.source]
-type = "directory"
-url = "../nightcrawler-ds-helpers"
+type = "git"
+url = "https://github.com/smc40/nightcrawler-ds-helpers"
+reference = "v0.1.2"
+resolved_reference = "135a223c5704494fff546918dd05d8164629266a"
 
 [[package]]
 name = "html2text"
@@ -7330,4 +7332,4 @@ test = ["zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "44c17603263aa8f4b605b83e9b628934dcb1380ae5e1101985082f8b59dd8f95"
+content-hash = "492c09e161f3778b8ef034286ca5b94119c8450d61bf2e6e4d7111db09b48b01"

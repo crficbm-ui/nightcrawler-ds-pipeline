@@ -81,7 +81,6 @@ class ZyteExtractor(DataCollector):
         results = []
         for response in responses:
             product = response.get("product", {})
-            logger.error(product)
             results.append(
                 {
                     "url": product.get("url", ""),

@@ -76,9 +76,8 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         version=nightcrawler.cli.version.__version__,
     )
 
-    # Define the parent parser for common arguments
+    # Define the parent parser for common arguments, without keyword
     common_parser = argparse.ArgumentParser(add_help=False)
-    common_parser.add_argument("keyword", help="Keyword to search for")
     common_parser.add_argument(
         "-n",
         "--num-of-results",
@@ -86,10 +85,13 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         default=50,
         type=int,
     )
+
     common_parser.add_argument(
         "--country",
-        help="Country to use for processing (CH, AT, CL)",
         choices=["CH", "AT", "CL"],
+        required=False,
+        default=None,
+        help="Processes URLs using a country specific pipeline",
     )
 
     parser = argparse.ArgumentParser(
@@ -97,8 +99,13 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
     )
     subparsers = parser.add_subparsers(help="Modules", dest="module", required=True)
 
+    # Add parsers for each module
     for module in MODULES:
-        module.add_parser(subparsers, [global_parser, common_parser])
+        module_parser = module.add_parser(subparsers, [global_parser, common_parser])
+
+        # Add the keyword argument only if the module is "extract"
+        if module.parser_name() in ["extract", "fullrun"]:
+            module_parser.add_argument("keyword", help="Keyword to search for")
 
     args = parser.parse_args(args_)
 

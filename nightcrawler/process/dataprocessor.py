@@ -60,8 +60,11 @@ class DataProcessor:
 
         return country_filtered_results
 
-    def apply(self, urls: List[Dict[str, str]]):
+    def apply(self, urls: List[Dict[str, str]] = list({})):
         # TODO: Depending in the arguments, we run a full pipeline
+        logger.error(
+            "Full processor pipeline not yet implemented, for the time being use the '--country=CH' argument"
+        )
         """
         Performs data processing.
 

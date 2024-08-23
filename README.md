@@ -65,8 +65,14 @@ The processing steps are one of the following:
 To perform a full pipeline run end-to-end (and what ultimatelly will be deploey via Azure functions), run:
 
 ```bash
+python -m nightcrawler fullrun viagra -n=3
+```
+
+To run the pipeline and filter only for a given country run:
+```bash
 python -m nightcrawler fullrun viagra -n=3 --country=CH
 ```
+
 
 ### Extraction
 To run the full extraction pipeline you can use any of the following commands:
@@ -81,18 +87,23 @@ Running the extraction pipeline will log the results in the terminal (with defau
 If you prefer, you can run the pipeline for a single extraction step:
 1. Collect only the URLs from serpapi: 
 ```bash
-python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first URLs from serpapi for the keyword triofan
+python -m nightcrawler extract triofan -n=3 --step=serpapi  #collect only the 3 first URLs from serpapi for the keyword triofan
 ```
 
 2. Collect only the parsed results from zyte (line 2 below):
 
 ```bash
-python -m nightcrawler extract triofan -n=3 zyte <url_path>-- #collect the parsed results for keyword triofan from zyte. the url path should reference to the results of the previous step, typically in ./data/output/<timestamp>_<keyword>_<user>
+python -m nightcrawler extract triofan -n=3 --step=zyte --urlpath=<url_path>-- #collect the parsed results for keyword triofan from zyte. the url path should reference to the results of the previous step, typically in ./data/output/<timestamp>_<keyword>_<user>
 ```
 ### Processing
-
+Process a all files:
 ```bash
-python -m nightcrawler process country CH zyte_urls_2026-09-08_12-23-10 --log-level DEBUG
+python -m nightcrawler process 20240823_210829_triofan_defaultuser
+```
+
+Process files only for a given country:
+```bash
+python -m nightcrawler process --country=CH 20240823_210829_triofan_defaultuser
 ```
 
 
