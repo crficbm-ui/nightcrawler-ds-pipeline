@@ -25,7 +25,7 @@ def filter_per_country_results(context, country: str, input_dir_name: str) -> Li
 
     if country == "CH":
         country_filtered_results = [item for item in raw_results if item["result_sold_CH"]]
-        write_json(f"{context.output_path}/{input_dir_name}", context.processing_filename_filtered, country_filtered_results)
+        write_json(f"{context.output_path}/{input_dir_name}", context.processing_filename_filtered.replace("country",country), country_filtered_results)
 
     
     return country_filtered_results

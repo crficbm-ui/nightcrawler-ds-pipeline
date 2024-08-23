@@ -40,19 +40,6 @@ def add_parser(
         parents=parents,
     )
 
-    parser.add_argument("keyword", help="Keyword to search for")
-    parser.add_argument(
-        "-n",
-        "--num-of-results",
-        help="Set the number of results you want to include from Serpapi (default: %(default)s)",
-        default=50,
-        type=int,
-    )
-    parser.add_argument(
-        "--country",
-        help="Country to use for processing (CH, AT, CL)",
-        choices=["CH", "AT", "CL"],
-    )
     parser.add_argument(
         "--full-output",
         action="store_true",

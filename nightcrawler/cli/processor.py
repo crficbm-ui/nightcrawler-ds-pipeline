@@ -46,8 +46,6 @@ def add_parser(
         help="Processes URLs using a country specific pipeline",
         parents=parents,
     )
-    country.add_argument("country", help="country used from given set",
-                         choices=["CH", "AT", "CL"])  # Restrict to the specified choices)
 
     country.add_argument("countryinputpath",
                          help="Filepath to be produced by zyte and consumed by country filter",

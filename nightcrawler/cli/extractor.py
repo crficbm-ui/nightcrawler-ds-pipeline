@@ -41,13 +41,6 @@ def add_parser(
         help="extract calls the extractor class",
         parents=parents,
     )
-    parser.add_argument("keyword", help="Keyword to search for")
-    parser.add_argument(
-        "-n",
-        "--num-of-results",
-        help="Set the number of results your want to include from serpapi %(default)s",
-        default=50,
-    )
 
     subparser = parser.add_subparsers(help="Modules", dest="extract", required=False)
 

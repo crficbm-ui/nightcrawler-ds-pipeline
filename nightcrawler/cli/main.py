@@ -14,7 +14,6 @@ from helpers import LOGGER_NAME
 logger = logging.getLogger(LOGGER_NAME)
 MODULES = [extractor, processor, fullrun]
 
-
 def config_logs(args: List[str]) -> None:
     # Ensure log directory exists if a log file is specified
     if args.log_file:
@@ -22,24 +21,20 @@ def config_logs(args: List[str]) -> None:
         if log_dir and not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
-    # Log management
     numeric_level = getattr(logging, args.log_level.upper(), None)
     if not isinstance(numeric_level, int):
         raise ValueError(
             f"Invalid log level: {args.log_level}. Choose any of {', '.join([name for name in logging._nameToLevel.keys()][:-1])}"
         )
 
-    # Remove all existing handlers to prevent duplicate logs
     logger.handlers.clear()
 
-    # Always add a StreamHandler for logging to the terminal
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(
         logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
     )
     logger.addHandler(stream_handler)
 
-    # Conditionally add a FileHandler if a log file is specified
     if args.log_file:
         file_handler = logging.FileHandler(args.log_file)
         file_handler.setFormatter(
@@ -47,10 +42,7 @@ def config_logs(args: List[str]) -> None:
         )
         logger.addHandler(file_handler)
 
-    # Set the log level
     logger.setLevel(numeric_level)
-
-    # Example log statement
     logger.debug(args)
 
 
@@ -64,7 +56,6 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
     Returns:
         argparse.Namespace: Parsed arguments as a namespace object.
     """
-    # Create global parser for logs
     global_parser = argparse.ArgumentParser(add_help=False)
     group = global_parser.add_argument_group("Global options")
     group.add_argument(
@@ -84,13 +75,29 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         version=nightcrawler.cli.version.__version__,
     )
 
+    # Define the parent parser for common arguments
+    common_parser = argparse.ArgumentParser(add_help=False)
+    common_parser.add_argument("keyword", help="Keyword to search for")
+    common_parser.add_argument(
+        "-n",
+        "--num-of-results",
+        help="Set the number of results you want to include from Serpapi (default: %(default)s)",
+        default=50,
+        type=int,
+    )
+    common_parser.add_argument(
+        "--country",
+        help="Country to use for processing (CH, AT, CL)",
+        choices=["CH", "AT", "CL"],
+    )
+
     parser = argparse.ArgumentParser(
         description="Nightcrawler", parents=[global_parser]
     )
     subparsers = parser.add_subparsers(help="Modules", dest="module", required=True)
 
     for module in MODULES:
-        module.add_parser(subparsers, [global_parser])
+        module.add_parser(subparsers, [global_parser, common_parser])
 
     args = parser.parse_args(args_)
 
