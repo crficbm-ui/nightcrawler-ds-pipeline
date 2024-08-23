@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union
+from typing import Dict, List
 from helpers.utils import read_json, write_json, evaluate_not_na
 
 def filter_per_country_results(context, country: str, urlpath: str) -> List[Dict]:
@@ -20,14 +20,16 @@ def filter_per_country_results(context, country: str, urlpath: str) -> List[Dict
     """
     #TODO: Add the KEYWORD FILTER - input is NOT ZYTE - it is keyword filter.
     raw_json_urls = read_json(context.output_path, urlpath)
-    country_filtered_results = _add_feature_result_from_switzerland(raw_json_urls)
+    raw_results = _add_individual_features_swiss_url(raw_json_urls)
+    write_json(context.processing_output_path, context.step_country_raw_output_path, raw_results)
+
     if country == "CH":
-        country_filtered_results = [item for item in country_filtered_results if item["result_sold_CH"] == True]
+        country_filtered_results = [item for item in raw_results if item["result_sold_CH"]]
 
     write_json(context.processing_output_path, context.step_country_filter_output_path, country_filtered_results)
     return country_filtered_results
 
-def _add_feature_result_from_switzerland(raw_json_urls: List[Dict[str, str]]) -> List[Dict[str, str]]:
+def _add_individual_features_swiss_url(raw_json_urls: List[Dict[str, str]]) -> List[Dict[str, str]]:
     """
     Verifies for relevant features that characterize a product sold in CH and then evaluates a decision if this
     product is actually SOLD in CH.

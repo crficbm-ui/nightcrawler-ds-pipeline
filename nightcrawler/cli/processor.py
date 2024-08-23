@@ -46,7 +46,7 @@ def add_parser(
         help="Processes URLs using a country specific pipeline",
         parents=parents,
     )
-    country.add_argument("country", help="country used from set [CH,AT,CL]",
+    country.add_argument("country", help="country used from given set",
                          choices=["CH", "AT", "CL"])  # Restrict to the specified choices)
 
     country.add_argument("countryinputpath",
@@ -69,13 +69,13 @@ def apply(args: argparse.Namespace) -> None:
     # Individual components run through CLI: COUNTRY
     if args.process == "country":
         if not args.countryinputpath:
-            logger.error(f"No country input path argument was provided (zyte output). No can do amigo")
+            logger.error("No country input path argument was provided (zyte output). No can do amigo")
         else:
             DataProcessor(context).step_country_filtering(country=args.country, urlpath=args.countryinputpath)
 
     # Fill pipeline
     elif not args.extract:
-        DataProcessor(context).apply_pipeline()
+        DataProcessor(context).apply()
 
     else:
         logger.error(f"{args} not yet implemented")

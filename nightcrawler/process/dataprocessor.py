@@ -1,10 +1,11 @@
-import os
-import json
 import logging
 
-from typing import List, Dict, Union, Any
+from typing import List, Dict
 from helpers.context import Context
 from ..process.filter_swiss_result import filter_per_country_results
+from helpers import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 
 class DataProcessor:
     """
@@ -23,7 +24,6 @@ class DataProcessor:
         Args:
             context (Context): The context object containing configuration and settings.
         """
-        logging.info(f"Initializing data collection : {self._entity_name}")
         self.context = Context()
 
 
@@ -42,15 +42,19 @@ class DataProcessor:
             country_filtered_results (List[Dict[str, str]]): A list of dictionaries representing the filtered results
             for the specified country.
         """
+
         if not urlpath:
             # TODO: url what happens in the exception that no path is provided?
             # TODO: Make sure with unit tests that you cannot get this far. You should not be able to.
             urlpath = self.zyte_filename
 
         country_filtered_results = filter_per_country_results(self.context, country, urlpath)
+        if len(country_filtered_results)==0:
+            logger.warning("After filtering per country variable, no results move further in the pipeline")
+
         return country_filtered_results
 
-    def apply_pipeline(self, urls: List[Dict[str, str]]):
+    def apply(self, urls: List[Dict[str, str]]):
         # TODO: Depending in the arguments, we run a full pipeline
         """
         Performs data processing.
