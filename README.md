@@ -149,6 +149,35 @@ Ruff also provides a formatting tool that should be run prior commiting changes:
 ruff format
 ``` 
 
+## Testing
+Currently two kind of tests are implemented, both using the pytest package:
+
+### Smoke tests
+Smoke tests are used to test the pipeline end-to-end. For the CLI, we want to run the full pipeline with the keyword 'aspirin'. The smoke tests mimiks the following command:
+
+``` bash
+python -m nightcrawler fullrun aspirin -n=1
+``` 
+
+After running the whole pipeline, the test tests for the following conditions:
+1. The logs contain some specific information on successfull execution.
+2. The output directory contains the 4 output files.
+
+The tests are found in `./tests/smoke` and can be run as follows:
+
+``` bash
+pytest --cov=nightcrawler tests/smoke -s
+``` 
+
+> **_NOTE:_**  The `-s` flag is used to print the stdout along the pytest logs. It is not needed but in case of a failing test it provides you with the stdout for debuging reasons.
+
+### Unit tests
+The unit tests are more granular im comparison with the smoke test and test the standalone function of each component. To run all unit tests you can run:
+
+``` bash
+pytest --cov=nightcrawler --cov-report=html tests/unit -s
+``` 
+> **_NOTE:_**  The `--cov-report` flag is optional and will provide an htmlcov holder in the root-directory.
 
 ## Git Tag History
 So far, no tags have been created (alho, 12.08.2024).
