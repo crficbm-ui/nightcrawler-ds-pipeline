@@ -43,12 +43,6 @@ def add_parser(
     )
 
     parser.add_argument(
-        "--full-output",
-        action="store_true",
-        help="Set this argument, if you want to see the full results rather then only the URLs provided by SerpAPI. %(default)s",
-    )
-
-    parser.add_argument(
         "-u", "--urlpath", help="Filepath to URL file produced by Serpapi"
     )
 
@@ -88,7 +82,6 @@ def apply(args: argparse.Namespace) -> None:
         SerpapiExtractor(context).apply(
             keyword=args.keyword,
             number_of_results=args.num_of_results,
-            full_output=args.full_output,
             output_dir=output_dir,
         )
     elif args.step == "zyte":

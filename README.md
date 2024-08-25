@@ -17,7 +17,7 @@ helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a
 helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.2"} #for using a tagged version from GitHub
 ```
 
-> **_NOTE:_**  As of today, 23.08.2025 the current and tested helpers tag is v0.1.2. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
+> **_NOTE:_**  As of today, 29.08.2025 the current and tested helpers tag is v0.1.3. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
 3. Create a virtual environment with Poetry and activate it.
 
@@ -93,7 +93,7 @@ python -m nightcrawler extract triofan -n=3 --step=serpapi  #collect only the 3 
 2. Collect only the parsed results from zyte (line 2 below):
 
 ```bash
-python -m nightcrawler extract triofan -n=3 --step=zyte --urlpath=<url_path>-- #collect the parsed results for keyword triofan from zyte. the url path should reference to the results of the previous step, typically in ./data/output/<timestamp>_<keyword>_<user>
+python -m nightcrawler extract triofan  --step=zyte --urlpath=<url_path>-- #collect the parsed results for keyword triofan from zyte. the url path should reference to the results of the previous step, typically in ./data/output/<timestamp>_<keyword>_<user>
 ```
 ### Processing
 Process a all files:
@@ -149,6 +149,35 @@ Ruff also provides a formatting tool that should be run prior commiting changes:
 ruff format
 ``` 
 
+## Testing
+Currently two kind of tests are implemented, both using the pytest package:
+
+### Smoke tests
+Smoke tests are used to test the pipeline end-to-end. For the CLI, we want to run the full pipeline with the keyword 'aspirin'. The smoke tests mimiks the following command:
+
+``` bash
+python -m nightcrawler fullrun aspirin -n=1
+``` 
+
+After running the whole pipeline, the test tests for the following conditions:
+1. The logs contain some specific information on successfull execution.
+2. The output directory contains the 4 output files.
+
+The tests are found in `./tests/smoke` and can be run as follows:
+
+``` bash
+pytest --cov=nightcrawler tests/smoke -s
+``` 
+
+> **_NOTE:_**  The `-s` flag is used to print the stdout along the pytest logs. It is not needed but in case of a failing test it provides you with the stdout for debuging reasons.
+
+### Unit tests
+The unit tests are more granular im comparison with the smoke test and test the standalone function of each component. To run all unit tests you can run:
+
+``` bash
+pytest --cov=nightcrawler --cov-report=html tests/unit -s
+``` 
+> **_NOTE:_**  The `--cov-report` flag is optional and will provide an htmlcov holder in the root-directory.
 
 ## Git Tag History
 So far, no tags have been created (alho, 12.08.2024).
