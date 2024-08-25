@@ -14,10 +14,10 @@ git pull
 
 ```bash
 helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
-helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.2"} #for using a tagged version from GitHub
+helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.6"} #for using a tagged version from GitHub
 ```
 
-> **_NOTE:_**  As of today, 23.08.2025 the current and tested helpers tag is v0.1.2. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
+> **_NOTE:_**  As of today, 11.09.2025 the current and tested helpers tag is v0.1.6. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
 3. Create a virtual environment with Poetry and activate it.
 
@@ -37,6 +37,12 @@ poetry install --directory ./pyproject.toml
 ```
 
 5. Copy `.env_template` to `.env`. Fill with your credentials and source it by running `source .env`.
+
+## CLI overview
+As of today, the CLI looks as follows:
+
+![image](https://github.com/user-attachments/assets/3b83f20d-7f6e-4306-aa66-22ca0f2de551)
+
 
 ## Basic CLI usage
 First, activate the venv inside the `nightcrawler` directory:
@@ -78,7 +84,7 @@ python -m nightcrawler fullrun viagra -n=3 --country=CH
 To run the full extraction pipeline you can use any of the following commands:
 ```bash
 python -m nightcrawler extract aspirin #full extraction with keyword 'aspirin'
-python -m nightcrawler extract aspirin -n=3 #full extraction with keyword 'aspirin' for the first 3 entries
+python -m nightcrawler extract aspirin -n=3 #full extraction with keyword 'aspirin' for the first 3 entries per serpapi (3 per google shopping, google site search, google and ebay = 12 URLs total)
 
 ```
 Running the extraction pipeline will log the results in the terminal (with default logging which is `--log-level INFO`) and store the scraped content into `./data/output/<extraction_step>_<timespamp>_<user>.json`.
@@ -87,7 +93,7 @@ Running the extraction pipeline will log the results in the terminal (with defau
 If you prefer, you can run the pipeline for a single extraction step:
 1. Collect only the URLs from serpapi: 
 ```bash
-python -m nightcrawler extract triofan -n=3 --step=serpapi  #collect only the 3 first URLs from serpapi for the keyword triofan
+python -m nightcrawler extract triofan -n=3 --step=serpapi  #collect only the 3 first URLs from serpapi for the keyword triofan  (3 per google shopping, google site search, google and ebay = 12 URLs total)
 ```
 
 2. Collect only the parsed results from zyte (line 2 below):

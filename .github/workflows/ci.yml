@@ -35,7 +35,7 @@ jobs:
 
     - name: Lint with Ruff
       run: |
-        poetry run ruff check
+        poetry run ruff check --output-format=github
 
     - name: Run Unit Tests
       run: |

@@ -43,20 +43,26 @@ def test_full_pipeline_end_to_end():
     # Check that the logs contain messages of starting / completing of the tasks
     assert result.returncode == 0, f"Pipeline failed with error: {stderr}"
     assert (
-        "Initializing data collection: SerpapiExtractor" in combined_output
+        re.search(r"Initializing step \d{1,2}: SerpapiExtractor", combined_output)
     ), "SerpapiExtractor initialization not found in output."
     assert (
-        "Initializing data collection: ZyteExtractor" in combined_output
+        re.search(r"Initializing step \d{1,2}: ZyteExtractor", combined_output)
     ), "ZyteExtractor initialization not found in output."
     assert (
-        "Initializing: DataProcessor" in combined_output
+        re.search(r"Initializing step \d{1,2}: DataProcessor", combined_output)
     ), "DataProcessor initialization not found in output."
     assert (
-        "Pipeline execution finished" in combined_output
+        "Run full pipeline" in combined_output
+    ), "Pipeline completion message not found in output."
+    assert (
+        "Run full pipeline" in combined_output
     ), "Pipeline completion message not found in output."
 
     # Check that the logs contain messages of starting / completing of the tasks
-    pattern = r"\.\/data\/output\/\d{8}_\d{6}_aspirin_defaultuser"
+    logger.info(combined_output)
+    pattern = (
+        r"\.\/data\/output\/\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_aspirin_defaultuser"
+    )
     paths = re.findall(pattern, combined_output)
 
     if paths:
@@ -64,10 +70,17 @@ def test_full_pipeline_end_to_end():
 
         # Count the number of JSON files in the output directory
         json_files = [f for f in os.listdir(output_directory) if f.endswith(".json")]
-        json_file_reference = ["01_extract_serpapi.json", "02_extract_zyte.json", "03_process_raw.json", "04_process_filtered_CH.json"]
+        json_file_reference = [
+            "01_extract_serpapi.json",
+            "02_extract_zyte.json",
+            "03_process_raw.json",
+            "04_process_filtered_CH.json",
+        ]
 
         # Assert that each file in json_file_reference exists in json_files
         for reference_file in json_file_reference:
-            assert reference_file in json_files, f"File {reference_file} is missing from json_files"
+            assert (
+                reference_file in json_files
+            ), f"File {reference_file} is missing from json_files"
     else:
         raise AssertionError("Output directory path not found in logs.")

@@ -1,10 +1,12 @@
 import argparse
 import logging
-import ast
 
 from typing import List
-from nightcrawler.extract.serp_api import SerpapiExtractor
-from nightcrawler.extract.zyte import ZyteExtractor
+from nightcrawler.extract.s01_serp_api import SerpapiExtractor
+from nightcrawler.extract.s02_zyte import ZyteExtractor
+from nightcrawler.base import ProcessData
+from nightcrawler.utils import get_object_from_file
+
 
 from helpers.context import Context
 from helpers.utils import create_output_dir
@@ -44,12 +46,6 @@ def add_parser(
     )
 
     parser.add_argument(
-        "--full-output",
-        action="store_true",
-        help="Set this argument, if you want to see the full results rather then only the URLs provided by SerpAPI. %(default)s",
-    )
-
-    parser.add_argument(
         "-u", "--urlpath", help="Filepath to URL file produced by Serpapi"
     )
 
@@ -73,24 +69,20 @@ def apply(args: argparse.Namespace) -> None:
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
+    context.output_dir = None
 
     if args.step != "zyte":
         # create the output directory only if the full extract pipeline is run or if the serpapi extraction is performed as a single step
-        output_dir = create_output_dir(args.keyword, context.output_path)
+        context.output_dir = create_output_dir(args.keyword, context.output_path)
 
     if not args.step:
         urls = SerpapiExtractor(context).apply(
-            keyword=args.keyword,
-            number_of_results=args.num_of_results,
-            output_dir=output_dir,
+            keyword=args.keyword, number_of_results=args.number_of_results
         )
-        ZyteExtractor(context).apply(urls, output_dir=output_dir)
+        ZyteExtractor(context).apply(urls)
     elif args.step == "serpapi":
         SerpapiExtractor(context).apply(
-            keyword=args.keyword,
-            number_of_results=args.num_of_results,
-            full_output=args.full_output,
-            output_dir=output_dir,
+            keyword=args.keyword, number_of_results=args.number_of_results
         )
     elif args.step == "zyte":
         if args.step == "zyte" and not args.urlpath:
@@ -98,10 +90,13 @@ def apply(args: argparse.Namespace) -> None:
                 "No URL-path provided, do so by adding '--urlpath' to your CLI command "
             )
         else:
-            with open(args.urlpath, "r") as file:
-                urls = ast.literal_eval(file.read())
-            output_dir = "/".join(args.urlpath.split("/")[:-1])
-            ZyteExtractor(context).apply(urls, output_dir=output_dir)
+            context.output_dir = "/".join(args.urlpath.split("/")[:-1])
+            pipeline_result = get_object_from_file(
+                dir=context.output_dir,
+                filename=context.serpapi_filename,
+                processing_object=ProcessData,
+            )
+            ZyteExtractor(context).apply(pipeline_result)
 
     else:
         logger.error(f"{args} not yet implemented")
