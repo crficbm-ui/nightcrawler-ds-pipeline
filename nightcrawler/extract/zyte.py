@@ -1,5 +1,3 @@
-from nightcrawler.extract.datacollector import DataCollector
-
 import logging
 from typing import List, Dict, Tuple, Any
 from tqdm.auto import tqdm
@@ -8,11 +6,18 @@ from helpers.context import Context
 from helpers.utils import write_json
 from helpers.api.zyte_api import ZyteAPI, DEFAULT_CONFIG
 from helpers import LOGGER_NAME
+from helpers.decorators import timeit
+
+from nightcrawler.base import (
+    ExtractZyteData,
+    PipelineResult,
+    Extract,
+)
 
 logger = logging.getLogger(LOGGER_NAME)
 
 
-class ZyteExtractor(DataCollector):
+class ZyteExtractor(Extract):
     """
     Implements the data collection via Zyte.
 
@@ -24,12 +29,12 @@ class ZyteExtractor(DataCollector):
 
     def __init__(self, context: Context) -> None:
         """
-        Initializes the ZyteAPI data collector with the given context.
+        Initializes the ZyteExtractor with the given context.
 
         Args:
             context (Context): The context object containing configuration and settings.
         """
-        logger.info(f"Initializing data collection: {self._entity_name}")
+        super().__init__(self._entity_name)
         self.context = context
 
     def initiate_client(self) -> Tuple[ZyteAPI, Dict[str, Any]]:
@@ -43,18 +48,23 @@ class ZyteExtractor(DataCollector):
         return client, DEFAULT_CONFIG
 
     def retrieve_response(
-        self, client: ZyteAPI, urls: List[str], api_config: Dict[str, Any]
+        self,
+        client: ZyteAPI,
+        serpapi_results: List[PipelineResult],
+        api_config: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
         """
         Makes the API calls to ZyteAPI to retrieve data from the provided URLs.
 
         Args:
             client (ZyteAPI): The ZyteAPI client instance.
-            urls (List[str]): The list of URLs to retrieve data from.
+            serpapi_results (List[PipelineResult]): The list of results from Serpapi containing URLs to process.
+            api_config (Dict[str, Any]): The configuration settings for the ZyteAPI.
 
         Returns:
             List[Dict[str, Any]]: The list of responses from ZyteAPI.
         """
+        urls = [item.get("url") for item in serpapi_results.get("results", [])]
         responses = []
         with tqdm(total=len(urls)) as pbar:
             for url in urls:
@@ -67,55 +77,71 @@ class ZyteExtractor(DataCollector):
         return responses
 
     def structure_results(
-        self, responses: List[Dict[str, Any]]
-    ) -> List[Dict[str, str]]:
+        self,
+        responses: List[Dict[str, Any]],
+        serpapi_results: PipelineResult,
+    ) -> PipelineResult:
         """
         Processes and structures the raw API responses into the desired format.
 
         Args:
-            responses (List[Dict[str, Any]]): The raw data returned from the API.
+            responses (List[Dict[str, Any]]): The raw data returned from the Zyte API.
+            serpapi_results (PipelineResult): The initial Serpapi results to be enhanced with Zyte data. It contains data of ExtractSerpapiData within "results"
 
         Returns:
-            List[Dict[str, str]]: The structured results containing relevant product information.
+            PipelineResult: The updated Serpapi results with added Zyte data.
         """
-        results = []
-        for response in responses:
+        for index, response in enumerate(responses):
             product = response.get("product", {})
-            results.append(
-                {
-                    "url": product.get("url", ""),
-                    "price": product.get("price", "") + product.get("currencyRaw", ""),
-                    "title": product.get("name", ""),
-                    "full_description": product.get("description", ""),
-                    "seconds_taken": str(response.get("seconds_taken", 0)),
-                }
-            )
-        return results
+            serpapi_result = serpapi_results.results[index]
+
+            # Extract Zyte data and merge it with serpapi_result
+            zyte_results = ExtractZyteData(
+                **serpapi_result,
+                price=f"{product.get('price', '')} {product.get('currencyRaw', '')}",
+                title=product.get("name", ""),
+                fullDescription=product.get("description", ""),
+                seconds_taken=response.get("seconds_taken", 0),
+            ).to_dict()
+
+            # Combine the dictionaries without nesting
+            combined_results = {**serpapi_result, **zyte_results}
+
+            # Update the existing report at index with the combined results
+            serpapi_results.results[index] = combined_results
+
+        return serpapi_results
 
     def store_results(
-        self, structured_results: List[Dict[str, str]], output_dir: str
+        self, structured_results: PipelineResult, output_dir: str
     ) -> None:
         """
         Stores the structured results into a JSON file.
 
         Args:
-            structured_results (List[Dict[str, str]]): The structured data to be stored.
+            structured_results (PipelineResult): The structured data to be stored.
+            output_dir (str): The directory where the JSON file will be saved.
         """
-        write_json(output_dir, self.context.zyte_filename, structured_results)
+        write_json(output_dir, self.context.zyte_filename, structured_results.to_dict())
 
-    def apply(self, urls: List[str], output_dir: str) -> List[Dict[str, str]]:
+    @timeit
+    def apply(self, serpapi_results: PipelineResult) -> PipelineResult:
         """
         Orchestrates the entire data collection process: client initiation,
         response retrieval, structuring results, and storing results.
 
         Args:
-            urls (List[str]): The list of URLs to retrieve data from.
+            serpapi_results (PipelineResult): The list of results from Serpapi containing URLs to process.
 
         Returns:
-            List[Dict[str, str]]: The final structured results.
+            PipelineResult: The final structured results.
         """
         client, api_config = self.initiate_client()
-        responses = self.retrieve_response(client, urls, api_config)
-        structured_results = self.structure_results(responses)
-        self.store_results(structured_results, output_dir)
+        responses = self.retrieve_response(client, serpapi_results, api_config)
+        structured_results = self.structure_results(responses, serpapi_results)
+
+        # update the number of results in the meta section
+        serpapi_results.meta.numberOfResultsAfterStage = len(structured_results.results)
+
+        self.store_results(structured_results, self.context.output_dir)
         return structured_results

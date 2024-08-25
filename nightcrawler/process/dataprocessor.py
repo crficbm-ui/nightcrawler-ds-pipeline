@@ -1,22 +1,24 @@
 import logging
-
 from typing import List, Dict
 from helpers.context import Context
-from ..process.filter_swiss_result import filter_per_country_results
+from helpers.decorators import timeit
 from helpers import LOGGER_NAME
+
+from nightcrawler.process.filter_swiss_result import filter_per_country_results
+from nightcrawler.base import PipelineResult
 
 logger = logging.getLogger(LOGGER_NAME)
 
 
 class DataProcessor:
     """
-    Implements the data processing
+    Implements the data processing.
 
     Attributes:
         context (Context): The context object containing configuration and settings.
     """
 
-    _entity_name = __qualname__  # type: ignore
+    _entity_name: str = __qualname__  # type: ignore
 
     def __init__(self, context: Context) -> None:
         """
@@ -25,11 +27,11 @@ class DataProcessor:
         Args:
             context (Context): The context object containing configuration and settings.
         """
-        logger.info(f"Initializing: {self._entity_name}")
-        self.context = Context()
+        logger.info(f"Initializing step: {self._entity_name}")
+        self.context = context
 
     def step_country_filtering(
-        self, country: str = "", urlpath: str = ""
+        self, pipeline_result: PipelineResult, country: str = ""
     ) -> List[Dict[str, str]]:
         """
         Filters results based on the specified country and returns the filtered data. This method filters results
@@ -39,37 +41,35 @@ class DataProcessor:
         Args:
             country (str, optional): The country code used to filter results. Defaults to an empty string.
             urlpath (str, optional): The path to the JSON file containing the raw data to be processed. If not provided,
-            the method uses `self.zyte_filename`. Defaults to an empty string.
+                                     the method uses `self.context.zyte_filename`. Defaults to an empty string.
 
         Returns:
-            country_filtered_results (List[Dict[str, str]]): A list of dictionaries representing the filtered results
-            for the specified country.
+            List[Dict[str, str]]: A list of dictionaries representing the filtered results for the specified country.
         """
-
-        if not urlpath:
-            # TODO: url what happens in the exception that no path is provided?
-            # TODO: Make sure with unit tests that you cannot get this far. You should not be able to.
-            urlpath = self.zyte_filename
-
         country_filtered_results = filter_per_country_results(
-            self.context, country, urlpath
+            self.context, country, pipeline_result
         )
-        if len(country_filtered_results) == 0:
+
+        if not country_filtered_results.results:
             logger.warning(
-                "After filtering per country variable, no results move further in the pipeline"
+                "After filtering per country variable, no results move further in the pipeline."
             )
 
         return country_filtered_results
 
-    def apply(self, urls: List[Dict[str, str]] = list({})):
-        # TODO: Depending in the arguments, we run a full pipeline
-        logger.error(
-            "Full processor pipeline not yet implemented, for the time being use the '--country=CH' argument"
-        )
+    @timeit
+    def apply(self, urls: List[Dict[str, str]] = None) -> None:
         """
-        Performs data processing.
+        Placeholder for the full data processing pipeline.
 
         Args:
-            keyword (str): The keyword to search for.
+            urls (List[Dict[str, str]], optional): A list of URLs to process. Defaults to an empty list.
+
+        Raises:
+            NotImplementedError: Raised as the full pipeline is not yet implemented.
         """
+        # TODO: Implement the full processing pipeline depending on the arguments.
+        logger.error(
+            "Full processor pipeline not yet implemented. For the time being, use the '--country=CH' argument."
+        )
         pass

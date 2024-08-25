@@ -1,18 +1,25 @@
 import logging
-from typing import List, Dict, Union, Any
-
+from typing import Any, Dict, List
 from helpers.context import Context
-from helpers.utils import write_json
 from helpers.api.serp_api import SerpAPI
+from helpers.decorators import timeit
+from helpers.utils import write_json
 from helpers import LOGGER_NAME
-from nightcrawler.extract.datacollector import DataCollector
+
+from nightcrawler.base import (
+    ExtractSerpapiData,
+    MetaData,
+    PipelineResult,
+    Extract,
+    GOOGLE_SITE_MARKETPLACES,
+)
 
 logger = logging.getLogger(LOGGER_NAME)
 
 
-class SerpapiExtractor(DataCollector):
+class SerpapiExtractor(Extract):
     """
-    Implements data collection using Zyte and SerpAPI.
+    Implements data collection using SerpAPI for various search engines, including Google and eBay.
 
     Attributes:
         context (Context): The context object containing configuration and settings.
@@ -20,15 +27,36 @@ class SerpapiExtractor(DataCollector):
 
     _entity_name: str = __qualname__
 
-    def __init__(self, context: Context) -> None:
+    def __init__(
+        self,
+        context: Context,
+        tld: str = "ch",
+        country: str = "Switzerland",
+        prevent_auto_correct: bool = True,
+    ) -> None:
         """
-        Initializes the SerpApi data collector with the given context.
+        Initializes the SerpapiExtractor with the given context.
 
         Args:
             context (Context): The context object containing configuration and settings.
         """
-        logger.info(f"Initializing data collection: {self._entity_name}")
+        super().__init__(self._entity_name)
         self.context = context
+
+        self._google_params = {
+            "engine": "google",
+            "location_requested": country,
+            "location_used": country,
+            "google_domain": f"google.{tld}",
+            "tbs": f"ctr:country{tld.upper()}&cr=country{tld.upper()}",
+            "gl": tld,
+        }
+
+        self._ebay_params = {
+            "engine": "ebay",
+            "ebay_domain": f"ebay.{tld}",
+            "_blrs": "spell_auto_correct" if prevent_auto_correct else "",
+        }
 
     def initiate_client(self) -> SerpAPI:
         """
@@ -37,79 +65,137 @@ class SerpapiExtractor(DataCollector):
         Returns:
             SerpAPI: An instance of the SerpAPI client.
         """
-        client = SerpAPI()
-        return client
+        return SerpAPI()
 
     def retrieve_response(
-        self, keyword: str, client: SerpAPI, number_of_results: int
-    ) -> Dict[str, Any]:
+        self,
+        keyword: str,
+        client: SerpAPI,
+        custom_params: Dict[str, Any] = {},
+        offer_root: str = "DEFAULT",
+        number_of_results: int = 50,
+    ) -> List[ExtractSerpapiData]:
         """
         Makes the API call to SerpAPI to retrieve search results for the given keyword.
 
         Args:
-            keyword (str): The search keyword.
             client (SerpAPI): The SerpAPI client instance.
-            number_of_results (int): The number of search results to retrieve.
-
+           custom_params (dict): parameters that are diferent to the default ones below. these are then added to the params dict.
+           offer_root (str): the name of the offer
         Returns:
-            Dict[str, Any]: The raw response data from the SerpAPI.
+            List[ExtractSerpapiData]: The raw response data from the SerpAPI.
         """
         params = {
             "q": keyword,
-            "tbm": "",
             "start": 0,
-            "num": int(number_of_results),
+            "num": number_of_results,
             "api_key": self.context.settings.serp_api.token,
+            **(custom_params),
         }
-        logger.info(f"Extracting URLs from SerpAPI for '{keyword}'")
-        response = client.call_serpapi(params, log_name="google_regular")
-        return response
+        logger.info(f"Extracting URLs from SerpAPI for '{keyword}' from '{offer_root}'")
+        return client.call_serpapi(params, log_name="google_regular")
 
     def structure_results(
-        self, response: Dict[str, Any], client: SerpAPI, full_output: bool, keyword: str
-    ) -> Union[List[str], List[Dict[str, Any]]]:
+        self,
+        keyword: str,
+        response: Dict[str, Any],
+        client: SerpAPI,
+        offer_root: str = "DEFAULT",
+        number_of_results: int = 50,
+    ) -> PipelineResult:
         """
         Processes and structures the raw API response data into the desired format.
 
         Args:
             response (Dict[str, Any]): The raw data returned from the API.
             client (SerpAPI): The SerpAPI client instance.
-            full_output (bool): Flag indicating whether to return the full output or just the URLs.
-            keyword (str): The search keyword.
+            offer_root (str): The source of the search results (e.g., "GOOGLE", "EBAY").
 
         Returns:
-            Union[List[str], List[Dict[str, Any]]]: The structured search results.
+            List[Dict[str, Any]]: The structured search results.
         """
-        items = client.get_organic_results(response)
 
-        if full_output:
-            results = items
+        if offer_root == "GOOGLE_SHOPPING":
+            items = client.get_shopping_results(response)
         else:
-            urls = [item.get("link") for item in items]
-            results = client._check_limit(urls, keyword)
+            items = client.get_organic_results(response)
 
+        # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
+        urls = [item.get("link") for item in items]
+        urls = urls[:number_of_results]
+
+        filtered_urls = client._check_limit(urls, keyword)
+        results = [
+            ExtractSerpapiData(url=url, offerRoot=offer_root).to_dict()
+            for url in filtered_urls
+        ]
         return results
 
     def store_results(
         self,
-        structured_results: Union[List[str], List[Dict[str, Any]]],
-        output_dir: str,
+        structured_results: PipelineResult,
     ) -> None:
         """
         Stores the structured search results to a JSON file.
 
         Args:
-            structured_results (Union[List[str], List[Dict[str, Any]]]): The structured search results.
+            structured_results (PipelineResult): The structured search results.
         """
-        write_json(output_dir, self.context.serpapi_filename, structured_results)
+        write_json(
+            self.context.output_dir,
+            self.context.serpapi_filename,
+            structured_results.to_dict(),
+        )
 
-    def apply(
-        self,
-        keyword: str,
-        number_of_results: int,
-        output_dir: str,
-        full_output: bool = False,
-    ) -> Union[List[str], List[Dict[str, Any]]]:
+    def results_from_marketplaces(
+        self, client: SerpAPI, keyword: str, number_of_results: int
+    ) -> List[ExtractSerpapiData]:
+        # Define parameters and labels for different sources
+        sources = [
+            {"params": self._google_params, "label": "GOOGLE"},
+            {
+                "params": {**self._google_params, "tbm": "shop"},
+                "label": "GOOGLE_SHOPPING",
+            },
+            {
+                "params": {
+                    **self._google_params,
+                    "q": f"{keyword} site:"
+                    + " OR site:".join(
+                        [m.root_domain_name for m in GOOGLE_SITE_MARKETPLACES]
+                    ),
+                },
+                "label": "GOOGLE_SITE",
+            },
+            {
+                "params": {
+                    **self._ebay_params,
+                    "_nkw": keyword,
+                    "_ipg": number_of_results,
+                },
+                "label": "EBAY",
+            },
+        ]
+
+        # Collecting and structuring all results
+        all_results = []
+        for source in sources:
+            response = self.retrieve_response(
+                keyword=keyword,
+                client=client,
+                custom_params=source["params"],
+                offer_root=source["label"],
+                number_of_results=number_of_results,
+            )
+            structured_results = self.structure_results(
+                keyword, response, client, source["label"], number_of_results
+            )
+            all_results.extend(structured_results)
+
+        return all_results
+
+    @timeit
+    def apply(self, keyword: str, number_of_results: int) -> PipelineResult:
         """
         Orchestrates the entire process of data collection: client initiation,
         response retrieval, structuring results, and storing results.
@@ -117,17 +203,25 @@ class SerpapiExtractor(DataCollector):
         Args:
             keyword (str): The search keyword.
             number_of_results (int): The number of search results to retrieve.
-            output_dir: Path to directory where the results will be stored.
-            full_output (bool): Flag indicating whether to return the full output or just the URLs.
 
         Returns:
-            Union[List[str], List[Dict[str, Any]]]: The final structured search results.
+            PipelineResult: The final structured search results.
         """
-
         client = self.initiate_client()
-        response = self.retrieve_response(keyword, client, number_of_results)
-        structured_results = self.structure_results(
-            response, client, full_output, keyword
+        structured_results_from_marketplaces = self.results_from_marketplaces(
+            client=client, keyword=keyword, number_of_results=number_of_results
         )
-        self.store_results(structured_results, output_dir)
-        return structured_results
+
+        metadata = MetaData(
+            keyword=keyword,
+            numberOfResults=number_of_results,
+            numberOfResultsAfterStage=len(structured_results_from_marketplaces),
+        )
+
+        # Combining all structured results
+        structured_results_from_marketplaces = PipelineResult(
+            meta=metadata, results=structured_results_from_marketplaces
+        )
+
+        self.store_results(structured_results_from_marketplaces)
+        return structured_results_from_marketplaces
