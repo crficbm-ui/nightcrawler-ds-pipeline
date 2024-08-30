@@ -4,6 +4,8 @@ from typing import List, Dict, Union, Any
 from helpers.context import Context
 from helpers.utils import write_json
 from helpers.api.serp_api import SerpAPI
+from helpers.api.dataforseo_api import DataforSeoAPI
+from helpers.analytics import keywords_selection
 from helpers import LOGGER_NAME
 from nightcrawler.extract.datacollector import DataCollector
 
@@ -81,9 +83,69 @@ class SerpapiExtractor(DataCollector):
             results = items
         else:
             urls = [item.get("link") for item in items]
-            results = client._check_limit(urls, keyword)
+            results = client._check_limit(urls, keyword, 200)
 
         return results
+    
+    def enrich_results(self, keyword: str, client: SerpAPI, full_output: bool, number_of_results: int, locations: List[str], languages: List[str]) -> List[str]:
+        """
+        Makes the API call to SerpAPI to enrich with multiple keywords and retrieve search results.
+        Processed is decomposed as the following:
+            1. From root keyword call dataforSeo API to get suggested and related keywords with maximum search volumes for different location and volume
+            2. Deduplicate keywords and add search volume from different locations/languages
+            3. Call serp API for selected keywords and get the corresponding urls (top 20 only)
+            4. Deduplicate urls and estimate total traffic per url
+            5. Return the 200 first urls with highest traffic
+
+       Args:
+            keyword (str): The search keyword.
+            client (SerpAPI): The SerpAPI client instance.
+            number_of_results (int): The number of search results to retrieve.
+            locations (List[str]): The list of locations to search in.
+            languages (List[str]): The list of languages to search in.
+
+        Returns:
+            Dict[str, Any]: The raw response data from the SerpAPI.
+        """
+
+        suggested_kw=[]
+        related_kw=[]
+        for loc in locations:
+            for lang in languages:
+                suggested_kw=suggested_kw + DataforSeoAPI.get_keyword_suggestions(client, keyword, loc, lang, 10)
+                related_kw=related_kw + DataforSeoAPI.get_related_keywords(client, keyword, loc, lang, 10)
+
+        enriched_kw=suggested_kw+related_kw
+        filtered_kw=[]
+        for keyword in enriched_kw:
+            filtered_kw.append(keywords_selection.filter_keywords(keyword["keyword"]))
+        agg_kw=keywords_selection.aggregate_keywords(enriched_kw).to_dict(orient='records')
+
+        urls=[]
+        for keyword in agg_kw:
+            params = {
+                "q": keyword["keyword"],
+                "tbm": "",
+                "start": 0,
+                "num": int(number_of_results),
+                "api_key": self.context.settings.serp_api.token,
+            }
+            logger.info(f"Extracting URLs from SerpAPI for '{keyword}'")
+            response = client.call_serpapi(params, log_name="google_regular")
+            items = client.get_organic_results(response)
+
+
+
+            if full_output:
+                results = items
+            else:
+                kw_urls = [item.get("link") for item in items]
+                results = client._check_limit(kw_urls, keyword, 200)
+            urls = urls + keywords_selection.estimate_volume_per_url(results, keyword["volume"])
+        enriched_results = keywords_selection.aggregate_urls(urls)
+        enriched_results = enriched_results['urls'].iloc[:200]
+
+        return enriched_results
     
     def store_results(self, structured_results: Union[List[str], List[Dict[str, Any]]]) -> None:
         """
