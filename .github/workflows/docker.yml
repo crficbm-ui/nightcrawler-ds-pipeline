@@ -19,6 +19,23 @@ jobs:
       id-token: write
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Use local directory ds-helpers
+        run: |
+          sed -i 's#^helpers.*$#helpers = { path = "./nightcrawler-ds-helpers/", develop = false }#' pyproject.toml
+
+      - uses: actions/checkout@v4
+        with:
+          repository: 'smc40/nightcrawler-ds-helpers'
+          ssh-key: ${{ secrets.HELPERS_KEY_PULLER }}
+          path: nightcrawler-ds-helpers
+
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
