@@ -17,7 +17,7 @@ helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a
 helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.2"} #for using a tagged version from GitHub
 ```
 
-> **_NOTE:_**  As of today, 15.08.2025 the current and tested helpers tag is v0.0.2
+> **_NOTE:_**  As of today, 23.08.2025 the current and tested helpers tag is v0.1.2. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
 3. Create a virtual environment with Poetry and activate it.
 
@@ -61,6 +61,18 @@ The processing steps are one of the following:
 - process -> merge all sources into one single file
 - ...
 
+### Full Pipeline Run
+To perform a full pipeline run end-to-end (and what ultimatelly will be deploey via Azure functions), run:
+
+```bash
+python -m nightcrawler fullrun viagra -n=3
+```
+
+To run the pipeline and filter only for a given country run:
+```bash
+python -m nightcrawler fullrun viagra -n=3 --country=CH
+```
+
 
 ### Extraction
 To run the full extraction pipeline you can use any of the following commands:
@@ -69,24 +81,29 @@ python -m nightcrawler extract aspirin #full extraction with keyword 'aspirin'
 python -m nightcrawler extract aspirin -n=3 #full extraction with keyword 'aspirin' for the first 3 entries
 
 ```
-Running the extraction pipeline will log the results in the terminal (with default logging which is `--log-level INFO`) and store the scraped content into `./data/output/<extraction_step>_<timespamp>.json`.
+Running the extraction pipeline will log the results in the terminal (with default logging which is `--log-level INFO`) and store the scraped content into `./data/output/<extraction_step>_<timespamp>_<user>.json`.
 
 
 If you prefer, you can run the pipeline for a single extraction step:
 1. Collect only the URLs from serpapi: 
 ```bash
-python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first URLs from serpapi for the keyword triofan
+python -m nightcrawler extract triofan -n=3 --step=serpapi  #collect only the 3 first URLs from serpapi for the keyword triofan
 ```
 
 2. Collect only the parsed results from zyte (line 2 below):
 
 ```bash
-python -m nightcrawler extract triofan -n=3 serpapi #collect only the 3 first URLs from serpapi for the keyword triofan
+python -m nightcrawler extract triofan -n=3 --step=zyte --urlpath=<url_path>-- #collect the parsed results for keyword triofan from zyte. the url path should reference to the results of the previous step, typically in ./data/output/<timestamp>_<keyword>_<user>
 ```
 ### Processing
-
+Process a all files:
 ```bash
-python -m nightcrawler process country CH zyte_urls_2026-09-08_12-23-10 --log-level DEBUG
+python -m nightcrawler process 20240823_210829_triofan_defaultuser
+```
+
+Process files only for a given country:
+```bash
+python -m nightcrawler process --country=CH 20240823_210829_triofan_defaultuser
 ```
 
 

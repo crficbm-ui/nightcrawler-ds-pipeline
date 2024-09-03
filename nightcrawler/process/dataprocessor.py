@@ -7,6 +7,7 @@ from helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 
+
 class DataProcessor:
     """
     Implements the data processing
@@ -26,8 +27,9 @@ class DataProcessor:
         """
         self.context = Context()
 
-
-    def step_country_filtering(self, country: str = "", urlpath: str = "") -> List[Dict[str, str]]:
+    def step_country_filtering(
+        self, country: str = "", urlpath: str = ""
+    ) -> List[Dict[str, str]]:
         """
         Filters results based on the specified country and returns the filtered data. This method filters results
         according to the provided country and URL path. If no URL path is provided, it defaults to test data from the
@@ -48,14 +50,21 @@ class DataProcessor:
             # TODO: Make sure with unit tests that you cannot get this far. You should not be able to.
             urlpath = self.zyte_filename
 
-        country_filtered_results = filter_per_country_results(self.context, country, urlpath)
-        if len(country_filtered_results)==0:
-            logger.warning("After filtering per country variable, no results move further in the pipeline")
+        country_filtered_results = filter_per_country_results(
+            self.context, country, urlpath
+        )
+        if len(country_filtered_results) == 0:
+            logger.warning(
+                "After filtering per country variable, no results move further in the pipeline"
+            )
 
         return country_filtered_results
 
-    def apply(self, urls: List[Dict[str, str]]):
+    def apply(self, urls: List[Dict[str, str]] = list({})):
         # TODO: Depending in the arguments, we run a full pipeline
+        logger.error(
+            "Full processor pipeline not yet implemented, for the time being use the '--country=CH' argument"
+        )
         """
         Performs data processing.
 
