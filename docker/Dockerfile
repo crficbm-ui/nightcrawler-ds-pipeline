@@ -9,12 +9,14 @@ ENV POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_CREATE=0 \
     POETRY_CACHE_DIR=/tmp/poetry_cache
 
-COPY docker/requirements.txt /
-RUN pip install -r /requirements.txt
-
-ADD . /usr/local/nightcrawler
+ADD poetry.lock pyproject.toml README.md /usr/local/nightcrawler/
+ADD nightcrawler/ /usr/local/nightcrawler/nightcrawler/
+ADD nightcrawler-ds-helpers /usr/local/nightcrawler/nightcrawler-ds-helpers/
 
 WORKDIR /usr/local/nightcrawler
-RUN poetry install && rm -rf $POETRY_CACHE_DIR
+RUN pip install poetry==1.8.3 && poetry install && rm -rf $POETRY_CACHE_DIR
+
+COPY docker/requirements.txt /
+RUN pip install -r /requirements.txt
 
 COPY docker/ /home/site/wwwroot
