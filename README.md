@@ -62,7 +62,7 @@ The processing steps are one of the following:
 - ...
 
 ### Full Pipeline Run
-To perform a full pipeline run end-to-end (and what ultimatelly will be deploey via Azure functions), run:
+To perform a full end-to-end pipeline run (this is what will ultimately be deployed via Azure Functions):
 
 ```bash
 python -m nightcrawler fullrun viagra -n=3
@@ -93,10 +93,10 @@ python -m nightcrawler extract triofan -n=3 --step=serpapi  #collect only the 3 
 2. Collect only the parsed results from zyte (line 2 below):
 
 ```bash
-python -m nightcrawler extract triofan -n=3 --step=zyte --urlpath=<url_path>-- #collect the parsed results for keyword triofan from zyte. the url path should reference to the results of the previous step, typically in ./data/output/<timestamp>_<keyword>_<user>
+python -m nightcrawler extract triofan -n=3 --step=zyte --urlpath=<url_path>-- #collect the parsed results for keyword triofan from zyte. the url path should reference to the results of the previous step, typically in ./data/output/<timestamp>_<keyword>_<user>/01_extract_serpapi.json
 ```
 ### Processing
-Process a all files:
+Process all files within a given results directory:
 ```bash
 python -m nightcrawler process 20240823_210829_triofan_defaultuser
 ```
@@ -153,13 +153,13 @@ ruff format
 Currently two kind of tests are implemented, both using the pytest package:
 
 ### Smoke tests
-Smoke tests are used to test the pipeline end-to-end. For the CLI, we want to run the full pipeline with the keyword 'aspirin'. The smoke tests mimiks the following command:
+Smoke tests are used to test the pipeline end-to-end. For the CLI, we want to run the full pipeline with the keyword ‘aspirin’. The smoke tests mimic the following command:
 
 ``` bash
 python -m nightcrawler fullrun aspirin -n=1
 ``` 
 
-After running the whole pipeline, the test tests for the following conditions:
+After running the entire pipeline, the test checks for the following conditions:
 1. The logs contain some specific information on successfull execution.
 2. The output directory contains the 4 output files.
 

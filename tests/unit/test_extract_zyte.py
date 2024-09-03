@@ -11,14 +11,14 @@ def zyte_extractor():
     return ZyteExtractor(context)
 
 
-def test_initiate_client(zyte_extractor):
+def test_initiate_client_is_type_ZyteAPI_and_has_config(zyte_extractor):
     client, api_config = zyte_extractor.initiate_client()
     assert isinstance(client, ZyteAPI)
     assert isinstance(api_config, dict)
 
 
 @patch.object(ZyteAPI, "call_api")
-def test_retrieve_response(mock_call_api, zyte_extractor):
+def test_retrieve_response_is_retrieved(mock_call_api, zyte_extractor):
     mock_call_api.return_value = {"product": {"name": "Product Name"}}
     responses = zyte_extractor.retrieve_response(
         ZyteAPI(), ["http://example.com/product1", "http://example.com/product2"], {}
@@ -46,7 +46,7 @@ def test_retrieve_response_with_failure(mock_logger, mock_call_api, zyte_extract
     assert responses == [{"product": {"name": "Product Name"}}]
 
 
-def test_structure_results(zyte_extractor):
+def test_structure_results_is_formated_properly(zyte_extractor):
     responses = [
         {
             "product": {
@@ -72,7 +72,7 @@ def test_structure_results(zyte_extractor):
 
 
 @patch("nightcrawler.extract.zyte.write_json")
-def test_store_results(mock_write_json, zyte_extractor):
+def test_store_results_was_called(mock_write_json, zyte_extractor):
     zyte_extractor.store_results([{"url": "http://example.com/product1"}], "/tmp")
     mock_write_json.assert_called_once_with(
         "/tmp", "dummy_zyte_filename.json", [{"url": "http://example.com/product1"}]
@@ -83,7 +83,7 @@ def test_store_results(mock_write_json, zyte_extractor):
 @patch.object(ZyteExtractor, "structure_results")
 @patch.object(ZyteExtractor, "retrieve_response")
 @patch.object(ZyteExtractor, "initiate_client")
-def test_apply(
+def test_apply_all_functions_called_once(
     mock_initiate_client,
     mock_retrieve_response,
     mock_structure_results,

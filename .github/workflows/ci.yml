@@ -28,6 +28,11 @@ jobs:
         curl -sSL https://install.python-poetry.org | python3 -
         poetry install
 
+    - name: Python Vulnerability Check
+      #bandit exits by defaul with status 1 if a vulerability was found. Status unequal to 0 lead to a github action failure
+      run: |
+        poetry run bandit -r nightcrawler
+
     - name: Lint with Ruff
       run: |
         poetry run ruff check

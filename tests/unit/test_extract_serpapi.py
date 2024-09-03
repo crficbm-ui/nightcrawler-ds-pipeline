@@ -12,13 +12,13 @@ def serpapi_extractor():
     return SerpapiExtractor(context)
 
 
-def test_initiate_client(serpapi_extractor):
+def test_initiate_client_is_type_SerpAPI(serpapi_extractor):
     client = serpapi_extractor.initiate_client()
     assert isinstance(client, SerpAPI)
 
 
 @patch.object(SerpAPI, "call_serpapi")
-def test_retrieve_response(mock_call_serpapi, serpapi_extractor):
+def test_retrieve_response_is_retrieved(mock_call_serpapi, serpapi_extractor):
     mock_call_serpapi.return_value = {"mock_key": "mock_value"}
     response = serpapi_extractor.retrieve_response(
         "aspirin", serpapi_extractor.initiate_client(), 3
@@ -32,7 +32,7 @@ def test_retrieve_response(mock_call_serpapi, serpapi_extractor):
 
 @patch.object(SerpAPI, "get_organic_results")
 @patch.object(SerpAPI, "_check_limit")
-def test_structure_results(
+def test_structure_results_is_formated_properly(
     mock_check_limit, mock_get_organic_results, serpapi_extractor
 ):
     mock_get_organic_results.return_value = [{"link": "http://example.com"}]
@@ -47,18 +47,17 @@ def test_structure_results(
 
 
 @patch("nightcrawler.extract.serp_api.write_json")
-def test_store_results(mock_write_json, serpapi_extractor):
+def test_store_results_was_called(mock_write_json, serpapi_extractor):
     serpapi_extractor.store_results(["http://example.com"], "/tmp")
     mock_write_json.assert_called_once_with(
         "/tmp", "dummy_filename.json", ["http://example.com"]
     )
 
-
 @patch.object(SerpapiExtractor, "store_results")
 @patch.object(SerpapiExtractor, "structure_results")
 @patch.object(SerpapiExtractor, "retrieve_response")
 @patch.object(SerpapiExtractor, "initiate_client")
-def test_apply(
+def test_apply_all_functions_called_once(
     mock_initiate_client,
     mock_retrieve_response,
     mock_structure_results,

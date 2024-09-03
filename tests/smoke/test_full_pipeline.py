@@ -2,9 +2,14 @@ import subprocess
 import time
 import re
 import os
+import logging
+
+from helpers import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 
 
-def test_full_pipeline_run():
+def test_full_pipeline_end_to_end():
     # Start the pipeline command
     result = subprocess.Popen(
         ["python", "-m", "nightcrawler", "fullrun", "aspirin", "-n=1", "--country=CH"],
@@ -32,8 +37,8 @@ def test_full_pipeline_run():
     combined_output = stdout + stderr
 
     # print the stdout
-    print("\nStdout generated during smoke tests:")
-    print(combined_output)
+    logger.info("\nStdout generated during smoke tests:")
+    logger.info(combined_output)
 
     # Check that the logs contain messages of starting / completing of the tasks
     assert result.returncode == 0, f"Pipeline failed with error: {stderr}"
@@ -59,11 +64,10 @@ def test_full_pipeline_run():
 
         # Count the number of JSON files in the output directory
         json_files = [f for f in os.listdir(output_directory) if f.endswith(".json")]
-        json_file_count = len(json_files)
+        json_file_reference = ["01_extract_serpapi.json", "02_extract_zyte.json", "03_process_raw.json", "04_process_filtered_CH.json"]
 
-        # Check if the count matches the expected number
-        assert (
-            json_file_count == 4
-        ), f"Expected 4 JSON files, but found {json_file_count}."
+        # Assert that each file in json_file_reference exists in json_files
+        for reference_file in json_file_reference:
+            assert reference_file in json_files, f"File {reference_file} is missing from json_files"
     else:
         raise AssertionError("Output directory path not found in logs.")

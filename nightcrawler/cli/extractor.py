@@ -1,5 +1,6 @@
 import argparse
 import logging
+import ast
 
 from typing import List
 from nightcrawler.extract.serp_api import SerpapiExtractor
@@ -98,7 +99,7 @@ def apply(args: argparse.Namespace) -> None:
             )
         else:
             with open(args.urlpath, "r") as file:
-                urls = eval(file.read())
+                urls = ast.literal_eval(file.read())
             output_dir = "/".join(args.urlpath.split("/")[:-1])
             ZyteExtractor(context).apply(urls, output_dir=output_dir)
 

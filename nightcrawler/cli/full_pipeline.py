@@ -27,14 +27,24 @@ def add_parser(
     subparsers: argparse._SubParsersAction, parents_: List[argparse.ArgumentParser]
 ) -> argparse.ArgumentParser:
     """
-    Adds the 'fullrun' parser and its subparsers to the given subparsers collection.
+    Adds the 'fullrun' parser to the collection of subparsers for the command-line interface.
+
+    This parser is specifically designed to handle the 'fullrun' command, which executes the entire
+    data pipeline end-to-end. The subparsers collection typically contains different parsers for various
+    commands that can be executed through the CLI, each corresponding to a different aspect of the pipeline
+    or a distinct operation within the application.
 
     Args:
-        subparsers (argparse._SubParsersAction): The subparsers collection to add to.
-        parents_ (List[argparse.ArgumentParser]): A list of parent parsers to inherit arguments from.
+        subparsers (argparse._SubParsersAction): The collection of subparsers associated with the
+            primary argument parser. This collection organizes the different commands available in
+            the CLI, allowing the user to select and execute specific functionalities.
+        parents_ (List[argparse.ArgumentParser]): A list of parent parsers that provide common
+            arguments and configurations shared across multiple subparsers, ensuring consistency
+            and reusability in argument parsing.
 
     Returns:
-        argparse.ArgumentParser: The parser that was added to the subparsers collection.
+        argparse.ArgumentParser: The parser associated with the 'fullrun' command, equipped with
+        arguments and help descriptions specific to executing the full pipeline.
     """
     parents = parents_
     parser = subparsers.add_parser(
