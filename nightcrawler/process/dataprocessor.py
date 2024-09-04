@@ -25,6 +25,7 @@ class DataProcessor:
         Args:
             context (Context): The context object containing configuration and settings.
         """
+        logger.info(f"Initializing: {self._entity_name}")
         self.context = Context()
 
     def step_country_filtering(
