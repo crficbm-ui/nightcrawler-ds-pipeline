@@ -1,8 +1,9 @@
-import subprocess
-import time
 import re
 import os
 import logging
+from io import StringIO
+
+from nightcrawler.cli.main import run
 
 from helpers import LOGGER_NAME
 
@@ -10,38 +11,21 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 def test_full_pipeline_end_to_end():
+    # Configure logging to write to string
+    stream = StringIO()
+    logger.addHandler(logging.StreamHandler(stream=stream))
+
     # Start the pipeline command
-    result = subprocess.Popen(
-        ["python", "-m", "nightcrawler", "fullrun", "aspirin", "-n=1", "--country=CH"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-
-    # Polling for the pipeline to finish
-    timeout = 120  # seconds
-    poll_interval = 5  # seconds
-    elapsed_time = 0
-
-    while elapsed_time < timeout:
-        # Check if the process has completed
-        if result.poll() is not None:
-            break
-        time.sleep(poll_interval)
-        elapsed_time += poll_interval
-
-    # Final output check
-    stdout, stderr = result.communicate()
+    run(["fullrun", "aspirin", "-n=1", "--country=CH"])
 
     # Combine stdout and stderr for log checking
-    combined_output = stdout + stderr
+    combined_output = stream.getvalue()
 
     # print the stdout
     logger.info("\nStdout generated during smoke tests:")
     logger.info(combined_output)
 
     # Check that the logs contain messages of starting / completing of the tasks
-    assert result.returncode == 0, f"Pipeline failed with error: {stderr}"
     assert (
         "Initializing data collection: SerpapiExtractor" in combined_output
     ), "SerpapiExtractor initialization not found in output."
