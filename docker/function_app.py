@@ -26,8 +26,6 @@ async def pipeline_start(req: func.HttpRequest, client):
 # Orchestrator
 @app.orchestration_trigger(context_name="context")
 def pipeline_orchestrator(context: df.DurableOrchestrationContext):
-    logging.info('Pipeline started')
-
     input_context = context.get_input()
     req_data = {
       'keyword': input_context.get('keyword'),
@@ -35,7 +33,6 @@ def pipeline_orchestrator(context: df.DurableOrchestrationContext):
       'step': input_context.get('step','fullrun')
     }
 
-    logging.info(f'Running pipeline for keyword `{req_data["keyword"]}\' for country {req_data["country"]}')
     status = yield context.call_activity("pipeline_work", req_data)
 
     return [status]
@@ -47,9 +44,11 @@ def pipeline_work(query: dict):
     country = query.get('country','CH')
     step = query.get('step','fullrun')
 
+    logging.info(f'Running pipeline for keyword `{query["keyword"]}\' for country {query["country"]}')
     try:
       nightcrawler.cli.main.run( [step, keyword, f'--country={country}'] )
     except Exception as e:
       logging.error(e, exc_info=True)
+      return f"Failed: {e}"
 
-    return 'OK'
+    return 'Success'
