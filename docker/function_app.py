@@ -1,8 +1,6 @@
 import azure.functions as func
 import azure.durable_functions as df
 
-import datetime
-import json
 import logging
 import nightcrawler.cli.main
 
@@ -27,7 +25,7 @@ async def pipeline_start(req: func.HttpRequest, client):
 
 # Orchestrator
 @app.orchestration_trigger(context_name="context")
-def pipeline_orchestrator(context):
+def pipeline_orchestrator(context: df.DurableOrchestrationContext):
     logging.info('Pipeline started')
 
     input_context = context.get_input()
@@ -54,4 +52,4 @@ def pipeline_work(query: dict):
     except Exception as e:
       logging.error(e, exc_info=True)
 
-    return f'OK'
+    return 'OK'
