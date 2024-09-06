@@ -6,6 +6,8 @@ import nightcrawler.cli.main
 
 app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
 
+# Triggers
+## HTTP
 @app.route(route="orchestrators/pipeline_orchestrator")
 @app.durable_client_input(client_name="client")
 async def pipeline_start(req: func.HttpRequest, client):
@@ -22,6 +24,15 @@ async def pipeline_start(req: func.HttpRequest, client):
     except Exception as e:
       logging.error(e, exc_info=True)
     return response
+
+## Message Queue
+@app.function_name(name="ServiceBusQueueKeyword")
+@app.service_bus_queue_trigger(arg_name="msg",
+                               queue_name="run-keyword",
+                               connection="ServiceBus")
+def test_function(msg: func.ServiceBusMessage):
+    logging.info('Python ServiceBus queue trigger processed message: %s',
+                 msg.get_body().decode('utf-8'))
 
 # Orchestrator
 @app.orchestration_trigger(context_name="context")
