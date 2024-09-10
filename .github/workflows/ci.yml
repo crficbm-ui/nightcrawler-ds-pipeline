@@ -40,4 +40,6 @@ jobs:
     - name: Run Unit Tests
       run: |
         poetry run pytest --cov=nightcrawler tests/unit/ tests/smoke/ -s
-        ls -la nightcrawler/
+
+    - name: Coverage Badge
+      uses: tj-actions/coverage-badge-py@v2
