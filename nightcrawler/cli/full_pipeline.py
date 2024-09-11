@@ -1,9 +1,15 @@
 import argparse
 import logging
 from typing import List
-from nightcrawler.process.dataprocessor import DataProcessor
-from nightcrawler.extract.serp_api import SerpapiExtractor
-from nightcrawler.extract.zyte import ZyteExtractor
+from nightcrawler.process.s03_dataprocessor import DataProcessor
+from nightcrawler.extract.s01_serp_api import SerpapiExtractor
+from nightcrawler.extract.s02_zyte import ZyteExtractor
+from nightcrawler.process.s05_delivery_page_detection import DeliveryPolicyDetector
+from nightcrawler.process.s06_page_type_detection import PageTypeDetector
+from nightcrawler.process.s07_blocket_content_detection import BlockedContentDetector
+from nightcrawler.process.s08_content_domain_detection import ContentDomainDetector
+from nightcrawler.process.s09_suspiciousness_classifier import SuspiciousnessClassifier
+from nightcrawler.process.s10_result_ranker import ResultRanker
 
 from helpers import LOGGER_NAME
 from helpers.context import Context
@@ -74,11 +80,38 @@ def apply(args: argparse.Namespace) -> None:
     # Step 2: Use Zyte to process the URLs further
     zyte_results = ZyteExtractor(context).apply(urls)
 
-    # Step 3: Process the results using DataProcessor based on the country
-    if args.country:
-        DataProcessor(context).step_country_filtering(
-            country=args.country, pipeline_result=zyte_results
-        )
-    else:
-        # TODO: Implement full run across countries
-        DataProcessor(context).apply()
+    # Step 3: Process the results using DataProcessor based on the country -
+    processor_results = DataProcessor(context).apply(
+        pipeline_results=zyte_results, country=args.country
+    )
+
+    # Step 4: delivery policy filtering
+    delivery_policy_filtering_results = DeliveryPolicyDetector(context).apply(
+        processor_results
+    )
+
+    # Step 5: page type filtering
+    page_type_filtering_results = PageTypeDetector(context).apply(
+        delivery_policy_filtering_results
+    )
+
+    # Step 6: blocked / corrupted content detection
+    blocked_content_results = BlockedContentDetector(context).apply(
+        page_type_filtering_results
+    )
+
+    # Step 7: content domain filtering
+    content_domain_results = ContentDomainDetector(context).apply(
+        blocked_content_results
+    )
+
+    # Step 8: suspiciousness classifier
+    suspiscousness_results = SuspiciousnessClassifier(context).apply(
+        content_domain_results
+    )
+
+    # Step 9: ranking
+    ResultRanker(context).apply(suspiscousness_results)
+
+    # TODO transform final_results into List[CrawlResult] for the libnightcawler lib
+    # TODO store final_results as CrawlResult object to storage
