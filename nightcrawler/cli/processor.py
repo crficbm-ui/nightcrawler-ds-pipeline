@@ -2,7 +2,7 @@ import argparse
 import logging
 
 from typing import List
-from nightcrawler.process.dataprocessor import DataProcessor
+from nightcrawler.process.s03_dataprocessor import DataProcessor
 from nightcrawler.base import ProcessData
 from nightcrawler.utils import get_object_from_file
 

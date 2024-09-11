@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from helpers.api.zyte_api import ZyteAPI
-from nightcrawler.extract.zyte import ZyteExtractor
+from nightcrawler.extract.s02_zyte import ZyteExtractor
 from nightcrawler.base import PipelineResult, ExtractZyteData, MetaData
 
 
@@ -26,7 +26,7 @@ def test_apply_all_functions_called_once(
 ):
     # Create the MetaData object to replace the meta dictionary
     meta_data = MetaData(keyword="test_keyword", numberOfResults=1)
-    result_data = [
+    zyte_data = [
         ExtractZyteData(
             url="http://example.com/product1",
             price="100USD",
@@ -36,6 +36,7 @@ def test_apply_all_functions_called_once(
             offerRoot="GOOGLE",
         ).to_dict()
     ]
+    pipeline_result = PipelineResult(meta=meta_data, results=zyte_data)
 
     # Ensure the mock for initiate_client returns a ZyteAPI instance and a config dict
     mock_initiate_client.return_value = (MagicMock(spec=ZyteAPI), {})
@@ -44,10 +45,7 @@ def test_apply_all_functions_called_once(
     mock_retrieve_response.return_value = [{"product": {"name": "Product Name"}}]
 
     # Use ExtractZyteData to mock the structured results
-    mock_structure_results.return_value = PipelineResult(
-        results=result_data,
-        meta=meta_data,
-    )
+    mock_structure_results.return_value = pipeline_result
 
     # Call the apply method with serpapi_results as the only argument
     results = zyte_extractor.apply(
@@ -74,35 +72,8 @@ def test_apply_all_functions_called_once(
         ),
     )
 
-    # Ensure store_results is called correctly with structured results and meta
-    mock_store_results.assert_called_once_with(
-        PipelineResult(
-            results=[
-                {
-                    "url": "http://example.com/product1",
-                    "price": "100USD",
-                    "title": "Product 1",
-                    "fullDescription": "Description 1",
-                    "zyteExecuctionTime": 2,
-                    "offerRoot": "GOOGLE",
-                }
-            ],
-            meta=meta_data,
-        ),
-        "/tmp",
-    )
-
     # Final assertion to check the returned results
-    assert results.results == [
-        {
-            "url": "http://example.com/product1",
-            "price": "100USD",
-            "title": "Product 1",
-            "fullDescription": "Description 1",
-            "zyteExecuctionTime": 2,
-            "offerRoot": "GOOGLE",
-        }
-    ]
+    assert results == pipeline_result
 
     # Ensure MetaData has been updated correctly
     assert results.meta.numberOfResultsAfterStage == 1

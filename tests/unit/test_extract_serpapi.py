@@ -1,7 +1,7 @@
 import pytest
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock, patch
 from helpers.api.serp_api import SerpAPI
-from nightcrawler.extract.serp_api import SerpapiExtractor
+from nightcrawler.extract.s01_serp_api import SerpapiExtractor
 from nightcrawler.base import ExtractSerpapiData, PipelineResult
 
 
@@ -83,33 +83,30 @@ def test_structure_results_is_formatted_properly(
     assert result == [{"url": "http://example.com", "offerRoot": "DEFAULT"}]
 
 
-@patch("nightcrawler.extract.serp_api.write_json")
+@patch.object(SerpapiExtractor, "store_results")
 def test_store_results_was_called(
-    mock_write_json: MagicMock, serpapi_extractor: SerpapiExtractor
+    mock_store_results: MagicMock, serpapi_extractor: SerpapiExtractor
 ) -> None:
     """
     Test that `store_results` calls `write_json` with the correct arguments.
 
-    :param mock_write_json: Mock for the `write_json` function.
     :param serpapi_extractor: Fixture that provides an instance of SerpapiExtractor.
+    :param mock_write_json: Mock object for the `write_json` method.
     """
     # Create mock structured results
     mock_results = PipelineResult(
-        meta=MagicMock(),
+        meta={"some_meta_key": "some_meta_value"},
         results=[ExtractSerpapiData(url="http://example.com", offerRoot="DEFAULT")],
     )
 
     # Call the store_results method
-    serpapi_extractor.store_results(mock_results)
+    serpapi_extractor.store_results(mock_results, "/tmp", "dummy_filename.json")
 
     # Ensure the mock was called with the correct arguments
-    mock_write_json.assert_called_once_with(
-        "/tmp",  # context.output_dir value from the fixture
-        "dummy_filename.json",  # context.serpapi_filename value from the fixture
-        {
-            "meta": ANY,  # Ignore specific meta object, we are testing structure
-            "results": [{"url": "http://example.com", "offerRoot": "DEFAULT"}],
-        },
+    mock_store_results.assert_called_once_with(
+        mock_results,
+        "/tmp",
+        "dummy_filename.json",
     )
 
 

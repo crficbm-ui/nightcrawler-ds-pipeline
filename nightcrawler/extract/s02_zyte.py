@@ -3,7 +3,6 @@ from typing import List, Dict, Tuple, Any
 from tqdm.auto import tqdm
 
 from helpers.context import Context
-from helpers.utils import write_json
 from helpers.api.zyte_api import ZyteAPI, DEFAULT_CONFIG
 from helpers import LOGGER_NAME
 from helpers.decorators import timeit
@@ -112,18 +111,6 @@ class ZyteExtractor(Extract):
 
         return serpapi_results
 
-    def store_results(
-        self, structured_results: PipelineResult, output_dir: str
-    ) -> None:
-        """
-        Stores the structured results into a JSON file.
-
-        Args:
-            structured_results (PipelineResult): The structured data to be stored.
-            output_dir (str): The directory where the JSON file will be saved.
-        """
-        write_json(output_dir, self.context.zyte_filename, structured_results.to_dict())
-
     @timeit
     def apply(self, serpapi_results: PipelineResult) -> PipelineResult:
         """
@@ -143,5 +130,7 @@ class ZyteExtractor(Extract):
         # update the number of results in the meta section
         serpapi_results.meta.numberOfResultsAfterStage = len(structured_results.results)
 
-        self.store_results(structured_results, self.context.output_dir)
+        self.store_results(
+            serpapi_results, self.context.output_dir, self.context.zyte_filename
+        )
         return structured_results
