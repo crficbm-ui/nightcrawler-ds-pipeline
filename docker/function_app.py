@@ -1,11 +1,14 @@
 import azure.functions as func
 import azure.durable_functions as df
 
+import json
 import logging
 import nightcrawler.cli.main
 
 app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
 
+# Triggers
+## HTTP
 @app.route(route="orchestrators/pipeline_orchestrator")
 @app.durable_client_input(client_name="client")
 async def pipeline_start(req: func.HttpRequest, client):
@@ -22,6 +25,19 @@ async def pipeline_start(req: func.HttpRequest, client):
     except Exception as e:
       logging.error(e, exc_info=True)
     return response
+
+## Message Queue
+@app.function_name(name="ServiceBusQueueKeyword")
+@app.service_bus_queue_trigger(arg_name="msg",
+                               queue_name="run-keyword",
+                               connection="ServiceBus")
+def sb_pipeline_start(msg: func.ServiceBusMessage):
+    logging.info('Python ServiceBus queue trigger processed message')
+    try:
+      req_data = json.loads( msg.get_body().decode('utf-8') )
+      pipeline_wrapper(req_data)
+    except Exception as e:
+      logging.error(e, exc_info=True)
 
 # Orchestrator
 @app.orchestration_trigger(context_name="context")
@@ -40,15 +56,19 @@ def pipeline_orchestrator(context: df.DurableOrchestrationContext):
 # Activity
 @app.activity_trigger(input_name="query")
 def pipeline_work(query: dict):
-    keyword = query.get('keyword')
-    country = query.get('country','CH')
-    step = query.get('step','fullrun')
-
-    logging.info(f'Running pipeline for keyword `{query["keyword"]}\' for country {query["country"]}')
     try:
-      nightcrawler.cli.main.run( [step, keyword, f'--country={country}'] )
+      pipeline_wrapper(query)
     except Exception as e:
       logging.error(e, exc_info=True)
       return f"Failed: {e}"
 
     return 'Success'
+
+def pipeline_wrapper(query):
+    keyword = query.get('keyword')
+    country = query.get('country','CH')
+    step = query.get('step','fullrun')
+
+    logging.info(f'Running pipeline for keyword `{keyword}\' for country {country}')
+    nightcrawler.cli.main.run( [step, keyword, f'--country={country}'] )
+    logging.info('Pipeline terminated successfully')
