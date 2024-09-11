@@ -1,118 +1,69 @@
+import base64
+from unittest import TestCase
 import pytest
 from unittest.mock import MagicMock, patch
-from helpers.api.zyte_api import ZyteAPI
+
 from nightcrawler.extract.zyte import ZyteExtractor
 
 
 @pytest.fixture
-def zyte_extractor():
+@patch('nightcrawler.logic.s01_zyte.ZyteLogic._setup_client')  # Patch _setup_client in ZyteLogic
+def zyte_extractor(mock_setup_client):
+    mock_client = MagicMock()
+    mock_setup_client.return_value = mock_client
+
     context = MagicMock()
     context.zyte_filename = "dummy_zyte_filename.json"
+
     return ZyteExtractor(context)
 
 
-def test_initiate_client_is_type_ZyteAPI_and_has_config(zyte_extractor):
-    client, api_config = zyte_extractor.initiate_client()
-    assert isinstance(client, ZyteAPI)
-    assert isinstance(api_config, dict)
-
-
-@patch.object(ZyteAPI, "call_api")
-def test_retrieve_response_is_retrieved(mock_call_api, zyte_extractor):
-    mock_call_api.return_value = {"product": {"name": "Product Name"}}
-    responses = zyte_extractor.retrieve_response(
-        ZyteAPI(), ["http://example.com/product1", "http://example.com/product2"], {}
-    )
-    assert len(responses) == 2
-    mock_call_api.assert_any_call("http://example.com/product1", {})
-    mock_call_api.assert_any_call("http://example.com/product2", {})
-    assert responses == [
-        {"product": {"name": "Product Name"}},
-        {"product": {"name": "Product Name"}},
-    ]
-
-
-@patch.object(ZyteAPI, "call_api")
-@patch("nightcrawler.extract.zyte.logger")
-def test_retrieve_response_with_failure(mock_logger, mock_call_api, zyte_extractor):
-    mock_call_api.side_effect = [None, {"product": {"name": "Product Name"}}]
-    responses = zyte_extractor.retrieve_response(
-        ZyteAPI(), ["http://example.com/product1", "http://example.com/product2"], {}
-    )
-    assert len(responses) == 1
-    mock_logger.error.assert_called_once_with(
-        "Failed to collect product from http://example.com/product1"
-    )
-    assert responses == [{"product": {"name": "Product Name"}}]
-
-
-def test_structure_results_is_formated_properly(zyte_extractor):
-    responses = [
-        {
-            "product": {
-                "url": "http://example.com/product1",
-                "price": "100",
-                "currencyRaw": "USD",
-                "name": "Product 1",
-                "description": "Description 1",
-            },
-            "seconds_taken": 2,
-        }
-    ]
-    structured_results = zyte_extractor.structure_results(responses)
-    assert structured_results == [
-        {
-            "url": "http://example.com/product1",
-            "price": "100USD",
-            "title": "Product 1",
-            "full_description": "Description 1",
-            "seconds_taken": "2",
-        }
-    ]
-
-
-@patch("nightcrawler.extract.zyte.write_json")
-def test_store_results_was_called(mock_write_json, zyte_extractor):
-    zyte_extractor.store_results([{"url": "http://example.com/product1"}], "/tmp")
-    mock_write_json.assert_called_once_with(
-        "/tmp", "dummy_zyte_filename.json", [{"url": "http://example.com/product1"}]
-    )
-
-
 @patch.object(ZyteExtractor, "store_results")
-@patch.object(ZyteExtractor, "structure_results")
-@patch.object(ZyteExtractor, "retrieve_response")
-@patch.object(ZyteExtractor, "initiate_client")
-def test_apply_all_functions_called_once(
-    mock_initiate_client,
-    mock_retrieve_response,
-    mock_structure_results,
-    mock_store_results,
-    zyte_extractor,
-):
-    # Ensure the mock for initiate_client returns a ZyteAPI instance and a config dict
-    mock_initiate_client.return_value = (MagicMock(spec=ZyteAPI), {})
+def test_zyte_extractor_empty_(mock_store_results, zyte_extractor):
+    # Test inputs
+    true_inputs = {"urls": ["http://example.com/product1"], "output_dir": "/tmp"}
 
-    # Mock the response from the retrieve_response method
-    mock_retrieve_response.return_value = [{"product": {"name": "Product Name"}}]
+    # Scenario 1: Valid product information from the API
+    zyte_extractor.logic.client.call_api.return_value = {
+        "product": {"price": "100", "currencyRaw": "USD", "name": "Sample Product", "description": "Sample Description"},
+        "metadata": {"probability": 0.95},
+        "seconds_taken": 1,
+        "browserHtml": "<html></html>"
+    }
+    
+    true_result = {
+        "url": "http://example.com/product1",
+        "price": "100USD",
+        "title": "Sample Product",
+        "full_description": "Sample Description",
+        "seconds_taken": "1",
+        "html": "<html></html>",
+        "zyte_probability": 0.95,
+    }
 
-    # Mock the response from the structure_results method
-    mock_structure_results.return_value = [{"url": "http://example.com/product1"}]
+    result = zyte_extractor.apply(**true_inputs)
+    assert result == [true_result]
 
-    # Call the apply method
-    results = zyte_extractor.apply(["http://example.com/product1"], "/tmp")
+    # Scenario 2: Missing product data from the API
+    zyte_extractor.logic.client.call_api.return_value = {
+        "product": {},  # No product info
+        "metadata": {"probability": 0.7},
+        "seconds_taken": 2,
+        "httpResponseBody": base64.b64encode(b"<html>no data</html>").decode(),
+    }
 
-    # Assertions to ensure that each step was called correctly
-    mock_initiate_client.assert_called_once()
-    mock_retrieve_response.assert_called_once_with(
-        mock_initiate_client.return_value[0], ["http://example.com/product1"], {}
-    )
-    mock_structure_results.assert_called_once_with(
-        [{"product": {"name": "Product Name"}}]
-    )
-    mock_store_results.assert_called_once_with(
-        [{"url": "http://example.com/product1"}], "/tmp"
-    )
+    true_result_missing_data = {
+        "url": "http://example.com/product1",
+        "price": "",  # No price
+        "title": "",  # No title
+        "full_description": "",  # No description
+        "seconds_taken": "2",
+        "html": "<html>no data</html>",  # HTML is present
+        "zyte_probability": 0.7,  # Probability from metadata
+    }
 
-    # Final assertion to check the returned results
-    assert results == [{"url": "http://example.com/product1"}]
+    result_missing_data = zyte_extractor.apply(**true_inputs)
+    assert result_missing_data == [true_result_missing_data]
+
+    # Ensure store_results was called both times
+    assert mock_store_results.call_count == 2

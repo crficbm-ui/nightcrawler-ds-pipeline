@@ -23,53 +23,6 @@ class DataCollector(ABC):
     """
 
     @abstractmethod
-    def initiate_client(self) -> Any:
-        """
-        Initializes the API client necessary for making requests.
-        Should set up any authentication or connection requirements.
-
-        Returns:
-            Any: An initialized API client instance.
-        """
-        pass
-
-    @abstractmethod
-    def retrieve_response(
-        self, *args: Any, **kwargs: Any
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-        """
-        Makes the API calls to retrieve data.
-
-        Args:
-            *args (Any): Positional arguments required by the API call.
-            **kwargs (Any): Keyword arguments required by the API call.
-
-        Returns:
-            Union[Dict[str, Any], List[Dict[str, Any]]]: The raw response data from the API, either as a dictionary or a list of dictionaries.
-        """
-        pass
-
-    @abstractmethod
-    def structure_results(
-        self,
-        data: Union[Dict[str, Any], List[Dict[str, Any]]],
-        *args: Any,
-        **kwargs: Any,
-    ) -> Union[List[str], List[Dict[str, Any]]]:
-        """
-        Processes and structures the raw API response data into the desired format.
-
-        Args:
-            data (Union[Dict[str, Any], List[Dict[str, Any]]]): The raw data returned from the API.
-            *args (Any): Additional positional arguments for structuring the data.
-            **kwargs (Any): Additional keyword arguments for structuring the data.
-
-        Returns:
-            Union[List[str], List[Dict[str, Any]]]: The structured and processed data, either as a list of URLs (strings) or a list of dictionaries.
-        """
-        pass
-
-    @abstractmethod
     def store_results(
         self, structured_data: Union[List[str], List[Dict[str, Any]]]
     ) -> None:
