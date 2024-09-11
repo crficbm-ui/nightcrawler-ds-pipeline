@@ -101,7 +101,7 @@ class ZyteExtractor(Extract):
                 price=f"{product.get('price', '')} {product.get('currencyRaw', '')}",
                 title=product.get("name", ""),
                 fullDescription=product.get("description", ""),
-                seconds_taken=response.get("seconds_taken", 0),
+                zyteExecuctionTime=response.get("seconds_taken", 0),
             ).to_dict()
 
             # Combine the dictionaries without nesting

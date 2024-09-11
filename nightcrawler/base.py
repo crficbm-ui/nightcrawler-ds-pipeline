@@ -4,9 +4,10 @@ from re import Pattern
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, Iterator, List, Union
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timezone
 from abc import ABC, abstractmethod
 
+import os  # Unused import to test ruff
 
 from helpers.utils import _get_uuid
 from helpers import LOGGER_NAME
@@ -15,10 +16,10 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 # ---------------------------------------------------
-# Data Model - Helper Classes used to either enforce specific class initialization or to provide common functionalities to its child classes.
+# Data Model - Abstract Classes used to either enforce specific class initialization or to provide common functionalities to its children classes.
 # ---------------------------------------------------
 @dataclass
-class Iterable(ABC, Mapping):
+class ObjectUtilitiesContainer(ABC, Mapping):
     """Abstract base class that allows for list-like object handling."""
 
     def to_dict(self) -> Dict[str, Optional[str]]:
@@ -50,15 +51,13 @@ class Iterable(ABC, Mapping):
     def __getitem__(self, key: str) -> Any:
         """
         Allows dict-like access to the attributes of the instance.
+        The function will raise an error if the key is not found.
 
         Args:
             key (str): The attribute name to access.
 
         Returns:
             Any: The value of the attribute corresponding to the key.
-
-        Raises:
-            KeyError: If the attribute does not exist.
         """
         try:
             return getattr(self, key)
@@ -69,15 +68,13 @@ class Iterable(ABC, Mapping):
         """
         Allows iteration over the attribute names of the instance.
 
-        Yields:
+        Returns:
             str: The attribute names.
         """
         return iter(self.to_dict())
 
     def __len__(self) -> int:
         """
-        Returns the number of non-None attributes.
-
         Returns:
             int: The number of non-None attributes.
         """
@@ -85,10 +82,9 @@ class Iterable(ABC, Mapping):
 
     def keys(self):
         """
-        Returns the keys of the dictionary representation.
-
         Returns:
-            KeysView[str]: The keys of the dictionary representation.
+            dict_keys: A view object that displays the keys of the dictionary
+        representation of the instance.
         """
         return self.to_dict().keys()
 
@@ -97,14 +93,14 @@ class Iterable(ABC, Mapping):
 # Data Model - Stage Classes
 # ---------------------------------------------------
 @dataclass
-class MetaData(Iterable):
+class MetaData(ObjectUtilitiesContainer):
     """Metadata class for storing information about the extraction process."""
 
     keyword: str = field(default_factory=str)
     numberOfResults: int = field(default_factory=int)
     numberOfResultsAfterStage: int = field(default_factory=int)
     resultDate: str = field(
-        default_factory=lambda: datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
     )
     uuid: str = field(init=False)
 
@@ -113,7 +109,7 @@ class MetaData(Iterable):
 
 
 @dataclass
-class ExtractSerpapiData(Iterable):
+class ExtractSerpapiData(ObjectUtilitiesContainer):
     """Class for handling SERP API results with optional attributes."""
 
     url: str
@@ -127,7 +123,7 @@ class ExtractZyteData(ExtractSerpapiData):
     price: Optional[str]
     title: Optional[str]
     fullDescription: Optional[str]
-    seconds_taken: Optional[float]
+    zyteExecuctionTime: Optional[float]
 
 
 @dataclass
@@ -147,7 +143,7 @@ class ProcessData(ExtractZyteData):
 
 
 @dataclass
-class PipelineResult(Iterable):
+class PipelineResult(ObjectUtilitiesContainer):
     """Class for storing a comprehensive report, including Zyte data."""
 
     meta: MetaData

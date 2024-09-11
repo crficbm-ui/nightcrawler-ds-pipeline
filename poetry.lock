@@ -2446,8 +2446,8 @@ serpapi = "^0.1.5"
 [package.source]
 type = "git"
 url = "https://github.com/smc40/nightcrawler-ds-helpers"
-reference = "v0.1.5"
-resolved_reference = "339f8c76aa547159233b5feb9be03bc70daf4f83"
+reference = "v0.1.6"
+resolved_reference = "f2d1630e8e135fcab07003915c0eadaf61f51328"
 
 [[package]]
 name = "html2text"
@@ -6340,4 +6340,4 @@ test = ["zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "68ef16d42009e5713386dcb3dff985b91e25c4428e7cbdf3a79297940d59f76a"
+content-hash = "74e360231a9ffce5648b823cbea89a7a7e94d1b33bb6496d7a1238afa8f0edcd"
