@@ -93,7 +93,7 @@ class ObjectUtilitiesContainer(ABC, Mapping):
 # ---------------------------------------------------
 @dataclass
 class MetaData(ObjectUtilitiesContainer):
-    """Metadata class for storing information about the full pipeline run valid for all crawl results"""
+    """Metadata class for storing information about the full pipeline run valid for all crawlresults"""
 
     keyword: str = field(default_factory=str)
     numberOfResults: int = field(default_factory=int)
@@ -199,6 +199,49 @@ class CrawlResultData(ProcessSuspiciousnessData):
     """Data class for step 9: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away."""
 
     # TODO add fields relevant to only this step
+    pass
+
+
+@dataclass
+class DeliveryPolicyData(ProcessData):
+    """Data class for step 4: delivery policy filtering"""
+
+    pass
+
+
+@dataclass
+class PageTyteData(DeliveryPolicyData):
+    """Data class for step 5: page type filtering"""
+
+    pass
+
+
+@dataclass
+class BlockedContentData(PageTyteData):
+    """Data class for step 6: blocked / corrupted content detection"""
+
+    pass
+
+
+@dataclass
+class ContentDomainData(BlockedContentData):
+    """Data class for step 7: content domain filtering"""
+
+    pass
+
+
+@dataclass
+class ProcessSuspiciousnessData(ContentDomainData):
+    """Data class for step 8: suspiciousness classifier
+    TODO: maybe this class can be deleted and the Suspiciousness step could return directly CrawlResultData as most likely no new variables will come used after this step"""
+
+    pass
+
+
+@dataclass
+class CrawlResultData(ProcessSuspiciousnessData):
+    """Data class for step 9: ranking"""
+
     pass
 
 

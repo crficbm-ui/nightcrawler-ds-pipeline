@@ -13,7 +13,7 @@ git pull
 2. In the [pyproject.tml](./pyproject.toml) on line 14 specify the path to `nightcralwer-ds-helpers` directory on your machine (if you need to develop in that repository) or use a tagged version from GitHub.
 
 ```bash
-helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nightcralwer-ds-helpers
+helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
 helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.6"} #for using a tagged version from GitHub
 ```
 

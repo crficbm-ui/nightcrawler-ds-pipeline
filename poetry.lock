@@ -2447,7 +2447,7 @@ serpapi = "^0.1.5"
 type = "git"
 url = "https://github.com/smc40/nightcrawler-ds-helpers"
 reference = "v0.1.6"
-resolved_reference = "ffc78fc0c0f61a4cd4f764ca20797a088d8940fc"
+resolved_reference = "8db470f0de30c4bb12b1090135909f9b21f7e572"
 
 [[package]]
 name = "html2text"
