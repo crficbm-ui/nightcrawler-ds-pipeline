@@ -7,8 +7,6 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from abc import ABC, abstractmethod
 
-import os  # Unused import to test ruff
-
 from helpers.utils import _get_uuid
 from helpers import LOGGER_NAME
 
