@@ -2,8 +2,8 @@ import argparse
 import logging
 
 from typing import List
-from nightcrawler.extract.serp_api import SerpapiExtractor
-from nightcrawler.extract.zyte import ZyteExtractor
+from nightcrawler.extract.s01_serp_api import SerpapiExtractor
+from nightcrawler.extract.s02_zyte import ZyteExtractor
 from nightcrawler.base import ProcessData
 from nightcrawler.utils import get_object_from_file
 

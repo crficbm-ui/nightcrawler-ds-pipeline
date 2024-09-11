@@ -7,7 +7,8 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from abc import ABC, abstractmethod
 
-from helpers.utils import _get_uuid
+from helpers.utils import _get_uuid, write_json
+from helpers.context import Context
 from helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -92,7 +93,7 @@ class ObjectUtilitiesContainer(ABC, Mapping):
 # ---------------------------------------------------
 @dataclass
 class MetaData(ObjectUtilitiesContainer):
-    """Metadata class for storing information about the extraction process."""
+    """Metadata class for storing information about the full pipeline run valid for all crawlresults"""
 
     keyword: str = field(default_factory=str)
     numberOfResults: int = field(default_factory=int)
@@ -108,7 +109,7 @@ class MetaData(ObjectUtilitiesContainer):
 
 @dataclass
 class ExtractSerpapiData(ObjectUtilitiesContainer):
-    """Class for handling SERP API results with optional attributes."""
+    """Data class for step 1: Extract URLs using Serpapi"""
 
     url: str
     offerRoot: str
@@ -116,7 +117,7 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
 
 @dataclass
 class ExtractZyteData(ExtractSerpapiData):
-    """Class for handling data extracted from Zyte."""
+    """Data class for step 2: Use Zyte to process the URLs further"""
 
     price: Optional[str]
     title: Optional[str]
@@ -126,8 +127,20 @@ class ExtractZyteData(ExtractSerpapiData):
 
 @dataclass
 class ProcessData(ExtractZyteData):
-    """Class for handling data extracted from Zyte."""
+    """Data class for step 3: Process the results using DataProcessor based on the country,
+    i.e. url-filtering."""
 
+    """
+    TODO make this more abstract (not for CH but for any country) i.e.:
+    country: Optional[str]
+    countryInUrl: Optional[bool]
+    webextensionInUrl: Optional[bool]
+    currencyInUrl: Optional[bool]
+    soltToCountry: Optional[bool]
+
+    -> change the processor accordingly
+    
+    """
     ch_de_in_url: Optional[bool]
     swisscompany_in_url: Optional[bool]
     web_extension_in_url: Optional[bool]
@@ -135,8 +148,51 @@ class ProcessData(ExtractZyteData):
     result_sold_CH: Optional[bool]
 
 
+@dataclass
+class DeliveryPolicyData(ProcessData):
+    """Data class for step 4: delivery policy filtering"""
+
+    pass
+
+
+@dataclass
+class PageTyteData(DeliveryPolicyData):
+    """Data class for step 5: page type filtering"""
+
+    pass
+
+
+@dataclass
+class BlockedContentData(PageTyteData):
+    """Data class for step 6: blocked / corrupted content detection"""
+
+    pass
+
+
+@dataclass
+class ContentDomainData(BlockedContentData):
+    """Data class for step 7: content domain filtering"""
+
+    pass
+
+
+@dataclass
+class ProcessSuspiciousnessData(ContentDomainData):
+    """Data class for step 8: suspiciousness classifier
+    TODO: maybe this class can be deleted and the Suspiciousness step could return directly CrawlResultData as most likely no new variables will come used after this step"""
+
+    pass
+
+
+@dataclass
+class CrawlResultData(ProcessSuspiciousnessData):
+    """Data class for step 9: ranking"""
+
+    pass
+
+
 # ---------------------------------------------------
-# Data Model - Report Classes
+# Data Model - Class used to store the data classes as json objects
 # ---------------------------------------------------
 
 
@@ -145,15 +201,52 @@ class PipelineResult(ObjectUtilitiesContainer):
     """Class for storing a comprehensive report, including Zyte data."""
 
     meta: MetaData
-    results: List[ProcessData]
+    results: List[CrawlResultData]
 
 
 # ---------------------------------------------------
-# Data Model - Stage Enforcing Classes
+# Data Model - Abstract Classes providing shared functionalities and / or enforcing method implementation at children classes.
 # ---------------------------------------------------
 
 
-class Extract(ABC):
+class BaseStep(ABC):
+    """
+    Class that provides core functionalities for all steps in the pipeline:
+        - enforces an apply function
+        - provides a method to store the results
+
+    """
+
+    _step_counter = 0
+
+    def __init__(self, context: Context) -> None:
+        self._entity_name = (
+            self.__class__.__qualname__
+        )  # Automatically set name for children
+        self.context = context
+
+        BaseStep._step_counter += 1
+        logger.info(f"Initializing step {BaseStep._step_counter}: {self._entity_name}")
+
+    def store_results(
+        self, structured_results: PipelineResult, output_dir: str, filename: str
+    ) -> None:
+        """
+        Stores the structured results into a JSON file.
+
+        Args:
+            structured_results (PipelineResult): The structured data to be stored.
+            output_dir (str): The directory where the JSON file will be saved.
+        """
+        write_json(output_dir, filename, structured_results.to_dict())
+
+    @abstractmethod
+    def apply(self, *args: Any, **kwargs: Any) -> Any:
+        """Enforces the apply method, leaves the implementation up for the chilrden classes"""
+        pass
+
+
+class Extract(BaseStep):
     """
     Abstract base class that enforces methods to interact with an API, process its results, and store the data.
 
@@ -167,9 +260,6 @@ class Extract(ABC):
     Attributes:
         context (Any): The context object containing configuration and settings.
     """
-
-    def __init__(self, *args: Any) -> None:
-        logger.info(f"Initializing step: {args[0]}")
 
     @abstractmethod
     def initiate_client(self) -> Any:
@@ -215,18 +305,6 @@ class Extract(ABC):
 
         Returns:
             Union[List[str], List[Dict[str, Any]]]: The structured and processed data, either as a list of URLs (strings) or a list of dictionaries.
-        """
-        pass
-
-    @abstractmethod
-    def store_results(
-        self, structured_data: Union[List[PipelineResult], List[PipelineResult]]
-    ) -> None:
-        """
-        Stores the structured data into the file system or another storage mechanism.
-
-        Args:
-            structured_data (Union[List[PipelineResult], List[PipelineResult]]): The processed data that needs to be stored.
         """
         pass
 

@@ -27,14 +27,17 @@ def test_full_pipeline_end_to_end():
 
     # Check that the logs contain messages of starting / completing of the tasks
     assert (
-        "Initializing step: SerpapiExtractor" in combined_output
+        re.search(r"Initializing step \d{1,2}: SerpapiExtractor", combined_output)
     ), "SerpapiExtractor initialization not found in output."
     assert (
-        "Initializing step: ZyteExtractor" in combined_output
+        re.search(r"Initializing step \d{1,2}: ZyteExtractor", combined_output)
     ), "ZyteExtractor initialization not found in output."
     assert (
-        "Initializing step: DataProcessor" in combined_output
+        re.search(r"Initializing step \d{1,2}: DataProcessor", combined_output)
     ), "DataProcessor initialization not found in output."
+    assert (
+        "Run full pipeline" in combined_output
+    ), "Pipeline completion message not found in output."
     assert (
         "Run full pipeline" in combined_output
     ), "Pipeline completion message not found in output."

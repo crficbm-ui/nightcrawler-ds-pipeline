@@ -3,7 +3,6 @@ from typing import Any, Dict, List
 from helpers.context import Context
 from helpers.api.serp_api import SerpAPI
 from helpers.decorators import timeit
-from helpers.utils import write_json
 from helpers import LOGGER_NAME
 
 from nightcrawler.base import (
@@ -131,22 +130,6 @@ class SerpapiExtractor(Extract):
         ]
         return results
 
-    def store_results(
-        self,
-        structured_results: PipelineResult,
-    ) -> None:
-        """
-        Stores the structured search results to a JSON file.
-
-        Args:
-            structured_results (PipelineResult): The structured search results.
-        """
-        write_json(
-            self.context.output_dir,
-            self.context.serpapi_filename,
-            structured_results.to_dict(),
-        )
-
     def results_from_marketplaces(
         self, client: SerpAPI, keyword: str, number_of_results: int
     ) -> List[ExtractSerpapiData]:
@@ -223,5 +206,10 @@ class SerpapiExtractor(Extract):
             meta=metadata, results=structured_results_from_marketplaces
         )
 
-        self.store_results(structured_results_from_marketplaces)
+        self.store_results(
+            structured_results_from_marketplaces,
+            self.context.output_dir,
+            self.context.serpapi_filename,
+        )
+
         return structured_results_from_marketplaces
