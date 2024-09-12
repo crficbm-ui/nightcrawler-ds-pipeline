@@ -110,6 +110,13 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         help="Processes URLs using a country specific pipeline",
     )
 
+    common_parser.add_argument(
+        "-r",
+        "--reverse-image-search",
+        nargs="+",  # Accept multiple values as a list
+        help="List of image URLs for reverse image search",
+    )
+
     parser = argparse.ArgumentParser(
         description="Nightcrawler", parents=[global_parser]
     )
