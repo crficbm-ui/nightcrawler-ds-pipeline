@@ -1,6 +1,7 @@
 import argparse
 import logging
 from typing import List
+from nightcrawler.utils import merge_pipeline_steps_results
 from nightcrawler.process.s03_dataprocessor import DataProcessor
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
 from nightcrawler.extract.s02_zyte import ZyteExtractor

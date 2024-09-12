@@ -125,7 +125,7 @@ class SerpapiExtractor(Extract):
 
         filtered_urls = client._check_limit(urls, keyword)
         results = [
-            ExtractSerpapiData(url=url, offerRoot=offer_root).to_dict()
+            ExtractSerpapiData(offerRoot=offer_root, url=url).to_dict()
             for url in filtered_urls
         ]
         return results

@@ -40,9 +40,6 @@ def test_full_pipeline_end_to_end():
     assert (
         "Run full pipeline" in combined_output
     ), "Pipeline completion message not found in output."
-    assert (
-        "Run full pipeline" in combined_output
-    ), "Pipeline completion message not found in output."
 
     # Check that the logs contain messages of starting / completing of the tasks
     logger.info(combined_output)
