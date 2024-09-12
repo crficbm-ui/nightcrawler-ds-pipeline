@@ -1,9 +1,11 @@
 import argparse
 import logging
 from typing import List
+from nightcrawler.utils import merge_pipeline_steps_results
 from nightcrawler.process.s03_dataprocessor import DataProcessor
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
 from nightcrawler.extract.s02_zyte import ZyteExtractor
+from nightcrawler.extract.s01_reverse_image_search import GoogleReverseImageApi
 from nightcrawler.process.s05_delivery_page_detection import DeliveryPolicyDetector
 from nightcrawler.process.s06_page_type_detection import PageTypeDetector
 from nightcrawler.process.s07_blocket_content_detection import BlockedContentDetector
@@ -71,16 +73,35 @@ def apply(args: argparse.Namespace) -> None:
     """
     context = Context()
 
-    # Step 1: Extract URLs using Serpapi
+    # Step 0: create the results directory
     context.output_dir = create_output_dir(args.keyword, context.output_path)
-    urls = SerpapiExtractor(context).apply(
+
+    # Step 1a Extract URLs using Serpapi - Perform keyword search and add them to the urls variable (empty, if no reverse image search was performed)
+    serpapi_keyword_results = SerpapiExtractor(context).apply(
         keyword=args.keyword, number_of_results=args.number_of_results
     )
 
-    # Step 2: Use Zyte to process the URLs further
-    zyte_results = ZyteExtractor(context).apply(urls)
+    # Step 1b Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
+    if args.reverse_image_search:
+        # Handle reverse image searchcl
+        image_urls = args.reverse_image_search
+        serpapi_image_results = GoogleReverseImageApi(context).apply(
+            image_urls=image_urls,
+            keywords=args.keyword,
+            number_of_results=args.number_of_results,
+        )
 
-    # Step 3: Process the results using DataProcessor based on the country -
+        # if there is keyword and reverse image search results, we want to combine them into a new serapi_results object. If no image results are present, we want to return only the keyword results
+        serpapi_results = merge_pipeline_steps_results(
+            previousStep=serpapi_image_results, currentStep=serpapi_keyword_results
+        )
+    else:
+        serpapi_results = serpapi_keyword_results
+
+    # Step 2: Use Zyte to process the URLs further
+    zyte_results = ZyteExtractor(context).apply(serpapi_results)
+
+    # Step 3: Process the results using DataProcessor based on the country
     processor_results = DataProcessor(context).apply(
         pipeline_results=zyte_results, country=args.country
     )

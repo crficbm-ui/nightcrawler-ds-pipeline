@@ -111,18 +111,21 @@ class MetaData(ObjectUtilitiesContainer):
 class ExtractSerpapiData(ObjectUtilitiesContainer):
     """Data class for step 1: Extract URLs using Serpapi"""
 
-    url: str
     offerRoot: str
+    url: str
+    imageUrl: Optional[str] = (
+        None  # this is only used for the reverse image search and indicates the direct url to the image
+    )
 
 
 @dataclass
 class ExtractZyteData(ExtractSerpapiData):
     """Data class for step 2: Use Zyte to process the URLs further"""
 
-    price: Optional[str]
-    title: Optional[str]
-    fullDescription: Optional[str]
-    zyteExecuctionTime: Optional[float]
+    price: Optional[str] = None
+    title: Optional[str] = None
+    fullDescription: Optional[str] = None
+    zyteExecuctionTime: Optional[float] = 0.0
 
 
 @dataclass
@@ -141,11 +144,11 @@ class ProcessData(ExtractZyteData):
     -> change the processor accordingly
     
     """
-    ch_de_in_url: Optional[bool]
-    swisscompany_in_url: Optional[bool]
-    web_extension_in_url: Optional[bool]
-    francs_in_url: Optional[bool]
-    result_sold_CH: Optional[bool]
+    ch_de_in_url: Optional[bool] = False
+    swisscompany_in_url: Optional[bool] = False
+    web_extension_in_url: Optional[bool] = False
+    francs_in_url: Optional[bool] = False
+    result_sold_CH: Optional[bool] = False
 
 
 @dataclass

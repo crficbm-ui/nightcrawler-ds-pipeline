@@ -3,6 +3,7 @@ import logging
 
 from typing import List
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
+from nightcrawler.extract.s01_reverse_image_search import GoogleReverseImageApi
 from nightcrawler.extract.s02_zyte import ZyteExtractor
 from nightcrawler.base import ProcessData
 from nightcrawler.utils import get_object_from_file
@@ -75,11 +76,23 @@ def apply(args: argparse.Namespace) -> None:
         # create the output directory only if the full extract pipeline is run or if the serpapi extraction is performed as a single step
         context.output_dir = create_output_dir(args.keyword, context.output_path)
 
+    # if NOT a step-wise pipeline execution is triggered (aka a full pipeline run)
     if not args.step:
-        urls = SerpapiExtractor(context).apply(
-            keyword=args.keyword, number_of_results=args.number_of_results
-        )
-        ZyteExtractor(context).apply(urls)
+        # Perform reverse image search if image-urls were provided
+        # Step 1b Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
+        if args.reverse_image_search:
+            # Handle reverse image searchcl
+            image_urls = args.reverse_image_search
+            serpapi_results = GoogleReverseImageApi(context).apply(
+                image_urls=image_urls,
+                keywords=args.keyword,
+                number_of_results=args.number_of_results,
+            )
+        else:
+            serpapi_results = SerpapiExtractor(context).apply(
+                keyword=args.keyword, number_of_results=args.number_of_results
+            )
+        ZyteExtractor(context).apply(serpapi_results)
     elif args.step == "serpapi":
         SerpapiExtractor(context).apply(
             keyword=args.keyword, number_of_results=args.number_of_results

@@ -6,6 +6,7 @@ from io import StringIO
 from nightcrawler.cli.main import run
 
 from helpers import LOGGER_NAME
+from helpers.context import Context
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -26,14 +27,15 @@ def test_full_pipeline_end_to_end():
     logger.info(combined_output)
 
     # Check that the logs contain messages of starting / completing of the tasks
-    assert (
-        re.search(r"Initializing step \d{1,2}: SerpapiExtractor", combined_output)
+    assert result.returncode == 0, f"Pipeline failed with error: {stderr}"
+    assert re.search(
+        r"Initializing step \d{1,2}: SerpapiExtractor", combined_output
     ), "SerpapiExtractor initialization not found in output."
-    assert (
-        re.search(r"Initializing step \d{1,2}: ZyteExtractor", combined_output)
+    assert re.search(
+        r"Initializing step \d{1,2}: ZyteExtractor", combined_output
     ), "ZyteExtractor initialization not found in output."
-    assert (
-        re.search(r"Initializing step \d{1,2}: DataProcessor", combined_output)
+    assert re.search(
+        r"Initializing step \d{1,2}: DataProcessor", combined_output
     ), "DataProcessor initialization not found in output."
     assert (
         "Run full pipeline" in combined_output
@@ -51,14 +53,21 @@ def test_full_pipeline_end_to_end():
 
     if paths:
         output_directory = paths[0]
+        context = Context()
 
         # Count the number of JSON files in the output directory
         json_files = [f for f in os.listdir(output_directory) if f.endswith(".json")]
         json_file_reference = [
-            "01_extract_serpapi.json",
-            "02_extract_zyte.json",
-            "03_process_raw.json",
-            "04_process_filtered_CH.json",
+            context.serpapi_filename,
+            context.zyte_filename,
+            context.processing_filename_raw,
+            context.processing_filename_filtered.replace("country", country),
+            context.processing_filename_delivery_policy,
+            context.processing_filename_page_type_detection,
+            context.processing_filename_blocked_content_detection,
+            context.processing_filename_content_domain_detection,
+            context.processing_filename_suspiciousness_classifier,
+            context.filename_final_results,
         ]
 
         # Assert that each file in json_file_reference exists in json_files
