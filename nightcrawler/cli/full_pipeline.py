@@ -4,6 +4,7 @@ from typing import List
 from nightcrawler.utils import merge_pipeline_steps_results
 from nightcrawler.process.s03_dataprocessor import DataProcessor
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
+from nightcrawler.extract.s01_enriched_keywords import KeyWordEnricher
 from nightcrawler.extract.s02_zyte import ZyteExtractor
 from nightcrawler.extract.s01_reverse_image_search import GoogleReverseImageApi
 from nightcrawler.process.s05_delivery_page_detection import DeliveryPolicyDetector

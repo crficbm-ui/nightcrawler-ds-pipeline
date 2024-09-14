@@ -101,7 +101,7 @@ class SerpapiExtractor(Extract):
         client: SerpAPI,
         offer_root: str = "DEFAULT",
         number_of_results: int = 50,
-    ) -> PipelineResult:
+    ) -> List[ExtractSerpapiData]:
         """
         Processes and structures the raw API response data into the desired format.
 
@@ -123,10 +123,9 @@ class SerpapiExtractor(Extract):
         urls = [item.get("link") for item in items]
         urls = urls[:number_of_results]
 
-        filtered_urls = client._check_limit(urls, keyword)
+        filtered_urls = client._check_limit(urls, keyword, 200)
         results = [
-            ExtractSerpapiData(offerRoot=offer_root, url=url).to_dict()
-            for url in filtered_urls
+            ExtractSerpapiData(offerRoot=offer_root, url=url) for url in filtered_urls
         ]
         return results
 

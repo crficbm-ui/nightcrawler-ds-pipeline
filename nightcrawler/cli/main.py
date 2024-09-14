@@ -118,6 +118,13 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         help="Enable reverse image search (default is False)",
     )
 
+    common_parser.add_argument(
+        "-e",
+        "--enrich-keyword",
+        action="store_true",
+        help="Enrich the user entered keyword with Dataforseo-API",
+    )
+
     parser = argparse.ArgumentParser(
         description="NightCrawler", parents=[global_parser]
     )

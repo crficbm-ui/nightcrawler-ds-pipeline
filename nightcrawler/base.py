@@ -113,6 +113,10 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
 
     offerRoot: str
     url: str
+    keywordEnriched: Optional[str] = None
+    keywordVolume: Optional[float] = 0.0
+    keywordLanguage: Optional[str] = None
+    keywordLocation: Optional[str] = None
     imageUrl: Optional[str] = (
         None  # this is only used for the reverse image search and indicates the direct url to the image
     )
