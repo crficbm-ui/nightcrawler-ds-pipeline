@@ -80,7 +80,7 @@ def test_structure_results_is_formatted_properly(
         offer_root="DEFAULT",
         number_of_results=1,
     )
-    assert result == [{"url": "http://example.com", "offerRoot": "DEFAULT"}]
+    assert result == [ExtractSerpapiData(url="http://example.com", offerRoot="DEFAULT")]
 
 
 @patch.object(SerpapiExtractor, "store_results")

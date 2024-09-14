@@ -4,6 +4,7 @@ from typing import List
 from nightcrawler.utils import merge_pipeline_steps_results
 from nightcrawler.process.s03_dataprocessor import DataProcessor
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
+from nightcrawler.extract.s01_enriched_keywords import KeyWordEnricher
 from nightcrawler.extract.s02_zyte import ZyteExtractor
 from nightcrawler.extract.s01_reverse_image_search import GoogleReverseImageApi
 from nightcrawler.process.s05_delivery_page_detection import DeliveryPolicyDetector
@@ -77,11 +78,35 @@ def apply(args: argparse.Namespace) -> None:
     context.output_dir = create_output_dir(args.keyword, context.output_path)
 
     # Step 1a Extract URLs using Serpapi - Perform keyword search and add them to the urls variable (empty, if no reverse image search was performed)
-    serpapi_keyword_results = SerpapiExtractor(context).apply(
+    serpapi_results = SerpapiExtractor(context).apply(
         keyword=args.keyword, number_of_results=args.number_of_results
     )
 
-    # Step 1b Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
+    # Step 1b: Enricht query by adding additional params
+    if args.enrich_keyword:
+        api_config_for_country = context.settings.data_for_seo.api_params.get(
+            args.country, "CH"
+        )
+        enriched_keyword_results = KeyWordEnricher(
+            context
+        ).apply(
+            args.keyword,
+            SerpapiExtractor(context),
+            args.number_of_results,
+            [
+                api_config_for_country.get("location")
+            ],  # TODO: ask Nico, if this really needs to be a list? if not, the dataforseo can be made easier and two nested for loops can be removed
+            [
+                api_config_for_country.get("language")
+            ],  # TODO: ask Nico, if this really needs to be a list? if not, the dataforseo can be made easier and two nested for loops can be removed
+        )
+
+        # if there is keyword and reverse image search results, we want to combine them into a new serapi_results object. If no image results are present, we want to return only the keyword results
+        serpapi_results = merge_pipeline_steps_results(
+            previousStep=serpapi_results, currentStep=enriched_keyword_results
+        )
+
+    # Step 1c Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
     if args.reverse_image_search:
         # Handle reverse image searchcl
         image_urls = args.reverse_image_search
@@ -93,10 +118,8 @@ def apply(args: argparse.Namespace) -> None:
 
         # if there is keyword and reverse image search results, we want to combine them into a new serapi_results object. If no image results are present, we want to return only the keyword results
         serpapi_results = merge_pipeline_steps_results(
-            previousStep=serpapi_image_results, currentStep=serpapi_keyword_results
+            previousStep=serpapi_results, currentStep=serpapi_image_results
         )
-    else:
-        serpapi_results = serpapi_keyword_results
 
     # Step 2: Use Zyte to process the URLs further
     zyte_results = ZyteExtractor(context).apply(serpapi_results)
