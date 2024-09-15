@@ -31,7 +31,7 @@ class ObjectUtilitiesContainer(ABC, Mapping):
         return {
             k: v
             for k, v in asdict(self).items()
-            if v is not None and (not isinstance(v, list) or v)
+            if v is not None and v != -1 and v != ""
         }
 
     def get(self, attr: str, default: Any = None) -> Any:
@@ -114,7 +114,7 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
     offerRoot: str
     url: str
     keywordEnriched: Optional[str] = None
-    keywordVolume: Optional[float] = 0.0
+    keywordVolume: Optional[float] = -1
     keywordLanguage: Optional[str] = None
     keywordLocation: Optional[str] = None
     imageUrl: Optional[str] = (
@@ -282,9 +282,7 @@ class BaseStep(ABC):
             self.__class__.__qualname__
         )  # Automatically set name for children
         self.context = context
-
         BaseStep._step_counter += 1
-        logger.info(f"Initializing step {BaseStep._step_counter}: {self._entity_name}")
 
     def store_results(
         self, structured_results: PipelineResult, output_dir: str, filename: str
@@ -296,12 +294,49 @@ class BaseStep(ABC):
             structured_results (PipelineResult): The structured data to be stored.
             output_dir (str): The directory where the JSON file will be saved.
         """
-        write_json(output_dir, filename, structured_results.to_dict())
+        # TODO try with deep copy
+        structured_results_dict = PipelineResult(meta=MetaData(), results=[])
+        structured_results_dict.meta = structured_results.meta.to_dict()
+        structured_results_dict.results = [
+            result.to_dict() for result in structured_results.results
+        ]
+
+        write_json(
+            output_dir,
+            f"{BaseStep._step_counter}_{filename}",
+            structured_results_dict.to_dict(),
+        )
+
+    def add_pipeline_steps_to_results(
+        self,
+        currentStepResults: List[Any],
+        pipelineResults: PipelineResult,
+        currentStepResultsIsPipelineResultsObject=True,
+    ) -> PipelineResult:
+        # Depending on the class implementation the currentStepResults is either a List of DataObjects (default) or already a PipelineResult Object.
+        if currentStepResultsIsPipelineResultsObject:
+            # If it is a PipelineResult object, it does contain the results of all previous steps and the current results.
+            results = currentStepResults
+            # Update the number of results after stage
+            pipelineResults.meta.numberOfResultsAfterStage = len(currentStepResults)
+        else:
+            # If not, we have to append the list of DataObjects generated during the current step to the results of the last step.
+            results = pipelineResults.results + currentStepResults
+            pipelineResults.meta.numberOfResultsAfterStage = len(results)
+
+        updatedResults = PipelineResult(meta=pipelineResults.meta, results=results)
+        return updatedResults
 
     @abstractmethod
-    def apply(self, *args: Any, **kwargs: Any) -> Any:
-        """Enforces the apply method, leaves the implementation up to the children classes"""
+    def apply_step(self, *args: Any, **kwargs: Any) -> Any:
+        """Enforces the apply_step method, leaves the implementation up for the children classes"""
         pass
+
+    def apply(self, *args: Any, **kwargs: Any) -> PipelineResult:
+        logger.info(f"Executing step {BaseStep._step_counter}: {self._entity_name}")
+        results = self.apply_step(*args, **kwargs)
+        self.context.crawlStatus = self._entity_name + " successfull"
+        return results
 
 
 class Extract(BaseStep):
@@ -363,26 +398,6 @@ class Extract(BaseStep):
 
         Returns:
             Union[List[str], List[Dict[str, Any]]]: The structured and processed data, either as a list of URLs (strings) or a list of dictionaries.
-        """
-        pass
-
-    @abstractmethod
-    def apply(
-        self, *args: Any, **kwargs: Any
-    ) -> Union[List[PipelineResult], List[PipelineResult]]:
-        """
-        Orchestrates the entire process by calling the other methods in sequence:
-        - initiate_client
-        - retrieve_response
-        - structure_results
-        - store_results
-
-        Args:
-            *args (Any): Positional arguments required for the process.
-            **kwargs (Any): Keyword arguments required for the process.
-
-        Returns:
-            Union[List[PipelineResult], List[PipelineResult]]: The final structured results.
         """
         pass
 

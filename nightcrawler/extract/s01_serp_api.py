@@ -2,7 +2,6 @@ import logging
 from typing import Any, Dict, List
 from helpers.context import Context
 from helpers.api.serp_api import SerpAPI
-from helpers.decorators import timeit
 from helpers import LOGGER_NAME
 
 from nightcrawler.base import (
@@ -176,8 +175,7 @@ class SerpapiExtractor(Extract):
 
         return all_results
 
-    @timeit
-    def apply(self, keyword: str, number_of_results: int) -> PipelineResult:
+    def apply_step(self, keyword: str, number_of_results: int) -> PipelineResult:
         """
         Orchestrates the entire process of data collection: client initiation,
         response retrieval, structuring results, and storing results.
@@ -194,6 +192,7 @@ class SerpapiExtractor(Extract):
             client=client, keyword=keyword, number_of_results=number_of_results
         )
 
+        # Generate the metadata
         metadata = MetaData(
             keyword=keyword,
             numberOfResults=number_of_results,

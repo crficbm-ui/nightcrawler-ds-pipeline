@@ -14,10 +14,10 @@ git pull
 
 ```bash
 helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
-helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.6"} #for using a tagged version from GitHub
+helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.7"} #for using a tagged version from GitHub
 ```
 
-> **_NOTE:_**  As of today, 11.09.2025 the current and tested helpers tag is v0.1.6. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
+> **_NOTE:_**  As of today, 15.09.2025 the current and tested helpers tag is v0.1.7. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
 3. Create a virtual environment with Poetry and activate it.
 
