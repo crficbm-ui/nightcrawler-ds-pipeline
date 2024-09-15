@@ -3,16 +3,6 @@ from helpers.utils import from_dict
 from nightcrawler.base import MetaData, PipelineResult, ProcessData
 
 
-def merge_pipeline_steps_results(
-    previousStep: PipelineResult, currentStep: PipelineResult
-) -> PipelineResult:
-    updatedResults = PipelineResult(
-        meta=previousStep.meta, results=previousStep.results + currentStep.results
-    )
-
-    return updatedResults
-
-
 def get_object_from_file(
     dir: str, filename: str, processing_object: ProcessData
 ) -> PipelineResult:

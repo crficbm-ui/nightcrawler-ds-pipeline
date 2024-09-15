@@ -7,7 +7,7 @@ from helpers import LOGGER_NAME
 from helpers.context import Context
 from helpers.api.serp_api import SerpAPI
 
-from nightcrawler.base import ExtractSerpapiData, MetaData, PipelineResult, BaseStep
+from nightcrawler.base import ExtractSerpapiData, PipelineResult, BaseStep
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -139,14 +139,16 @@ class GoogleReverseImageApi(BaseStep):
         req.prepare_url(url, get_params)
         return req.url
 
-    def apply(
-        self, image_urls: List[str], keywords: List[str], number_of_results: int
+    def apply_step(
+        self,
+        image_urls: List[str],
+        number_of_results: int,
+        previous_step_results: PipelineResult,
     ) -> PipelineResult:
         """Perform reverse image search on multiple URLs and return structured results.
 
         Args:
             image_urls (List[str]): List of image URLs to search for.
-            keywords (List[str]): List of keywords associated with the search.
             number_of_results (int): Maximum number of results to return.
 
         Returns:
@@ -179,21 +181,18 @@ class GoogleReverseImageApi(BaseStep):
         # either we keep it or we do not control the number of stored results from the pipeline - however this might lead to unintentional high zyte api costs as there can be easily produced a few dozen results by the reverse image search
         results = results[:number_of_results]
 
-        metadata = MetaData(
-            keyword=keywords,
-            numberOfResults=number_of_results,
-            numberOfResultsAfterStage=len(results),
-        )
-
-        # Combining all structured results
-        structured_results_from_marketplaces = PipelineResult(
-            meta=metadata, results=results
+        # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
+        # setting resultsOnly=False as here we provide not only an ExtractSerpapiData obect as currentStepResults, which would be the default, but a full Pipeline Results object
+        image_search_results = self.add_pipeline_steps_to_results(
+            currentStepResults=results,
+            pipelineResults=previous_step_results,
+            currentStepResultsIsPipelineResultsObject=False,
         )
 
         self.store_results(
-            structured_results_from_marketplaces,
+            image_search_results,
             self.context.output_dir,
             self.context.serpapi_filename_reverse_image_search,
         )
 
-        return structured_results_from_marketplaces
+        return image_search_results

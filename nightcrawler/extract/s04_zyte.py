@@ -5,7 +5,6 @@ from tqdm.auto import tqdm
 from helpers.context import Context
 from helpers.api.zyte_api import ZyteAPI, DEFAULT_CONFIG
 from helpers import LOGGER_NAME
-from helpers.decorators import timeit
 
 from nightcrawler.base import (
     ExtractZyteData,
@@ -49,7 +48,7 @@ class ZyteExtractor(Extract):
     def retrieve_response(
         self,
         client: ZyteAPI,
-        serpapi_results: List[PipelineResult],
+        serpapi_results: PipelineResult,
         api_config: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
         """
@@ -57,13 +56,13 @@ class ZyteExtractor(Extract):
 
         Args:
             client (ZyteAPI): The ZyteAPI client instance.
-            serpapi_results (List[PipelineResult]): The list of results from Serpapi containing URLs to process.
+            serpapi_results PipelineResult: The list of results from Serpapi containing URLs to process.
             api_config (Dict[str, Any]): The configuration settings for the ZyteAPI.
 
         Returns:
             List[Dict[str, Any]]: The list of responses from ZyteAPI.
         """
-        urls = [item.get("url") for item in serpapi_results.get("results", [])]
+        urls = [item.get("url") for item in serpapi_results.results]
         responses = []
         with tqdm(total=len(urls)) as pbar:
             for url in urls:
@@ -90,47 +89,48 @@ class ZyteExtractor(Extract):
         Returns:
             PipelineResult: The updated Serpapi results with added Zyte data.
         """
+        results = []
         for index, response in enumerate(responses):
             product = response.get("product", {})
             serpapi_result = serpapi_results.results[index]
+            price = f"{product.get('price', '')} {product.get('currencyRaw', '')}"  # returns " " if both fields were empty
+            price = (
+                price if len(price.strip()) > 1 else ""
+            )  # hence remove the whitespace
 
-            # Extract Zyte data and merge it with serpapi_result
-            zyte_results = ExtractZyteData(
+            # Extract Zyte data
+            zyte_result = ExtractZyteData(
                 **serpapi_result,
-                price=f"{product.get('price', '')} {product.get('currencyRaw', '')}",
+                price=price,
                 title=product.get("name", ""),
                 fullDescription=product.get("description", ""),
                 zyteExecuctionTime=response.get("seconds_taken", 0),
-            ).to_dict()
+            )
+            results.append(zyte_result)
 
-            # Combine the dictionaries without nesting
-            combined_results = {**serpapi_result, **zyte_results}
+        return results
 
-            # Update the existing report at index with the combined results
-            serpapi_results.results[index] = combined_results
-
-        return serpapi_results
-
-    @timeit
-    def apply(self, serpapi_results: PipelineResult) -> PipelineResult:
+    def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:
         """
         Orchestrates the entire data collection process: client initiation,
         response retrieval, structuring results, and storing results.
 
         Args:
-            serpapi_results (PipelineResult): The list of results from Serpapi containing URLs to process.
+            previous_step_results (PipelineResult): The list of results from Serpapi containing URLs to process.
 
         Returns:
             PipelineResult: The final structured results.
         """
         client, api_config = self.initiate_client()
-        responses = self.retrieve_response(client, serpapi_results, api_config)
-        structured_results = self.structure_results(responses, serpapi_results)
+        responses = self.retrieve_response(client, previous_step_results, api_config)
+        structured_results = self.structure_results(responses, previous_step_results)
 
-        # update the number of results in the meta section
-        serpapi_results.meta.numberOfResultsAfterStage = len(structured_results.results)
+        # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
+        zyte_results = self.add_pipeline_steps_to_results(
+            currentStepResults=structured_results, pipelineResults=previous_step_results
+        )
 
         self.store_results(
-            serpapi_results, self.context.output_dir, self.context.zyte_filename
+            zyte_results, self.context.output_dir, self.context.zyte_filename
         )
-        return structured_results
+        return zyte_results

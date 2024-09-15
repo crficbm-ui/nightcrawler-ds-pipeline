@@ -14,10 +14,10 @@ git pull
 
 ```bash
 helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
-helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.6"} #for using a tagged version from GitHub
+helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.7"} #for using a tagged version from GitHub
 ```
 
-> **_NOTE:_**  As of today, 11.09.2025 the current and tested helpers tag is v0.1.6. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
+> **_NOTE:_**  As of today, 15.09.2025 the current and tested helpers tag is v0.1.7. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
 3. Create a virtual environment with Poetry and activate it.
 
@@ -61,11 +61,20 @@ You can always use the `-h` to see all available options for the cli.
 
 
 ### Processing steps
-The processing steps are one of the following:
+The processing steps are the following:
 
-- extract -> getting data from serpapi, diffbot, zyte
-- process -> merge all sources into one single file
-- ...
+1. [***extract - URL retrival***](./nightcrawler/extract/s01_serp_api.py): using serpapi to look for a user-provided keyword. 
+2. [***extract - keyword enrichement***](./nightcrawler/extract/s02_enriched_keywords.py): using a SEO tool (dataforseo) to collect related keywords. This step is optional and needs to be explicitely set with the argument `-e`.
+3. [***extract - reverse image search***](./nightcrawler/extract/s03_reverse_image_search.py): using serpapis reverse google images search to look for a publicly available URL. This step is optional and needs to be explicitely set with the argument `-r=<URL>`.
+4. [***extract - HTML data extraction***](./nightcrawler/extract/s04_zyte.py): using zyte to collect product information from the raw HTML files.
+5. [***process - manual filtering, legacy code***](./nightcrawler/process/s05_dataprocessor.py): using some hard coded filters to filter i.e. on the URL.
+6. [***process - delivery page detection***](./nightcrawler/process/s06_delivery_page_detection.py): using a mistral endpoint to identify if a site is likely to ship its products into a given country.
+7. [***process - page type detection***](./nightcrawler/process/s07_page_type_detection.py): using a random forrest to identify the pagetype. We are interessted only in e-commerce pages.
+8. [***process - blocked content detection***](./nightcrawler/process/s08_blocket_content_detection.py): using a BERT(?) model to identify if the scraper was blocked / if a cookie banner is present.
+9. [***process - content domain detection***](./nightcrawler/process/s09_content_domain_detection.py): using a BERT(?) model to classify if the content is relevant to organization for witch the crawl was initiated. 
+10. [***process - suspiciousness classification***](./nightcrawler/process/s10_suspiciousness_classifier.py): using a BERT(?) model to classify if the product is suspiciouss following a definition per organization.
+11. [***process - final ranking***](./nightcrawler/process/s11_result_ranker.py): filtering and storing the results via the nightcrawler lib. 
+
 
 ### Full Pipeline Run
 To perform a full end-to-end pipeline run (this is what will ultimately be deployed via Azure Functions):
