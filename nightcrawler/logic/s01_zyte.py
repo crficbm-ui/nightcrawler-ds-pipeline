@@ -12,10 +12,11 @@ class ZyteLogic(BaseLogic):
 
     def __init__(self, *args, **kwargs):
         self.config = kwargs.get("config", self.DEFAULT_CONFIG)
+        self.api_config = kwargs.get("api_config", {})
         self.client = self._setup_client()
 
     def _setup_client(self) -> ZyteAPI:
-        return ZyteAPI()
+        return ZyteAPI(**self.api_config)
 
     def _get_html_from_response(self, response: Dict) -> str:
         if "browserHtml" in response:
@@ -33,16 +34,17 @@ class ZyteLogic(BaseLogic):
         
         html = self._get_html_from_response(response)
         product = response.get("product", {})
-        metadata = response.get("metadata", {})
+        metadata = product.get("metadata", {})
 
         result = {
             "url": item["url"],
+            "zyte_probability": metadata.get("probability", None),
             "price": product.get("price", "") + product.get("currencyRaw", ""),
             "title": product.get("name", ""),
             "full_description": product.get("description", ""),
             "seconds_taken": str(response.get("seconds_taken", 0)),
             "html": html,
-            "zyte_probability": metadata.get("probability", None)
+            "raw_response": response,
         }
 
         return result

@@ -10,9 +10,10 @@ class SerpLogic(BaseLogic):
     def __init__(self, *args, **kwargs):
         self.client = self._setup_client()
         self.api_token = kwargs.get("api_token", os.environ.get("SERP_API_TOKEN", None))
+        self.api_config = kwargs.get("api_config", {})
 
     def _setup_client(self) -> serp_api.SerpAPI:
-        return serp_api.SerpAPI()
+        return serp_api.SerpAPI(**self.api_config)
     
     def apply_one(self, keyword: str, number_of_results: int, full_output: bool) -> Dict[str, Any]:
         params = {
