@@ -109,6 +109,13 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         default=None,
         help="Processes URLs using a country specific pipeline",
     )
+    common_parser.add_argument(
+        "--org",
+        required=False,
+        default=None,
+        help="Use configuration for this organization",
+    )
+
 
     parser = argparse.ArgumentParser(
         description="Nightcrawler", parents=[global_parser]

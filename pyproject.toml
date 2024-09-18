@@ -10,7 +10,7 @@ packages = [{include = "nightcrawler"}]
 [tool.poetry.dependencies]
 python = "~3.10"
 python-dotenv = "^1.0.1"
-helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.6"}
+helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.2.0"}
 
 pytest = "^8.3.2"
 pytest-cov = "^5.0.0"

@@ -190,7 +190,6 @@ class CrawlResultData(ProcessSuspiciousnessData):
 
     pass
 
-
 # ---------------------------------------------------
 # Data Model - Class used to store the data classes as json objects
 # ---------------------------------------------------
@@ -238,6 +237,8 @@ class BaseStep(ABC):
             structured_results (PipelineResult): The structured data to be stored.
             output_dir (str): The directory where the JSON file will be saved.
         """
+        if not self.context.settings.store_intermediate:
+            return
         write_json(output_dir, filename, structured_results.to_dict())
 
     @abstractmethod
