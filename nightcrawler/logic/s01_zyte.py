@@ -26,7 +26,6 @@ class ZyteLogic(BaseLogic):
         return None
     
     def apply_one(self, item: Dict) -> Dict:
-        print(self.client)
         try:
             response = self.client.call_api(item["url"], self.config)
         except Exception as e:
