@@ -5,6 +5,7 @@ import os
 import sys
 import nightcrawler.cli.main as main_module
 
+
 def test_log_level_info(tmpdir):
     log_file = tmpdir.join("test.log")
     args = argparse.Namespace(log_level="INFO", log_file=str(log_file))

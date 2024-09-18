@@ -1,14 +1,14 @@
 import argparse
 import logging
-
 from typing import List
-from datetime import datetime
 from nightcrawler.process.dataprocessor import DataProcessor
 from nightcrawler.extract.serp_api import SerpapiExtractor
 from nightcrawler.extract.zyte import ZyteExtractor
+
 from helpers import LOGGER_NAME
 from helpers.context import Context
 from helpers.utils import create_output_dir
+from helpers.decorators import timeit
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -46,22 +46,16 @@ def add_parser(
         argparse.ArgumentParser: The parser associated with the 'fullrun' command, equipped with
         arguments and help descriptions specific to executing the full pipeline.
     """
-    parents = parents_
     parser = subparsers.add_parser(
         parser_name(),
         help="Run the full pipeline from extraction to processing",
-        parents=parents,
-    )
-
-    parser.add_argument(
-        "--full-output",
-        action="store_true",
-        help="Set this argument if you want to see the full results rather than only the URLs provided by SerpAPI. (default: %(default)s)",
+        parents=parents_,
     )
 
     return parser
 
 
+@timeit
 def apply(args: argparse.Namespace) -> None:
     """
     Applies the full pipeline, combining extraction and processing.
@@ -70,29 +64,21 @@ def apply(args: argparse.Namespace) -> None:
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
-    starttime = context.today
 
     # Step 1: Extract URLs using Serpapi
-    output_dir = create_output_dir(args.keyword, context.output_path)
+    context.output_dir = create_output_dir(args.keyword, context.output_path)
     urls = SerpapiExtractor(context).apply(
-        keyword=args.keyword,
-        number_of_results=args.num_of_results,
-        full_output=args.full_output,
-        output_dir=output_dir,
+        keyword=args.keyword, number_of_results=args.number_of_results
     )
 
     # Step 2: Use Zyte to process the URLs further
-    ZyteExtractor(context).apply(urls, output_dir=output_dir)
+    zyte_results = ZyteExtractor(context).apply(urls)
 
     # Step 3: Process the results using DataProcessor based on the country
     if args.country:
         DataProcessor(context).step_country_filtering(
-            country=args.country, urlpath=output_dir.split("/")[-1]
+            country=args.country, pipeline_result=zyte_results
         )
-
     else:
-        # TODO implement full run across countries
+        # TODO: Implement full run across countries
         DataProcessor(context).apply()
-
-    runtime = (datetime.now() - starttime).seconds
-    logger.info(f"Pipeline execution finished after {runtime} seconds.")

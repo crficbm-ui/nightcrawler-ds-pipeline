@@ -3,6 +3,9 @@ import logging
 
 from typing import List
 from nightcrawler.process.dataprocessor import DataProcessor
+from nightcrawler.base import ProcessData
+from nightcrawler.utils import get_object_from_file
+
 from helpers import LOGGER_NAME
 from helpers.context import Context
 
@@ -64,8 +67,15 @@ def apply(args: argparse.Namespace) -> None:
                 "No country input path argument was provided (zyte output). No can do amigo"
             )
         else:
+            context.output_dir = f"{context.output_path}/{args.countryinputpath}"
+            pipeline_result = get_object_from_file(
+                dir=context.output_dir,
+                filename=context.zyte_filename,
+                processing_object=ProcessData,
+            )
+
             DataProcessor(context).step_country_filtering(
-                country=args.country, urlpath=args.countryinputpath
+                pipeline_result=pipeline_result, country=args.country
             )
 
     else:
