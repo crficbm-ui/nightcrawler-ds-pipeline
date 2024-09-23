@@ -19,6 +19,8 @@ from helpers.context import Context
 from helpers.utils import create_output_dir
 from helpers.decorators import timeit
 
+import libnightcrawler.objects as lo
+
 logger = logging.getLogger(LOGGER_NAME)
 
 
@@ -61,6 +63,12 @@ def add_parser(
         parents=parents_,
     )
 
+    parser.add_argument(
+        "--case-id", default=None, help="DB identifier of the case (%(default)s)"
+    )
+    parser.add_argument(
+        "--keyword-id", default=None, help="DB identifier of the keyword (%(default)s)"
+    )
     return parser
 
 
@@ -73,6 +81,21 @@ def apply(args: argparse.Namespace) -> None:
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
+    all_orgs = context.get_organization()
+    org = (
+        all_orgs[args.org]
+        if args.org
+        else next(x for x in all_orgs.values() if args.country in x.countries)
+    )
+    logger.debug("Using org: %s", org)
+
+    request = lo.CrawlRequest(
+        keyword_type="text",
+        keyword_value=args.keyword,
+        case_id=args.case_id,
+        keyword_id=args.keyword_id,
+        organization=org,
+    )
 
     # Step 0: create the results directory
     context.output_dir = create_output_dir(args.keyword, context.output_path)
@@ -85,8 +108,9 @@ def apply(args: argparse.Namespace) -> None:
     # Step 2: Enricht query by adding additional keywords if `-e` argument was set
     if args.enrich_keyword:
         # load dataForSeo configs based on the country information, if none provided, default to CH
+        # TODO Must support a list of countries, not a single one
         api_config_for_country = context.settings.data_for_seo.api_params.get(
-            args.country, "CH"
+            org.countries[0], org.countries[0]
         )
         serpapi_results = KeyWordEnricher(
             context
@@ -123,8 +147,9 @@ def apply(args: argparse.Namespace) -> None:
     zyte_results = ZyteExtractor(context).apply(previous_step_results=serpapi_results)
 
     # Step 3: Process the results using DataProcessor based on the country
+    # TODO Must support a list of countries, not a single one
     processor_results = DataProcessor(context).apply(
-        previous_step_results=zyte_results, country=args.country
+        previous_step_results=zyte_results, country=org.countries[0]
     )
 
     # Step 4: delivery policy filtering
@@ -153,7 +178,23 @@ def apply(args: argparse.Namespace) -> None:
     )
 
     # Step 9: ranking
-    ResultRanker(context).apply(previous_step_results=suspiscousness_results)
+    final_results = ResultRanker(context).apply(
+        previous_step_results=suspiscousness_results
+    )
 
-    # TODO transform final_results into List[CrawlResult] for the libnightcawler lib
-    # TODO store final_results as CrawlResult object to storage
+    if not context.settings.use_file_storage:
+        data = [
+            request.new_result(
+                url=x.url,
+                text=x.fullDescription,
+                root=x.offerRoot,
+                title=x.title,
+                uid="",
+                platform="",
+                source="",
+                language="",
+                score=0,
+            )
+            for x in final_results.results
+        ]
+        context.store_results(data, replace=True)

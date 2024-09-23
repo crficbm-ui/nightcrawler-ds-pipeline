@@ -111,6 +111,13 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
     )
 
     common_parser.add_argument(
+        "--org",
+        required=False,
+        default=None,
+        help="Use configuration for this organization",
+    )
+
+    common_parser.add_argument(
         "-r",
         "--reverse-image-search",
         nargs="+",  # Accept multiple values as a list
