@@ -1,7 +1,6 @@
 import argparse
 import logging
 from typing import List
-from nightcrawler.utils import merge_pipeline_steps_results
 from nightcrawler.process.s03_dataprocessor import DataProcessor
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
 from nightcrawler.extract.s02_zyte import ZyteExtractor
@@ -73,30 +72,25 @@ def apply(args: argparse.Namespace) -> None:
     """
     context = Context()
 
-    # Step 0: create the results directory
-    context.output_dir = create_output_dir(args.keyword, context.output_path)
+    if not args.reverse_image_search:
+        # Step 0: create the results directory with searchitem = keyword
+        context.output_dir = create_output_dir(args.searchitem, context.output_path)
 
-    # Step 1a Extract URLs using Serpapi based on a keyword provided by the users
-    serpapi_keyword_results = SerpapiExtractor(context).apply(
-        keyword=args.keyword, number_of_results=args.number_of_results
-    )
-
-    # Step 1b  Use serpapi to perform a Google reverse image search.  if image-urls were provided
-    if args.reverse_image_search:
-        # Handle reverse image search
-        image_urls = args.reverse_image_search
-        serpapi_image_results = GoogleReverseImageApi(context).apply(
-            image_urls=image_urls,
-            keywords=args.keyword,
-            number_of_results=args.number_of_results,
-        )
-
-        # if there is keyword and reverse image search results, we want to combine them into a new serpapi_results object. If no image results are present, we want to return only the keyword results
-        serpapi_results = merge_pipeline_steps_results(
-            previousStep=serpapi_image_results, currentStep=serpapi_keyword_results
+        # Step 1a Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
+        serpapi_results = SerpapiExtractor(context).apply(
+            keyword=args.searchitem, number_of_results=args.number_of_results
         )
     else:
-        serpapi_results = serpapi_keyword_results
+        # Step 0: create the results directory with searchitem = url, so just name it 'reverse_image_search'.
+        context.output_dir = create_output_dir(
+            "reverse_image_search", context.output_path
+        )
+
+        # Step 1b  Use serpapi to perform a Google reverse image search only if -r was set with the searchitem (=urls)
+        serpapi_results = GoogleReverseImageApi(context).apply(
+            image_url=args.searchitem,
+            number_of_results=args.number_of_results,
+        )
 
     # Step 2: Use Zyte to retrieve structured information from each URL collected by serpapi
     zyte_results = ZyteExtractor(context).apply(serpapi_results)

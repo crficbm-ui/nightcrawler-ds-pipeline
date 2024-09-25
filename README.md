@@ -103,7 +103,7 @@ See all CLI options in the below table:
 | `extract`                                              | Positional        | All commands                    | Calls the extractor class                                                                                       |
 | `process`                                              | Positional        | All commands                    | Calls the processor class                                                                                       |
 | `fullrun`                                              | Positional        | All commands                    | Runs the full pipeline from extraction to processing                                                            |
-| `keyword`                                              | Positional        | `fullrun`                       | Keyword to search for                                                                                           |
+| `searchitem`                                              | Positional        | `fullrun`                       | Keyword or URL (with `-r` parameter) to search for                                                                                           |
 | `-n NUMBER_OF_RESULTS, --number-of-results NUMBER_OF_RESULTS` | Option    | `fullrun`                       | Set the number of results from Serpapi (default: 50, max: 3 per Google Shopping, Google Site Search, Google, and eBay) |
 | `--country {CH,AT,CL}`                                 | Option            | `fullrun`                       | Processes URLs using a country-specific pipeline                                                                |
 | `-r REVERSE_IMAGE_SEARCH [REVERSE_IMAGE_SEARCH ...], --reverse-image-search REVERSE_IMAGE_SEARCH [REVERSE_IMAGE_SEARCH ...]` | Option | `fullrun` | List of image URLs for reverse image search                                                                      |
@@ -113,6 +113,8 @@ To run the full extraction pipeline you can use any of the following commands:
 ```bash
 python -m nightcrawler extract aspirin #full extraction with keyword 'aspirin'
 python -m nightcrawler extract aspirin -n=3 #full extraction with keyword 'aspirin' for the first 3 entries per serpapi (3 per google shopping, google site search, google and ebay = 12 URLs total)
+python -m nightcrawler fullrun -r -n=10 https://res.cloudinary.com/zava-www-uk/image/upload/fl_progressive/a_exif,f_auto,e_sharpen:100,c_fit,w_920,h_690,q_70/v1518547468/uk/services-setup/men-s-health-unit/erectile-dysfunction-unit/viagra-unit/m7piiauyecaogdr8mi5y.jpg #full extraction with reverse image search
+
 
 ```
 Running the extraction pipeline will log the results in the terminal (with default logging which is `--log-level INFO`) and store the scraped content into `./data/output/<extraction_step>_<timespamp>_<user>.json`.

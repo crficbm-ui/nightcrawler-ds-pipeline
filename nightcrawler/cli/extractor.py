@@ -74,7 +74,7 @@ def apply(args: argparse.Namespace) -> None:
 
     if args.step != "zyte":
         # create the output directory only if the full extract pipeline is run or if the serpapi extraction is performed as a single step
-        context.output_dir = create_output_dir(args.keyword, context.output_path)
+        context.output_dir = create_output_dir(args.searchitem, context.output_path)
 
     # if a full pipeline run is triggered (therefore args.step is empty)
     if not args.step:
@@ -84,18 +84,18 @@ def apply(args: argparse.Namespace) -> None:
             image_urls = args.reverse_image_search
             serpapi_results = GoogleReverseImageApi(context).apply(
                 image_urls=image_urls,
-                keywords=args.keyword,
+                keywords=args.searchitem,
                 number_of_results=args.number_of_results,
             )
         else:
             # Step 1b Extract URLs using Serpapi if no image_urls were provided
             serpapi_results = SerpapiExtractor(context).apply(
-                keyword=args.keyword, number_of_results=args.number_of_results
+                keyword=args.searchitem, number_of_results=args.number_of_results
             )
         ZyteExtractor(context).apply(serpapi_results)
     elif args.step == "serpapi":
         SerpapiExtractor(context).apply(
-            keyword=args.keyword, number_of_results=args.number_of_results
+            keyword=args.searchitem, number_of_results=args.number_of_results
         )
     elif args.step == "zyte":
         if args.step == "zyte" and not args.urlpath:

@@ -115,11 +115,10 @@ def test_apply(mock_store_results, mock_run_reverse_image_search):
 
     # Input parameters
     image_urls = ["https://example.com/sample1.jpg"]
-    keywords = ["sample"]
     number_of_results = 2
 
     # Call the apply method
-    result = api.apply(image_urls, keywords, number_of_results)
+    result = api.apply(image_urls, number_of_results)
 
     # Assert the type of result and check that the number of results match
     assert isinstance(result, PipelineResult)

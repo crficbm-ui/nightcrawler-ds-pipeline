@@ -122,14 +122,11 @@ class GoogleReverseImageApi(BaseStep):
         logger.info(f"{len(urls)} URLs were extracted from inline_images: {urls}\n")
         return urls
 
-    def apply(
-        self, image_urls: List[str], keywords: List[str], number_of_results: int
-    ) -> PipelineResult:
+    def apply(self, image_url: str, number_of_results: int) -> PipelineResult:
         """Perform reverse image search on multiple URLs and return structured results.
 
         Args:
-            image_urls (List[str]): List of image URLs to search for.
-            keywords (List[str]): List of keywords associated with the search.
+            image_url (str): List of image URLs to search for.
             number_of_results (int): Maximum number of results to return.
 
         Returns:
@@ -137,26 +134,27 @@ class GoogleReverseImageApi(BaseStep):
         """
         # TODO: where do we get the urls from that are public?
         results: List[ExtractSerpapiData] = []
-        for url in image_urls:
-            logger.info(f"Performing reverse image search on the following URL: {url}")
-            # Run SerpApi multiple times - once for each page of results
-            for page_number in range(self._num_result_pages):
-                reverse_image_urls = self._run_reverse_image_search(
-                    url, page_number + 1
-                )
+        logger.info(
+            f"Performing reverse image search on the following URL: {image_url}"
+        )
+        # Run SerpApi multiple times - once for each page of results
+        for page_number in range(self._num_result_pages):
+            reverse_image_urls = self._run_reverse_image_search(
+                image_url, page_number + 1
+            )
 
-                # No results found - there will be no results on the next page as well
-                if len(reverse_image_urls) == 0:
-                    break
+            # No results found - there will be no results on the next page as well
+            if len(reverse_image_urls) == 0:
+                break
 
-                for image in reverse_image_urls:
-                    results.append(
-                        ExtractSerpapiData(
-                            url=image[0],
-                            imageUrl=image[1],
-                            offerRoot="REVERSE_IMAGE_SEARCH",
-                        )
+            for image in reverse_image_urls:
+                results.append(
+                    ExtractSerpapiData(
+                        url=image[0],
+                        imageUrl=image[1],
+                        offerRoot="REVERSE_IMAGE_SEARCH",
                     )
+                )
 
         # TODO: force to only have the number of results specified in the CLI - not "nice" but the reverse_image_api does not provide this parameter
         # either we keep it or we do not control the number of stored results from the pipeline - however this might lead to unintentional high zyte api costs as there can be easily produced a few dozen results by the reverse image search
@@ -165,7 +163,7 @@ class GoogleReverseImageApi(BaseStep):
         results = results[:number_of_results]
 
         metadata = MetaData(
-            keyword=keywords,
+            keyword="Reverse image search, no keyword provided.",
             numberOfResults=number_of_results,
             numberOfResultsAfterStage=len(results),
         )
