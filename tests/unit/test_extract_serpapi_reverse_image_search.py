@@ -99,21 +99,6 @@ def test_extract_inline_urls_from_response(mock_warning):
     assert result == expected_result
 
 
-# Test for _add_get_params_to_url method
-def test_add_get_params_to_url():
-    url = "https://example.com/search"
-    get_params = {"q": "test", "lang": "en"}
-
-    # Expected result
-    expected_url = "https://example.com/search?q=test&lang=en"
-
-    # Call the method
-    result = GoogleReverseImageApi._add_get_params_to_url(url, get_params)
-
-    # Assert
-    assert result == expected_url
-
-
 # Test for apply method
 @patch.object(GoogleReverseImageApi, "_run_reverse_image_search")
 @patch.object(GoogleReverseImageApi, "store_results")

@@ -76,14 +76,14 @@ def apply(args: argparse.Namespace) -> None:
     # Step 0: create the results directory
     context.output_dir = create_output_dir(args.keyword, context.output_path)
 
-    # Step 1a Extract URLs using Serpapi - Perform keyword search and add them to the urls variable (empty, if no reverse image search was performed)
+    # Step 1a Extract URLs using Serpapi based on a keyword provided by the users
     serpapi_keyword_results = SerpapiExtractor(context).apply(
         keyword=args.keyword, number_of_results=args.number_of_results
     )
 
-    # Step 1b Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
+    # Step 1b  Use serpapi to perform a Google reverse image search.  if image-urls were provided
     if args.reverse_image_search:
-        # Handle reverse image searchcl
+        # Handle reverse image search
         image_urls = args.reverse_image_search
         serpapi_image_results = GoogleReverseImageApi(context).apply(
             image_urls=image_urls,
@@ -91,47 +91,48 @@ def apply(args: argparse.Namespace) -> None:
             number_of_results=args.number_of_results,
         )
 
-        # if there is keyword and reverse image search results, we want to combine them into a new serapi_results object. If no image results are present, we want to return only the keyword results
+        # if there is keyword and reverse image search results, we want to combine them into a new serpapi_results object. If no image results are present, we want to return only the keyword results
         serpapi_results = merge_pipeline_steps_results(
             previousStep=serpapi_image_results, currentStep=serpapi_keyword_results
         )
     else:
         serpapi_results = serpapi_keyword_results
 
-    # Step 2: Use Zyte to process the URLs further
+    # Step 2: Use Zyte to retrieve structured information from each URL collected by serpapi
     zyte_results = ZyteExtractor(context).apply(serpapi_results)
 
-    # Step 3: Process the results using DataProcessor based on the country
+    # Step 3: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
+    # TODO replace the manual filtering logic with Mistral call by Nicolas W.
     processor_results = DataProcessor(context).apply(
         pipeline_results=zyte_results, country=args.country
     )
 
-    # Step 4: delivery policy filtering
+    # Step 4: delivery policy filtering based on offline analysis of domains public delivery information
     delivery_policy_filtering_results = DeliveryPolicyDetector(context).apply(
         processor_results
     )
 
-    # Step 5: page type filtering
+    # Step 5: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]
     page_type_filtering_results = PageTypeDetector(context).apply(
         delivery_policy_filtering_results
     )
 
-    # Step 6: blocked / corrupted content detection
+    # Step 6: blocked / corrupted content detection based the prediction with a BERT model.
     blocked_content_results = BlockedContentDetector(context).apply(
         page_type_filtering_results
     )
 
-    # Step 7: content domain filtering
+    # Step 7: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)
     content_domain_results = ContentDomainDetector(context).apply(
         blocked_content_results
     )
 
-    # Step 8: suspiciousness classifier
+    # Step 8: Binary classifier per organisation, whether a product is classified as suspicious or not.
     suspiscousness_results = SuspiciousnessClassifier(context).apply(
         content_domain_results
     )
 
-    # Step 9: ranking
+    # Step 9: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away.
     ResultRanker(context).apply(suspiscousness_results)
 
     # TODO transform final_results into List[CrawlResult] for the libnightcawler lib

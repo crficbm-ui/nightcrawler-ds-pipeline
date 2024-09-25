@@ -118,7 +118,7 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
     )
 
     parser = argparse.ArgumentParser(
-        description="Nightcrawler", parents=[global_parser]
+        description="NightCrawler", parents=[global_parser]
     )
     subparsers = parser.add_subparsers(help="Modules", dest="module", required=True)
 

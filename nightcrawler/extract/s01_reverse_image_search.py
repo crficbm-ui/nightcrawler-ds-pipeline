@@ -1,4 +1,3 @@
-from requests.models import PreparedRequest
 from typing import List, Tuple, Dict
 from urllib.parse import quote_plus
 
@@ -23,9 +22,6 @@ class GoogleReverseImageApi(BaseStep):
         # Controls how many pages of reverse image search results should be returned
         self._num_result_pages: int = 4
 
-        # The time here should be long enough so that the number_of_results pages of Google results are retrieved
-        self._presigned_url_expiration: int = 5 * 60 * 60
-
     def _run_reverse_image_search(
         self, image_url: str, page_number: int
     ) -> List[Tuple[str, str]]:
@@ -39,6 +35,7 @@ class GoogleReverseImageApi(BaseStep):
         Returns:
             List[Tuple[str, str]]: List of pairs (matched page URL, matched image URL).
         """
+        # TODO make this country / organization dependent
         params: Dict[str, str] = {
             "location": "Switzerland",
             "google_domain": "google.ch",
@@ -57,7 +54,8 @@ class GoogleReverseImageApi(BaseStep):
             response
         )
 
-        # If this is the first page number, we also query and extract the urls of the inline images
+        # If searching with Google, often the first result is a so-called inline-image. An inline-image is an image that appears directly within the search results, embedded alongside the text snippets for quick visual reference.
+        # See here for full refenrece: https://serpapi.com/google-inline-images
         if page_number == 1:
             response_urls += self._extract_inline_urls_from_response(response)
 
@@ -73,7 +71,7 @@ class GoogleReverseImageApi(BaseStep):
         Returns:
             List[Tuple[str, str]]: List of tuples containing the page URL and image thumbnail URL.
         """
-        # See: https://serpapi.com/google-reverse-image for an example of response
+        # See: https://serpapi.com/google-reverse-image for an example of the response
 
         # No results found
         if "image_results" not in response:
@@ -85,7 +83,7 @@ class GoogleReverseImageApi(BaseStep):
 
         # Iterate through results
         for image_result in image_results:
-            # See first two results of the example shown here: https://serpapi.com/google-reverse-image.
+            # See first two example shown here: https://serpapi.com/google-reverse-image to get an understanding of the image_results object returned by serpapi.
             urls.append((image_result["link"], image_result.get("thumbnail", None)))
 
         return urls
@@ -123,21 +121,6 @@ class GoogleReverseImageApi(BaseStep):
 
         logger.info(f"{len(urls)} URLs were extracted from inline_images: {urls}\n")
         return urls
-
-    @staticmethod
-    def _add_get_params_to_url(url: str, get_params: Dict[str, str]) -> str:
-        """Add GET parameters to a URL.
-
-        Args:
-            url (str): Base URL.
-            get_params (dict): Dictionary of GET parameters.
-
-        Returns:
-            str: URL with appended GET parameters.
-        """
-        req = PreparedRequest()
-        req.prepare_url(url, get_params)
-        return req.url
 
     def apply(
         self, image_urls: List[str], keywords: List[str], number_of_results: int
@@ -177,6 +160,8 @@ class GoogleReverseImageApi(BaseStep):
 
         # TODO: force to only have the number of results specified in the CLI - not "nice" but the reverse_image_api does not provide this parameter
         # either we keep it or we do not control the number of stored results from the pipeline - however this might lead to unintentional high zyte api costs as there can be easily produced a few dozen results by the reverse image search
+        # also, if we have a hard cut off, we remove the webpages where the imageUrl is empty
+        results = [item for item in results if item.imageUrl is not None]
         results = results[:number_of_results]
 
         metadata = MetaData(

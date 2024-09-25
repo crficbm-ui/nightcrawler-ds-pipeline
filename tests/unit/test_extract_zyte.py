@@ -32,7 +32,7 @@ def test_apply_all_functions_called_once(
             price="100USD",
             title="Product 1",
             fullDescription="Description 1",
-            zyteExecuctionTime=2,
+            zyteExecutionTime=2,
             offerRoot="GOOGLE",
         ).to_dict()
     ]

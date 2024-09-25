@@ -93,7 +93,7 @@ class ObjectUtilitiesContainer(ABC, Mapping):
 # ---------------------------------------------------
 @dataclass
 class MetaData(ObjectUtilitiesContainer):
-    """Metadata class for storing information about the full pipeline run valid for all crawlresults"""
+    """Metadata class for storing information about the full pipeline run valid for all crawl results"""
 
     keyword: str = field(default_factory=str)
     numberOfResults: int = field(default_factory=int)
@@ -120,20 +120,20 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
 
 @dataclass
 class ExtractZyteData(ExtractSerpapiData):
-    """Data class for step 2: Use Zyte to process the URLs further"""
+    """Data class for step 2: Use Zyte to retrieve structured information from each URL collected by serpapi"""
 
     price: Optional[str] = None
     title: Optional[str] = None
     fullDescription: Optional[str] = None
-    zyteExecuctionTime: Optional[float] = 0.0
+    zyteExecutionTime: Optional[float] = 0.0
 
 
 @dataclass
 class ProcessData(ExtractZyteData):
-    """Data class for step 3: Process the results using DataProcessor based on the country,
-    i.e. url-filtering."""
+    """Data class for step 3: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
+    TODO replace the manual filtering logic with Mistral call by Nicolas W.
 
-    """
+
     TODO make this more abstract (not for CH but for any country) i.e.:
     country: Optional[str]
     countryInUrl: Optional[bool]
@@ -142,8 +142,9 @@ class ProcessData(ExtractZyteData):
     soltToCountry: Optional[bool]
 
     -> change the processor accordingly
-    
+
     """
+
     ch_de_in_url: Optional[bool] = False
     swisscompany_in_url: Optional[bool] = False
     web_extension_in_url: Optional[bool] = False
@@ -153,49 +154,56 @@ class ProcessData(ExtractZyteData):
 
 @dataclass
 class DeliveryPolicyData(ProcessData):
-    """Data class for step 4: delivery policy filtering"""
+    """Data class for step 4: delivery policy filtering based on offline analysis of domains public delivery information"""
 
+    # TODO add fields relevant to only this step
     pass
 
 
 @dataclass
 class PageTyteData(DeliveryPolicyData):
-    """Data class for step 5: page type filtering"""
+    """Data class for step 5: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]"""
 
+    # TODO add fields relevant to only this step
     pass
 
 
 @dataclass
 class BlockedContentData(PageTyteData):
-    """Data class for step 6: blocked / corrupted content detection"""
+    """Data class for step 6: blocked / corrupted content detection based the prediction with a BERT model."""
 
+    # TODO add fields relevant to only this step
     pass
 
 
 @dataclass
 class ContentDomainData(BlockedContentData):
-    """Data class for step 7: content domain filtering"""
+    """Data class for step 7: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)"""
 
+    # TODO add fields relevant to only this step
     pass
 
 
 @dataclass
 class ProcessSuspiciousnessData(ContentDomainData):
-    """Data class for step 8: suspiciousness classifier
-    TODO: maybe this class can be deleted and the Suspiciousness step could return directly CrawlResultData as most likely no new variables will come used after this step"""
+    """Data class for step 8: binary classifier per organisation, whether a product is classified as suspicious or not.
+    TODO: maybe this class can be deleted and the Suspiciousness step could return directly CrawlResultData as most likely no new variables will come used after this step
+    TODO: add fields relevant to only this step
+    """
 
     pass
 
 
 @dataclass
 class CrawlResultData(ProcessSuspiciousnessData):
-    """Data class for step 9: ranking"""
+    """Data class for step 9: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away."""
 
+    # TODO add fields relevant to only this step
     pass
 
 
 # ---------------------------------------------------
-# Data Model - Class used to store the data classes as json objects
+# Data Model - Class that will hold the MetaData and the Data per step. This is the main object that is passed from one step to the next and always append the new fields to the data objects and after the step will modify the MetaData.
 # ---------------------------------------------------
 
 
@@ -214,10 +222,10 @@ class PipelineResult(ObjectUtilitiesContainer):
 
 class BaseStep(ABC):
     """
-    Class that provides core functionalities for all steps in the pipeline:
-        - enforces an apply function
-        - provides a method to store the results
-
+    Class that provides core functionality for all steps in the pipeline:
+        - enforces an apply function that is used uniformly as the entry point to a new step. We do not care what happens inside apply, just that it exists.
+        - provides a method to store the results on the filesystem the pipeline is running on. There should be a CLI option similar to --local-results in
+          TODO where the current behaviour is fine, but the default should be to store to S3.
     """
 
     _step_counter = 0
@@ -245,7 +253,7 @@ class BaseStep(ABC):
 
     @abstractmethod
     def apply(self, *args: Any, **kwargs: Any) -> Any:
-        """Enforces the apply method, leaves the implementation up for the chilrden classes"""
+        """Enforces the apply method, leaves the implementation up to the children classes"""
         pass
 
 

@@ -76,12 +76,11 @@ def apply(args: argparse.Namespace) -> None:
         # create the output directory only if the full extract pipeline is run or if the serpapi extraction is performed as a single step
         context.output_dir = create_output_dir(args.keyword, context.output_path)
 
-    # if NOT a step-wise pipeline execution is triggered (aka a full pipeline run)
+    # if a full pipeline run is triggered (therefore args.step is empty)
     if not args.step:
-        # Perform reverse image search if image-urls were provided
-        # Step 1b Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
+        # Step 1a: Perform reverse image search only if image_urls (List[str]) are provided
         if args.reverse_image_search:
-            # Handle reverse image searchcl
+            # Handle reverse image search
             image_urls = args.reverse_image_search
             serpapi_results = GoogleReverseImageApi(context).apply(
                 image_urls=image_urls,
@@ -89,6 +88,7 @@ def apply(args: argparse.Namespace) -> None:
                 number_of_results=args.number_of_results,
             )
         else:
+            # Step 1b Extract URLs using Serpapi if no image_urls were provided
             serpapi_results = SerpapiExtractor(context).apply(
                 keyword=args.keyword, number_of_results=args.number_of_results
             )

@@ -28,8 +28,8 @@ def test_full_pipeline_end_to_end():
     logger.info(combined_output)
 
     # Check that the logs contain messages of starting / completing of the tasks
-    assert (
-        re.search(r"Initializing step \d{1,2}: SerpapiExtractor", combined_output)
+    assert re.search(
+        r"Initializing step \d{1,2}: SerpapiExtractor", combined_output
     ), "SerpapiExtractor initialization not found in output."
     assert re.search(
         r"Initializing step \d{1,2}: ZyteExtractor", combined_output
