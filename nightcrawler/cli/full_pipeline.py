@@ -80,10 +80,10 @@ def apply(args: argparse.Namespace) -> None:
 
         # Step 1a Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
         serpapi_results = SerpapiExtractor(context).apply(
-            keyword=args.keyword, number_of_results=args.number_of_results
+            keyword=args.searchitem, number_of_results=args.number_of_results
         )
 
-        # Step 2: Enricht query by adding additional keywords if `-e` argument was set
+        # Step 1b: Enricht query by adding additional keywords if `-e` argument was set
         if args.enrich_keyword:
             # load dataForSeo configs based on the country information, if none provided, default to CH
             api_config_for_country = context.settings.data_for_seo.api_params.get(
@@ -92,7 +92,7 @@ def apply(args: argparse.Namespace) -> None:
             serpapi_results = KeyWordEnricher(
                 context
             ).apply(
-                keyword=args.keyword,
+                keyword=args.searchitem,
                 serpapi=SerpapiExtractor(context),
                 number_of_keywords=3,
                 locations=[
@@ -107,10 +107,15 @@ def apply(args: argparse.Namespace) -> None:
             logger.warning("Skipping keyword enrichment as option `-e` was not specified")
             BaseStep._step_counter += 1  # doing this, so that the the output files still match the step count specified in the README.md. However, this will lead to gaps in the numbering of the output files (3 will be missing).
 
-    # Step 2 Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
-    if args.reverse_image_search:
+    else:
+        # Step 0: create the results directory with searchitem = url, so just name it 'reverse_image_search'.
+        context.output_dir = create_output_dir(
+            "reverse_image_search", context.output_path
+        )
+
+        # Step 1c Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
         serpapi_results = GoogleReverseImageApi(context).apply(
-            image_urls=args.reverse_image_search,
+            image_url=args.searchitem,
             number_of_results=args.number_of_results,
         )
 

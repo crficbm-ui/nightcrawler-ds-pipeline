@@ -65,16 +65,17 @@ The pipeline contains 9 processing steps:
 
 | Step   | Name        | Inherits from and implemented in | Description                      |
 |--------|-------------|----------------------------------|----------------------------------|
-| **1a** | Extract URLs using Serpapi | [BaseStep>Extract>SerpapiExtractor](./nightcrawler/extract/s01_serp_api.py)| Extract URLs using Serpapi based on a keyword provided by the users |
-| **1b** | Reverse Image Search | [BaseStep>Extract>GoogleReverseImageApi](./nightcrawler/extract/s01_reverse_image_search.py) | Use serpapi to perform a Google reverse image search. |
-| **2** | Structure data with Zyte | [BaseStep>Extract>ZyteExtractor](./nightcrawler/extract/s02_zyte.py)| Use Zyte to retrieve structured information from each URL collected by serpapi |
-| **3** | Processing | [BaseStep>DataProcessor](./nightcrawler/process/s03_dataprocessor.py) | Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.  |
-| **5** | Delivery policy filtering |  [BaseStep](./nightcrawler/process/s04_filter_swiss_result.py) | delivery policy filtering based on offline analysis of domains public delivery information |
-| **6** | Page type detection |  [BaseStep>DeliveryPolicyDetector](./nightcrawler/process/s05_delivery_page_detection.py)  | Page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z] |
-| **7** | Webpage Blocker Detection |  [BaseStep>PageTypeDetector](./nightcrawler/process/s06_page_type_detection.py) | Blocked / corrupted content detection based the prediction with a BERT model. |
-| **8** | Product Type Relevence per Organization |  [BaseStep>BlockedContentDetector](./nightcrawler/process/s07_blocket_content_detection.py) | Classification if the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD) |
-| **9** | Relevance Classifier |  [BaseStep>ContentDomainDetectors](./nightcrawler/process/s08_content_domain_detection.py) | Binary classifier per organisation, whether a product is classified as suspicious or not. |
-| **10** | Ranking and Filtering |  [BaseStep>ResultRanker](./nightcrawler/process/s10_result_ranker.py) | Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away|
+| **1** | Extract URLs using Serpapi | [BaseStep>Extract>SerpapiExtractor](./nightcrawler/extract/s01_serp_api.py)| Extract URLs using Serpapi based on a keyword provided by the users |
+| **2** | Enrich keywords | [BaseStep>GoogleReverseImageApi](./nightcrawler/extract/s02_enriched_keywords.py) | (EXERIMENTAL) collect for each keyword additional results by adding related terms i.e. buying to the query. |
+| **3** | Reverse Image Search | [BaseStep>Extract>GoogleReverseImageApi](./nightcrawler/extract/s03_reverse_image_search.py) | Use serpapi to perform a Google reverse image search. |
+| **4** | Structure data with Zyte | [BaseStep>Extract>ZyteExtractor](./nightcrawler/extract/s02_zyte.py)| Use Zyte to retrieve structured information from each URL collected by serpapi |
+| **5** | Processing | [BaseStep>DataProcessor](./nightcrawler/process/s03_dataprocessor.py) | Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.  |
+| **6** | Delivery policy filtering |  [BaseStep](./nightcrawler/process/s04_filter_swiss_result.py) | delivery policy filtering based on offline analysis of domains public delivery information |
+| **7** | Page type detection |  [BaseStep>DeliveryPolicyDetector](./nightcrawler/process/s05_delivery_page_detection.py)  | Page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z] |
+| **8** | Webpage Blocker Detection |  [BaseStep>PageTypeDetector](./nightcrawler/process/s06_page_type_detection.py) | Blocked / corrupted content detection based the prediction with a BERT model. |
+| **9** | Product Type Relevence per Organization |  [BaseStep>BlockedContentDetector](./nightcrawler/process/s07_blocket_content_detection.py) | Classification if the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD) |
+| **10** | Relevance Classifier |  [BaseStep>ContentDomainDetectors](./nightcrawler/process/s08_content_domain_detection.py) | Binary classifier per organisation, whether a product is classified as suspicious or not. |
+| **11** | Ranking and Filtering |  [BaseStep>ResultRanker](./nightcrawler/process/s10_result_ranker.py) | Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away|
 
 > **_NOTE:_**  For a simple start, I suggest to start from the [full pipeline CLI](./nightcrawler/cli/full_pipeline.py) file.
 
