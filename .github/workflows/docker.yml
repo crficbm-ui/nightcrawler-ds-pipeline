@@ -35,11 +35,20 @@ jobs:
           repository: 'smc40/nightcrawler-ds-helpers'
           ssh-key: ${{ secrets.HELPERS_KEY_PULLER }}
           path: nightcrawler-ds-helpers
+          ref: v0.2.0
+
+      - uses: actions/checkout@v4
+        with:
+          repository: 'smc40/nightcrawler-library'
+          ssh-key: ${{ secrets.NC_LIBRARY_PULLER_KEY }}
+          path: nightcrawler-library
+          ref: init
 
       - name: Use local directory ds-helpers
         run: |
           poetry remove helpers --lock
           poetry add ./nightcrawler-ds-helpers --lock
+          poetry add ./nightcrawler-library --lock
 
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
