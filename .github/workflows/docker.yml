@@ -42,7 +42,7 @@ jobs:
           repository: 'smc40/nightcrawler-library'
           ssh-key: ${{ secrets.NC_LIBRARY_PULLER_KEY }}
           path: nightcrawler-library
-          ref: init
+          ref: 0.1.2
 
       - name: Use local directory ds-helpers
         run: |
