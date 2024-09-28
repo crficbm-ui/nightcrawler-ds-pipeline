@@ -1,6 +1,6 @@
-# Nightcrawler Datascience Pipeline Repository
+# NightCrawler Datascience Pipeline Repository
 
-This repo provides the Nightcrawler pipeline as well as a CLI to run it.
+This repo provides the NightCrawler pipeline as well as a CLI to run it.
 
 ## Setting the CLI up in your local environment
 
@@ -10,14 +10,14 @@ This repo provides the Nightcrawler pipeline as well as a CLI to run it.
 git pull
 ```
 
-2. In the [pyproject.tml](./pyproject.toml) on line 14 specify the path to `nigthcralwer-ds-helpers` directory on your machine (if you need to develop in that repository) or use a tagged version from GitHub.
+2. In the [pyproject.tml](./pyproject.toml) on line 14 specify the path to `nightcralwer-ds-helpers` directory on your machine (if you need to develop in that repository) or use a tagged version from GitHub.
 
 ```bash
-helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
-helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.0.2"} #for using a tagged version from GitHub
+helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nightcralwer-ds-helpers
+helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.6"} #for using a tagged version from GitHub
 ```
 
-> **_NOTE:_**  As of today, 04.09.2025 the current and tested helpers tag is v0.1.5. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
+> **_NOTE:_**  As of today, 11.09.2025 the current and tested helpers tag is v0.1.6. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
 3. Create a virtual environment with Poetry and activate it.
 
@@ -61,11 +61,23 @@ You can always use the `-h` to see all available options for the cli.
 
 
 ### Processing steps
-The processing steps are one of the following:
+The pipeline contains 9 processing steps:
 
-- extract -> getting data from serpapi, diffbot, zyte
-- process -> merge all sources into one single file
-- ...
+| Step   | Name        | Inherits from and implemented in | Description                      |
+|--------|-------------|----------------------------------|----------------------------------|
+| **1a** | Extract URLs using Serpapi | [BaseStep>Extract>SerpapiExtractor](./nightcrawler/extract/s01_serp_api.py)| Extract URLs using Serpapi based on a keyword provided by the users |
+| **1b** | Reverse Image Search | [BaseStep>Extract>GoogleReverseImageApi](./nightcrawler/extract/s01_reverse_image_search.py) | Use serpapi to perform a Google reverse image search. |
+| **2** | Structure data with Zyte | [BaseStep>Extract>ZyteExtractor](./nightcrawler/extract/s02_zyte.py)| Use Zyte to retrieve structured information from each URL collected by serpapi |
+| **3** | Processing | [BaseStep>DataProcessor](./nightcrawler/process/s03_dataprocessor.py) | Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.  |
+| **5** | Delivery policy filtering |  [BaseStep](./nightcrawler/process/s04_filter_swiss_result.py) | delivery policy filtering based on offline analysis of domains public delivery information |
+| **6** | Page type detection |  [BaseStep>DeliveryPolicyDetector](./nightcrawler/process/s05_delivery_page_detection.py)  | Page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z] |
+| **7** | Webpage Blocker Detection |  [BaseStep>PageTypeDetector](./nightcrawler/process/s06_page_type_detection.py) | Blocked / corrupted content detection based the prediction with a BERT model. |
+| **8** | Product Type Relevence per Organization |  [BaseStep>BlockedContentDetector](./nightcrawler/process/s07_blocket_content_detection.py) | Classification if the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD) |
+| **9** | Relevance Classifier |  [BaseStep>ContentDomainDetectors](./nightcrawler/process/s08_content_domain_detection.py) | Binary classifier per organisation, whether a product is classified as suspicious or not. |
+| **10** | Ranking and Filtering |  [BaseStep>ResultRanker](./nightcrawler/process/s10_result_ranker.py) | Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away|
+
+> **_NOTE:_**  For a simple start, I suggest to start from the [full pipeline CLI](./nightcrawler/cli/full_pipeline.py) file.
+
 
 ### Full Pipeline Run
 To perform a full end-to-end pipeline run (this is what will ultimately be deployed via Azure Functions):
@@ -79,12 +91,30 @@ To run the pipeline and filter only for a given country run:
 python -m nightcrawler fullrun viagra -n=3 --country=CH
 ```
 
+See all CLI options in the below table:
+
+| Options                                                | Level             | For                             | Description                                                                                                      |
+|-------------------------------------------------------|-------------------|---------------------------------|------------------------------------------------------------------------------------------------------------------|
+| `-h, --help`                                           | Global            | All commands                    | Show the help message and exit                                                                                   |
+| `--log-level LOG_LEVEL`                                | Global            | All commands                    | Set the log level (default: INFO)                                                                                |
+| `--log-file LOG_FILE`                                  | Global            | All commands                    | Log to file (default: None)                                                                                      |
+| `-v, --version`                                        | Global            | All commands                    | Show the program's version number and exit                                                                       |
+| `{extract, process, fullrun}`                          | Positional        | All commands                    | Modules available: extract (calls extractor class), process (calls processor class), and fullrun (full pipeline) |
+| `extract`                                              | Positional        | All commands                    | Calls the extractor class                                                                                       |
+| `process`                                              | Positional        | All commands                    | Calls the processor class                                                                                       |
+| `fullrun`                                              | Positional        | All commands                    | Runs the full pipeline from extraction to processing                                                            |
+| `searchitem`                                              | Positional        | `fullrun`                       | Keyword or URL (with `-r` parameter) to search for                                                                                           |
+| `-n NUMBER_OF_RESULTS, --number-of-results NUMBER_OF_RESULTS` | Option    | `fullrun`                       | Set the number of results from Serpapi (default: 50, max: 3 per Google Shopping, Google Site Search, Google, and eBay) |
+| `--country {CH,AT,CL}`                                 | Option            | `fullrun`                       | Processes URLs using a country-specific pipeline                                                                |
+| `-r REVERSE_IMAGE_SEARCH [REVERSE_IMAGE_SEARCH ...], --reverse-image-search REVERSE_IMAGE_SEARCH [REVERSE_IMAGE_SEARCH ...]` | Option | `fullrun` | List of image URLs for reverse image search                                                                      |
 
 ### Extraction
 To run the full extraction pipeline you can use any of the following commands:
 ```bash
 python -m nightcrawler extract aspirin #full extraction with keyword 'aspirin'
 python -m nightcrawler extract aspirin -n=3 #full extraction with keyword 'aspirin' for the first 3 entries per serpapi (3 per google shopping, google site search, google and ebay = 12 URLs total)
+python -m nightcrawler fullrun -r -n=10 https://res.cloudinary.com/zava-www-uk/image/upload/fl_progressive/a_exif,f_auto,e_sharpen:100,c_fit,w_920,h_690,q_70/v1518547468/uk/services-setup/men-s-health-unit/erectile-dysfunction-unit/viagra-unit/m7piiauyecaogdr8mi5y.jpg #full extraction with reverse image search
+
 
 ```
 Running the extraction pipeline will log the results in the terminal (with default logging which is `--log-level INFO`) and store the scraped content into `./data/output/<extraction_step>_<timespamp>_<user>.json`.

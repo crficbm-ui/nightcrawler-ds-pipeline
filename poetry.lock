@@ -2414,7 +2414,7 @@ files = [
 
 [[package]]
 name = "helpers"
-version = "v0.1.2"
+version = "v0.1.6"
 description = ""
 optional = false
 python-versions = "~3.10"
@@ -2447,7 +2447,7 @@ serpapi = "^0.1.5"
 type = "git"
 url = "https://github.com/smc40/nightcrawler-ds-helpers"
 reference = "v0.1.6"
-resolved_reference = "f2d1630e8e135fcab07003915c0eadaf61f51328"
+resolved_reference = "ffc78fc0c0f61a4cd4f764ca20797a088d8940fc"
 
 [[package]]
 name = "html2text"

@@ -7,7 +7,8 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from abc import ABC, abstractmethod
 
-from helpers.utils import _get_uuid
+from helpers.utils import _get_uuid, write_json
+from helpers.context import Context
 from helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -92,7 +93,7 @@ class ObjectUtilitiesContainer(ABC, Mapping):
 # ---------------------------------------------------
 @dataclass
 class MetaData(ObjectUtilitiesContainer):
-    """Metadata class for storing information about the extraction process."""
+    """Metadata class for storing information about the full pipeline run valid for all crawl results"""
 
     keyword: str = field(default_factory=str)
     numberOfResults: int = field(default_factory=int)
@@ -108,35 +109,101 @@ class MetaData(ObjectUtilitiesContainer):
 
 @dataclass
 class ExtractSerpapiData(ObjectUtilitiesContainer):
-    """Class for handling SERP API results with optional attributes."""
+    """Data class for step 1: Extract URLs using Serpapi"""
 
-    url: str
     offerRoot: str
+    url: str
+    imageUrl: Optional[str] = (
+        None  # this is only used for the reverse image search and indicates the direct url to the image
+    )
 
 
 @dataclass
 class ExtractZyteData(ExtractSerpapiData):
-    """Class for handling data extracted from Zyte."""
+    """Data class for step 2: Use Zyte to retrieve structured information from each URL collected by serpapi"""
 
-    price: Optional[str]
-    title: Optional[str]
-    fullDescription: Optional[str]
-    zyteExecuctionTime: Optional[float]
+    price: Optional[str] = None
+    title: Optional[str] = None
+    fullDescription: Optional[str] = None
+    zyteExecutionTime: Optional[float] = 0.0
 
 
 @dataclass
 class ProcessData(ExtractZyteData):
-    """Class for handling data extracted from Zyte."""
+    """Data class for step 3: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
+    TODO replace the manual filtering logic with Mistral call by Nicolas W.
 
-    ch_de_in_url: Optional[bool]
-    swisscompany_in_url: Optional[bool]
-    web_extension_in_url: Optional[bool]
-    francs_in_url: Optional[bool]
-    result_sold_CH: Optional[bool]
+
+    TODO make this more abstract (not for CH but for any country) i.e.:
+    country: Optional[str]
+    countryInUrl: Optional[bool]
+    webextensionInUrl: Optional[bool]
+    currencyInUrl: Optional[bool]
+    soltToCountry: Optional[bool]
+
+    -> change the processor accordingly
+
+    """
+
+    ch_de_in_url: Optional[bool] = False
+    swisscompany_in_url: Optional[bool] = False
+    web_extension_in_url: Optional[bool] = False
+    francs_in_url: Optional[bool] = False
+    result_sold_CH: Optional[bool] = False
+
+
+@dataclass
+class DeliveryPolicyData(ProcessData):
+    """Data class for step 4: delivery policy filtering based on offline analysis of domains public delivery information"""
+
+    # TODO add fields relevant to only this step
+    pass
+
+
+@dataclass
+class PageTyteData(DeliveryPolicyData):
+    """Data class for step 5: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]"""
+
+    # TODO add fields relevant to only this step
+    pass
+
+
+@dataclass
+class BlockedContentData(PageTyteData):
+    """Data class for step 6: blocked / corrupted content detection based the prediction with a BERT model."""
+
+    # TODO add fields relevant to only this step
+    pass
+
+
+@dataclass
+class ContentDomainData(BlockedContentData):
+    """Data class for step 7: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)"""
+
+    # TODO add fields relevant to only this step
+    pass
+
+
+@dataclass
+class ProcessSuspiciousnessData(ContentDomainData):
+    """Data class for step 8: binary classifier per organisation, whether a product is classified as suspicious or not.
+    TODO: maybe this class can be deleted and the Suspiciousness step could return directly CrawlResultData as most likely no new variables will come used after this step
+    TODO: add fields relevant to only this step
+    """
+
+    pass
+
+
+@dataclass
+class CrawlResultData(ProcessSuspiciousnessData):
+    """Data class for step 9: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away."""
+
+    # TODO add fields relevant to only this step
+    pass
 
 
 # ---------------------------------------------------
-# Data Model - Report Classes
+# Data Model - Class that will hold the MetaData and the Data per step. This is the main object that is passed from one step to the next and always append the new fields to the data objects and after the step will modify the MetaData.
 # ---------------------------------------------------
 
 
@@ -145,15 +212,52 @@ class PipelineResult(ObjectUtilitiesContainer):
     """Class for storing a comprehensive report, including Zyte data."""
 
     meta: MetaData
-    results: List[ProcessData]
+    results: List[CrawlResultData]
 
 
 # ---------------------------------------------------
-# Data Model - Stage Enforcing Classes
+# Data Model - Abstract Classes providing shared functionalities and / or enforcing method implementation at children classes.
 # ---------------------------------------------------
 
 
-class Extract(ABC):
+class BaseStep(ABC):
+    """
+    Class that provides core functionality for all steps in the pipeline:
+        - enforces an apply function that is used uniformly as the entry point to a new step. We do not care what happens inside apply, just that it exists.
+        - provides a method to store the results on the filesystem the pipeline is running on. There should be a CLI option similar to --local-results in
+          TODO where the current behaviour is fine, but the default should be to store to S3.
+    """
+
+    _step_counter = 0
+
+    def __init__(self, context: Context) -> None:
+        self._entity_name = (
+            self.__class__.__qualname__
+        )  # Automatically set name for children
+        self.context = context
+
+        BaseStep._step_counter += 1
+        logger.info(f"Initializing step {BaseStep._step_counter}: {self._entity_name}")
+
+    def store_results(
+        self, structured_results: PipelineResult, output_dir: str, filename: str
+    ) -> None:
+        """
+        Stores the structured results into a JSON file.
+
+        Args:
+            structured_results (PipelineResult): The structured data to be stored.
+            output_dir (str): The directory where the JSON file will be saved.
+        """
+        write_json(output_dir, filename, structured_results.to_dict())
+
+    @abstractmethod
+    def apply(self, *args: Any, **kwargs: Any) -> Any:
+        """Enforces the apply method, leaves the implementation up to the children classes"""
+        pass
+
+
+class Extract(BaseStep):
     """
     Abstract base class that enforces methods to interact with an API, process its results, and store the data.
 
@@ -167,9 +271,6 @@ class Extract(ABC):
     Attributes:
         context (Any): The context object containing configuration and settings.
     """
-
-    def __init__(self, *args: Any) -> None:
-        logger.info(f"Initializing step: {args[0]}")
 
     @abstractmethod
     def initiate_client(self) -> Any:
@@ -215,18 +316,6 @@ class Extract(ABC):
 
         Returns:
             Union[List[str], List[Dict[str, Any]]]: The structured and processed data, either as a list of URLs (strings) or a list of dictionaries.
-        """
-        pass
-
-    @abstractmethod
-    def store_results(
-        self, structured_data: Union[List[PipelineResult], List[PipelineResult]]
-    ) -> None:
-        """
-        Stores the structured data into the file system or another storage mechanism.
-
-        Args:
-            structured_data (Union[List[PipelineResult], List[PipelineResult]]): The processed data that needs to be stored.
         """
         pass
 

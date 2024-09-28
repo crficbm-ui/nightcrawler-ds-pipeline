@@ -110,8 +110,16 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         help="Processes URLs using a country specific pipeline",
     )
 
+    common_parser.add_argument(
+        "-r",
+        "--reverse-image-search",
+        action="store_true",
+        default=False,
+        help="Enable reverse image search (default is False)",
+    )
+
     parser = argparse.ArgumentParser(
-        description="Nightcrawler", parents=[global_parser]
+        description="NightCrawler", parents=[global_parser]
     )
     subparsers = parser.add_subparsers(help="Modules", dest="module", required=True)
 
@@ -121,7 +129,10 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
 
         # Add the keyword argument only if the module is "extract"
         if module.parser_name() in ["extract", "fullrun"]:
-            module_parser.add_argument("keyword", help="Keyword to search for")
+            module_parser.add_argument(
+                "searchitem",
+                help="The searchitem typically is a keyword, if so, you can type any term you want to search for. However, if you want to do a reverse image search (with -r argument), this will also accept an URL",
+            )
 
     args = parser.parse_args(args_)
 

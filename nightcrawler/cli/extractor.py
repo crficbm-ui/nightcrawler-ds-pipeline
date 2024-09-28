@@ -2,8 +2,9 @@ import argparse
 import logging
 
 from typing import List
-from nightcrawler.extract.serp_api import SerpapiExtractor
-from nightcrawler.extract.zyte import ZyteExtractor
+from nightcrawler.extract.s01_serp_api import SerpapiExtractor
+from nightcrawler.extract.s01_reverse_image_search import GoogleReverseImageApi
+from nightcrawler.extract.s02_zyte import ZyteExtractor
 from nightcrawler.base import ProcessData
 from nightcrawler.utils import get_object_from_file
 
@@ -73,16 +74,28 @@ def apply(args: argparse.Namespace) -> None:
 
     if args.step != "zyte":
         # create the output directory only if the full extract pipeline is run or if the serpapi extraction is performed as a single step
-        context.output_dir = create_output_dir(args.keyword, context.output_path)
+        context.output_dir = create_output_dir(args.searchitem, context.output_path)
 
+    # if a full pipeline run is triggered (therefore args.step is empty)
     if not args.step:
-        urls = SerpapiExtractor(context).apply(
-            keyword=args.keyword, number_of_results=args.number_of_results
-        )
-        ZyteExtractor(context).apply(urls)
+        # Step 1a: Perform reverse image search only if image_urls (List[str]) are provided
+        if args.reverse_image_search:
+            # Handle reverse image search
+            image_urls = args.reverse_image_search
+            serpapi_results = GoogleReverseImageApi(context).apply(
+                image_urls=image_urls,
+                keywords=args.searchitem,
+                number_of_results=args.number_of_results,
+            )
+        else:
+            # Step 1b Extract URLs using Serpapi if no image_urls were provided
+            serpapi_results = SerpapiExtractor(context).apply(
+                keyword=args.searchitem, number_of_results=args.number_of_results
+            )
+        ZyteExtractor(context).apply(serpapi_results)
     elif args.step == "serpapi":
         SerpapiExtractor(context).apply(
-            keyword=args.keyword, number_of_results=args.number_of_results
+            keyword=args.searchitem, number_of_results=args.number_of_results
         )
     elif args.step == "zyte":
         if args.step == "zyte" and not args.urlpath:
