@@ -1,6 +1,6 @@
 from unittest.mock import patch
 from helpers.context import Context
-from nightcrawler.base import PipelineResult, MetaData
+from nightcrawler.base import PipelineResult
 from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
 
 
@@ -114,14 +114,11 @@ def test_apply(mock_store_results, mock_run_reverse_image_search):
     api = GoogleReverseImageApi(context)
 
     # Input parameters
-    image_urls = ["https://example.com/sample1.jpg"]
+    image_url = "https://example.com/sample1.jpg"
     number_of_results = 2
 
     # Call the apply method
-    result = api.apply(
-        image_urls=image_urls,
-        number_of_results=number_of_results
-    )
+    result = api.apply(image_url=image_url, number_of_results=number_of_results)
 
     # Assert the type of result and check that the number of results match
     assert isinstance(result, PipelineResult)

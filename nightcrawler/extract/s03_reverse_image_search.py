@@ -169,9 +169,7 @@ class GoogleReverseImageApi(BaseStep):
         )
 
         # Combining all structured results
-        image_search_results = PipelineResult(
-            meta=metadata, results=results
-        )
+        image_search_results = PipelineResult(meta=metadata, results=results)
 
         self.store_results(
             image_search_results,

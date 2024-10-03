@@ -104,7 +104,9 @@ def apply(args: argparse.Namespace) -> None:
                 previous_step_results=serpapi_results,
             )
         else:
-            logger.warning("Skipping keyword enrichment as option `-e` was not specified")
+            logger.warning(
+                "Skipping keyword enrichment as option `-e` was not specified"
+            )
             BaseStep._step_counter += 1  # doing this, so that the the output files still match the step count specified in the README.md. However, this will lead to gaps in the numbering of the output files (3 will be missing).
 
     else:

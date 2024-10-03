@@ -109,7 +109,7 @@ class MetaData(ObjectUtilitiesContainer):
 
 @dataclass
 class ExtractSerpapiData(ObjectUtilitiesContainer):
-    """Data class for step 1: Extract URLs using Serpapi"""
+    """Data class for step 1, 2 and 3 (all steps serpapi related): Extract URLs using Serpapi"""
 
     offerRoot: str
     url: str
@@ -124,7 +124,7 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
 
 @dataclass
 class ExtractZyteData(ExtractSerpapiData):
-    """Data class for step 2: Use Zyte to retrieve structured information from each URL collected by serpapi"""
+    """Data class for step 4: Use Zyte to retrieve structured information from each URL collected by serpapi"""
 
     price: Optional[str] = None
     title: Optional[str] = None
@@ -134,7 +134,7 @@ class ExtractZyteData(ExtractSerpapiData):
 
 @dataclass
 class ProcessData(ExtractZyteData):
-    """Data class for step 3: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
+    """Data class for step 5: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
     TODO replace the manual filtering logic with Mistral call by Nicolas W.
 
 
@@ -158,7 +158,7 @@ class ProcessData(ExtractZyteData):
 
 @dataclass
 class DeliveryPolicyData(ProcessData):
-    """Data class for step 4: delivery policy filtering based on offline analysis of domains public delivery information"""
+    """Data class for step 6: delivery policy filtering based on offline analysis of domains public delivery information"""
 
     # TODO add fields relevant to only this step
     pass
@@ -166,7 +166,7 @@ class DeliveryPolicyData(ProcessData):
 
 @dataclass
 class PageTyteData(DeliveryPolicyData):
-    """Data class for step 5: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]"""
+    """Data class for step 7: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]"""
 
     # TODO add fields relevant to only this step
     pass
@@ -174,7 +174,7 @@ class PageTyteData(DeliveryPolicyData):
 
 @dataclass
 class BlockedContentData(PageTyteData):
-    """Data class for step 6: blocked / corrupted content detection based the prediction with a BERT model."""
+    """Data class for step 8: blocked / corrupted content detection based the prediction with a BERT model."""
 
     # TODO add fields relevant to only this step
     pass
@@ -182,7 +182,7 @@ class BlockedContentData(PageTyteData):
 
 @dataclass
 class ContentDomainData(BlockedContentData):
-    """Data class for step 7: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)"""
+    """Data class for step 9: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)"""
 
     # TODO add fields relevant to only this step
     pass
@@ -190,7 +190,7 @@ class ContentDomainData(BlockedContentData):
 
 @dataclass
 class ProcessSuspiciousnessData(ContentDomainData):
-    """Data class for step 8: binary classifier per organisation, whether a product is classified as suspicious or not.
+    """Data class for step 10: binary classifier per organisation, whether a product is classified as suspicious or not.
     TODO: maybe this class can be deleted and the Suspiciousness step could return directly CrawlResultData as most likely no new variables will come used after this step
     TODO: add fields relevant to only this step
     """
@@ -200,52 +200,9 @@ class ProcessSuspiciousnessData(ContentDomainData):
 
 @dataclass
 class CrawlResultData(ProcessSuspiciousnessData):
-    """Data class for step 9: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away."""
+    """Data class for step 11: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away."""
 
     # TODO add fields relevant to only this step
-    pass
-
-
-@dataclass
-class DeliveryPolicyData(ProcessData):
-    """Data class for step 4: delivery policy filtering"""
-
-    pass
-
-
-@dataclass
-class PageTyteData(DeliveryPolicyData):
-    """Data class for step 5: page type filtering"""
-
-    pass
-
-
-@dataclass
-class BlockedContentData(PageTyteData):
-    """Data class for step 6: blocked / corrupted content detection"""
-
-    pass
-
-
-@dataclass
-class ContentDomainData(BlockedContentData):
-    """Data class for step 7: content domain filtering"""
-
-    pass
-
-
-@dataclass
-class ProcessSuspiciousnessData(ContentDomainData):
-    """Data class for step 8: suspiciousness classifier
-    TODO: maybe this class can be deleted and the Suspiciousness step could return directly CrawlResultData as most likely no new variables will come used after this step"""
-
-    pass
-
-
-@dataclass
-class CrawlResultData(ProcessSuspiciousnessData):
-    """Data class for step 9: ranking"""
-
     pass
 
 
