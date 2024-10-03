@@ -9,12 +9,12 @@ from nightcrawler.base import (
     CrawlResultData,
     MetaData,
 )
-from nightcrawler.extract.s02_enriched_keywords import KeyWordEnricher
+from nightcrawler.extract.s02_enriched_keywords import KeywordEnricher
 
 
 def test_keyword_enricher_apply():
     """
-    Test the apply method of KeyWordEnricher class.
+    Test the apply method of KeywordEnricher class.
 
     Input parameters:
     - keyword: 'test keyword'
@@ -75,7 +75,7 @@ def test_keyword_enricher_apply():
         }
     ]
 
-    # Patch DataforSeoAPI in the module where KeyWordEnricher is defined
+    # Patch DataforSeoAPI in the module where KeywordEnricher is defined
     with patch(
         "nightcrawler.extract.s02_enriched_keywords.DataforSeoAPI",
         return_value=dataforseo_api_mock,
@@ -122,23 +122,23 @@ def test_keyword_enricher_apply():
                 "helpers.utils.from_dict", side_effect=lambda cls, data: cls(**data)
             ):
                 # Patch store_results method to avoid file I/O
-                with patch.object(KeyWordEnricher, "store_results", return_value=None):
-                    # Instantiate KeyWordEnricher
-                    keyword_enricher = KeyWordEnricher(context)
+                with patch.object(KeywordEnricher, "store_results", return_value=None):
+                    # Instantiate KeywordEnricher
+                    keyword_enricher = KeywordEnricher(context)
 
                     # Input parameters
                     keyword = "test keyword"
                     number_of_keywords = 10
-                    locations = ["United States"]
-                    languages = ["English"]
+                    location = "United States"
+                    language = "English"
 
                     # Invoke the apply method
                     result = keyword_enricher.apply(
                         keyword=keyword,
                         serpapi=serpapi_mock,
                         number_of_keywords=number_of_keywords,
-                        locations=locations,
-                        languages=languages,
+                        location=location,
+                        language=language,
                         previous_step_results=PipelineResult(
                             meta=MetaData(keyword=keyword),
                             results=[

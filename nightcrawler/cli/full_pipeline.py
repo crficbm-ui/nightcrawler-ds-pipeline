@@ -3,7 +3,7 @@ import logging
 from typing import List
 from nightcrawler.process.s05_dataprocessor import DataProcessor
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
-from nightcrawler.extract.s02_enriched_keywords import KeyWordEnricher
+from nightcrawler.extract.s02_enriched_keywords import KeywordEnricher
 from nightcrawler.extract.s04_zyte import ZyteExtractor
 from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
 from nightcrawler.process.s06_delivery_page_detection import DeliveryPolicyDetector
@@ -78,29 +78,24 @@ def apply(args: argparse.Namespace) -> None:
         # Step 0: create the results directory with searchitem = keyword
         context.output_dir = create_output_dir(args.searchitem, context.output_path)
 
-        # Step 1a Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
+        # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
         serpapi_results = SerpapiExtractor(context).apply(
             keyword=args.searchitem, number_of_results=args.number_of_results
         )
 
-        # Step 1b: Enricht query by adding additional keywords if `-e` argument was set
+        # Step 2: Enricht query by adding additional keywords if `-e` argument was set
         if args.enrich_keyword:
             # load dataForSeo configs based on the country information, if none provided, default to CH
+            country = args.country if args.country else "CH"
             api_config_for_country = context.settings.data_for_seo.api_params.get(
-                args.country, "CH"
+                country
             )
-            serpapi_results = KeyWordEnricher(
-                context
-            ).apply(
+            serpapi_results = KeywordEnricher(context).apply(
                 keyword=args.searchitem,
                 serpapi=SerpapiExtractor(context),
                 number_of_keywords=3,
-                locations=[
-                    api_config_for_country.get("location")
-                ],  # TODO: ask Nico, if this really needs to be a list? if not, the dataforseo can be made easier and two nested for loops can be removed
-                languages=[
-                    api_config_for_country.get("language")
-                ],  # TODO: ask Nico, if this really needs to be a list? if not, the dataforseo can be made easier and two nested for loops can be removed
+                location=api_config_for_country.get("location"),
+                language=api_config_for_country.get("language"),
                 previous_step_results=serpapi_results,
             )
         else:
@@ -115,47 +110,47 @@ def apply(args: argparse.Namespace) -> None:
             "reverse_image_search", context.output_path
         )
 
-        # Step 1c Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
+        # Step 3 Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
         serpapi_results = GoogleReverseImageApi(context).apply(
             image_url=args.searchitem,
             number_of_results=args.number_of_results,
         )
 
-    # Step 2: Use Zyte to process the URLs further
+    # Step 4: Use Zyte to process the URLs further
     zyte_results = ZyteExtractor(context).apply(serpapi_results)
 
-    # Step 3: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
+    # Step 5: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
     # TODO replace the manual filtering logic with Mistral call by Nicolas W.
     processor_results = DataProcessor(context).apply(
         previous_step_results=zyte_results, country=args.country
     )
 
-    # Step 4: delivery policy filtering based on offline analysis of domains public delivery information
+    # Step 6: delivery policy filtering based on offline analysis of domains public delivery information
     delivery_policy_filtering_results = DeliveryPolicyDetector(context).apply(
         previous_step_results=processor_results
     )
 
-    # Step 5: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]
+    # Step 7: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]
     page_type_filtering_results = PageTypeDetector(context).apply(
         previous_step_results=delivery_policy_filtering_results
     )
 
-    # Step 6: blocked / corrupted content detection based the prediction with a BERT model.
+    # Step 8: blocked / corrupted content detection based the prediction with a BERT model.
     blocked_content_results = BlockedContentDetector(context).apply(
         previous_step_results=page_type_filtering_results
     )
 
-    # Step 7: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)
+    # Step 9: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)
     content_domain_results = ContentDomainDetector(context).apply(
         previous_step_results=blocked_content_results
     )
 
-    # Step 8: Binary classifier per organisation, whether a product is classified as suspicious or not.
+    # Step 10: Binary classifier per organisation, whether a product is classified as suspicious or not.
     suspiscousness_results = SuspiciousnessClassifier(context).apply(
         previous_step_results=content_domain_results
     )
 
-    # Step 9: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away.
+    # Step 11: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away.
     ResultRanker(context).apply(previous_step_results=suspiscousness_results)
 
     # TODO transform final_results into List[CrawlResult] for the libnightcawler lib

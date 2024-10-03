@@ -9,12 +9,12 @@ from helpers.utils import from_dict
 from nightcrawler.base import ExtractSerpapiData, PipelineResult, BaseStep
 
 
-class KeyWordEnricher(BaseStep):
+class KeywordEnricher(BaseStep):
     _entity_name: str = __qualname__
 
     def __init__(self, context: Context) -> None:
         """
-        Initializes the KeyWordEnricher with a given context.
+        Initializes the KeywordEnricher with a given context.
 
         Args:
             context (Context): The execution context for the enrichment pipeline.
@@ -27,9 +27,10 @@ class KeyWordEnricher(BaseStep):
         keyword: str,
         serpapi: SerpAPI,
         number_of_keywords: int,
-        locations: List[str],
-        languages: List[str],
+        location: str,
+        language: str,
         previous_step_results: PipelineResult,
+        check_limit: int = 200,
     ) -> PipelineResult:
         """
         Makes the API call to SerpAPI to enrich the keyword and retrieve search results.
@@ -45,8 +46,8 @@ class KeyWordEnricher(BaseStep):
             keyword (str): The search keyword to enrich.
             serpapi (SerpAPI): The SerpAPI client instance to fetch results.
             number_of_keywords (int): The number of keywords to retrieve.
-            locations (List[str]): The list of locations for keyword enrichment.
-            languages (List[str]): The list of languages to search in.
+            location (str): The location for keyword enrichment.
+            language (str): The language to search in.
 
         Returns:
             PipelineResult: Contains metadata and enriched search results.
@@ -57,15 +58,12 @@ class KeyWordEnricher(BaseStep):
         suggested_kw: List[Dict[str, Any]] = []
         related_kw: List[Dict[str, Any]] = []
 
-        # TODO: If there will only be a single location/language per enriched keyword, this can be simplified.
-        for loc in locations:
-            for lang in languages:
-                suggested_kw += DataforSeoAPI().get_keyword_suggestions(
-                    keyword, loc, lang, number_of_keywords
-                )
-                related_kw += DataforSeoAPI().get_related_keywords(
-                    keyword, loc, lang, number_of_keywords
-                )
+        suggested_kw += DataforSeoAPI().get_keyword_suggestions(
+            keyword, location, language, number_of_keywords
+        )
+        related_kw += DataforSeoAPI().get_related_keywords(
+            keyword, location, language, number_of_keywords
+        )
 
         enriched_kw = suggested_kw + related_kw
         filtered_kw: List[str] = []
@@ -90,7 +88,7 @@ class KeyWordEnricher(BaseStep):
             items = client.get_organic_results(response)
 
             kw_urls = [item.get("link") for item in items]
-            results = client._check_limit(kw_urls, kw, 200)
+            results = client._check_limit(kw_urls, kw, check_limit)
             urls += keywords_selection.estimate_volume_per_url(
                 results,
                 kw["keywordVolume"],

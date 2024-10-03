@@ -113,10 +113,18 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
 
     offerRoot: str
     url: str
-    keywordEnriched: Optional[str] = None
-    keywordVolume: Optional[float] = -1
-    keywordLanguage: Optional[str] = None
-    keywordLocation: Optional[str] = None
+    keywordEnriched: Optional[str] = (
+        None  # this is only used for keyword enrichement and holds enriched keyword (i.e. keyword is 'viagra' and enriched is 'viagra kaufen'). This is only used when '-e' is set
+    )
+    keywordVolume: Optional[
+        float
+    ] = -1  # this is only used for keyword enrichement and indicated how often this enriched keyword is used based on dataforseo estimates. This is only used when '-e' is set
+    keywordLanguage: Optional[str] = (
+        None  # this is only used for keyword enrichement and indicated the language of the enriched keyword (i.e. 'viagra kaufen' would be 'DE'). This is only used when '-e' is set
+    )
+    keywordLocation: Optional[str] = (
+        None  # this is only used for keyword enrichement and indicated the dataforseo localization option i.e. 'CH'. This is only used when '-e' is set
+    )
     imageUrl: Optional[str] = (
         None  # this is only used for the reverse image search and indicates the direct url to the image
     )
@@ -143,7 +151,7 @@ class ProcessData(ExtractZyteData):
     countryInUrl: Optional[bool]
     webextensionInUrl: Optional[bool]
     currencyInUrl: Optional[bool]
-    soltToCountry: Optional[bool]
+    soldToCountry: Optional[bool]
 
     -> change the processor accordingly
 
