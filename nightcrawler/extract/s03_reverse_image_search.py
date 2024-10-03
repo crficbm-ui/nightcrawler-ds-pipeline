@@ -122,11 +122,11 @@ class GoogleReverseImageApi(BaseStep):
         logger.info(f"{len(urls)} URLs were extracted from inline_images: {urls}\n")
         return urls
 
-    def apply(self, image_url: str, number_of_results: int) -> PipelineResult:
+    def apply_step(self, image_url: str, number_of_results: int) -> PipelineResult:
         """Perform reverse image search on multiple URLs and return structured results.
 
         Args:
-            image_url (str): List of image URLs to search for.
+            image_url (str): A URL to search for.
             number_of_results (int): Maximum number of results to return.
 
         Returns:
@@ -169,14 +169,12 @@ class GoogleReverseImageApi(BaseStep):
         )
 
         # Combining all structured results
-        structured_results_from_marketplaces = PipelineResult(
-            meta=metadata, results=results
-        )
+        image_search_results = PipelineResult(meta=metadata, results=results)
 
         self.store_results(
-            structured_results_from_marketplaces,
+            image_search_results,
             self.context.output_dir,
             self.context.serpapi_filename_reverse_image_search,
         )
 
-        return structured_results_from_marketplaces
+        return image_search_results

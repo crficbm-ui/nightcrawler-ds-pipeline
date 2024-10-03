@@ -2,7 +2,6 @@ import logging
 from typing import Any, Dict, List
 from helpers.context import Context
 from helpers.api.serp_api import SerpAPI
-from helpers.decorators import timeit
 from helpers import LOGGER_NAME
 
 from nightcrawler.base import (
@@ -101,7 +100,8 @@ class SerpapiExtractor(Extract):
         client: SerpAPI,
         offer_root: str = "DEFAULT",
         number_of_results: int = 50,
-    ) -> PipelineResult:
+        check_limit: int = 200,
+    ) -> List[ExtractSerpapiData]:
         """
         Processes and structures the raw API response data into the desired format.
 
@@ -123,10 +123,9 @@ class SerpapiExtractor(Extract):
         urls = [item.get("link") for item in items]
         urls = urls[:number_of_results]
 
-        filtered_urls = client._check_limit(urls, keyword)
+        filtered_urls = client._check_limit(urls, keyword, check_limit)
         results = [
-            ExtractSerpapiData(url=url, offerRoot=offer_root).to_dict()
-            for url in filtered_urls
+            ExtractSerpapiData(offerRoot=offer_root, url=url) for url in filtered_urls
         ]
         return results
 
@@ -177,8 +176,7 @@ class SerpapiExtractor(Extract):
 
         return all_results
 
-    @timeit
-    def apply(self, keyword: str, number_of_results: int) -> PipelineResult:
+    def apply_step(self, keyword: str, number_of_results: int) -> PipelineResult:
         """
         Orchestrates the entire process of data collection: client initiation,
         response retrieval, structuring results, and storing results.
@@ -195,6 +193,7 @@ class SerpapiExtractor(Extract):
             client=client, keyword=keyword, number_of_results=number_of_results
         )
 
+        # Generate the metadata
         metadata = MetaData(
             keyword=keyword,
             numberOfResults=number_of_results,

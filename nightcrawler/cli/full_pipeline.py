@@ -1,16 +1,18 @@
 import argparse
 import logging
 from typing import List
-from nightcrawler.process.s03_dataprocessor import DataProcessor
+from nightcrawler.process.s05_dataprocessor import DataProcessor
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
-from nightcrawler.extract.s02_zyte import ZyteExtractor
-from nightcrawler.extract.s01_reverse_image_search import GoogleReverseImageApi
-from nightcrawler.process.s05_delivery_page_detection import DeliveryPolicyDetector
-from nightcrawler.process.s06_page_type_detection import PageTypeDetector
-from nightcrawler.process.s07_blocket_content_detection import BlockedContentDetector
-from nightcrawler.process.s08_content_domain_detection import ContentDomainDetector
-from nightcrawler.process.s09_suspiciousness_classifier import SuspiciousnessClassifier
-from nightcrawler.process.s10_result_ranker import ResultRanker
+from nightcrawler.extract.s02_enriched_keywords import KeywordEnricher
+from nightcrawler.extract.s04_zyte import ZyteExtractor
+from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
+from nightcrawler.process.s06_delivery_page_detection import DeliveryPolicyDetector
+from nightcrawler.process.s07_page_type_detection import PageTypeDetector
+from nightcrawler.process.s08_blocket_content_detection import BlockedContentDetector
+from nightcrawler.process.s09_content_domain_detection import ContentDomainDetector
+from nightcrawler.process.s10_suspiciousness_classifier import SuspiciousnessClassifier
+from nightcrawler.process.s11_result_ranker import ResultRanker
+from nightcrawler.base import BaseStep
 
 from helpers import LOGGER_NAME
 from helpers.context import Context
@@ -76,58 +78,80 @@ def apply(args: argparse.Namespace) -> None:
         # Step 0: create the results directory with searchitem = keyword
         context.output_dir = create_output_dir(args.searchitem, context.output_path)
 
-        # Step 1a Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
+        # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
         serpapi_results = SerpapiExtractor(context).apply(
             keyword=args.searchitem, number_of_results=args.number_of_results
         )
+
+        # Step 2: Enricht query by adding additional keywords if `-e` argument was set
+        if args.enrich_keyword:
+            # load dataForSeo configs based on the country information, if none provided, default to CH
+            country = args.country if args.country else "CH"
+            api_config_for_country = context.settings.data_for_seo.api_params.get(
+                country
+            )
+            serpapi_results = KeywordEnricher(context).apply(
+                keyword=args.searchitem,
+                serpapi=SerpapiExtractor(context),
+                number_of_keywords=3,
+                location=api_config_for_country.get("location"),
+                language=api_config_for_country.get("language"),
+                previous_step_results=serpapi_results,
+            )
+        else:
+            logger.warning(
+                "Skipping keyword enrichment as option `-e` was not specified"
+            )
+            BaseStep._step_counter += 1  # doing this, so that the the output files still match the step count specified in the README.md. However, this will lead to gaps in the numbering of the output files (3 will be missing).
+
     else:
         # Step 0: create the results directory with searchitem = url, so just name it 'reverse_image_search'.
         context.output_dir = create_output_dir(
             "reverse_image_search", context.output_path
         )
 
-        # Step 1b  Use serpapi to perform a Google reverse image search only if -r was set with the searchitem (=urls)
+        # Step 3 Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
         serpapi_results = GoogleReverseImageApi(context).apply(
             image_url=args.searchitem,
             number_of_results=args.number_of_results,
         )
 
-    # Step 2: Use Zyte to retrieve structured information from each URL collected by serpapi
+    # Step 4: Use Zyte to process the URLs further
     zyte_results = ZyteExtractor(context).apply(serpapi_results)
 
-    # Step 3: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
+    # Step 5: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
     # TODO replace the manual filtering logic with Mistral call by Nicolas W.
     processor_results = DataProcessor(context).apply(
-        pipeline_results=zyte_results, country=args.country
+        previous_step_results=zyte_results, country=args.country
     )
 
-    # Step 4: delivery policy filtering based on offline analysis of domains public delivery information
+    # Step 6: delivery policy filtering based on offline analysis of domains public delivery information
     delivery_policy_filtering_results = DeliveryPolicyDetector(context).apply(
-        processor_results
+        previous_step_results=processor_results
     )
 
-    # Step 5: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]
+    # Step 7: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]
     page_type_filtering_results = PageTypeDetector(context).apply(
-        delivery_policy_filtering_results
+        previous_step_results=delivery_policy_filtering_results
     )
 
-    # Step 6: blocked / corrupted content detection based the prediction with a BERT model.
+    # Step 8: blocked / corrupted content detection based the prediction with a BERT model.
     blocked_content_results = BlockedContentDetector(context).apply(
-        page_type_filtering_results
+        previous_step_results=page_type_filtering_results
     )
 
-    # Step 7: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)
+    # Step 9: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)
     content_domain_results = ContentDomainDetector(context).apply(
-        blocked_content_results
+        previous_step_results=blocked_content_results
     )
 
-    # Step 8: Binary classifier per organisation, whether a product is classified as suspicious or not.
+    # Step 10: Binary classifier per organisation, whether a product is classified as suspicious or not.
     suspiscousness_results = SuspiciousnessClassifier(context).apply(
-        content_domain_results
+        previous_step_results=content_domain_results
     )
 
-    # Step 9: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away.
-    ResultRanker(context).apply(suspiscousness_results)
+    # Step 11: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away.
+    ResultRanker(context).apply(previous_step_results=suspiscousness_results)
 
     # TODO transform final_results into List[CrawlResult] for the libnightcawler lib
     # TODO store final_results as CrawlResult object to storage

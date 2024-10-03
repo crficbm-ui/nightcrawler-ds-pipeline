@@ -11,6 +11,8 @@ jobs:
       HELPER_REPO: ${{ secrets.HELPERS_REPO }}
       SERP_API_TOKEN: ${{ secrets.SERP_API_TOKEN }}
       ZYTE_API_TOKEN: ${{ secrets.ZYTE_API_TOKEN }}
+      DATAFORSEO_PASSWORD: ${{ secrets.DATAFORSEO_PASSWORD }}
+      DATAFORSEO_USERNAME: ${{ secrets.DATAFORSEO_USERNAME }}
 
     steps:
     - uses: actions/checkout@v4

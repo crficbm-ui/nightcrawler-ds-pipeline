@@ -3,8 +3,8 @@ import logging
 
 from typing import List
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
-from nightcrawler.extract.s01_reverse_image_search import GoogleReverseImageApi
-from nightcrawler.extract.s02_zyte import ZyteExtractor
+from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
+from nightcrawler.extract.s04_zyte import ZyteExtractor
 from nightcrawler.base import ProcessData
 from nightcrawler.utils import get_object_from_file
 
