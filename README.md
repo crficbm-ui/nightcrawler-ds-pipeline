@@ -143,6 +143,19 @@ Process files only for a given country:
 python -m nightcrawler process --country=CH 20240823_210829_triofan_defaultuser
 ```
 
+### Keyword Enrichment
+The logic within Keyword Enrichment is as follows. A user may use the keyword 'ibuprofen' in a google search with the 
+goal of purchasing said product. In reality, users do not use single keywords to search for products but rather a 
+combination of keywords, such as 'ibuprofen 400' or 'ibuprofen kaufen'. In order to find these relevant 'combinations' 
+we use DataforSEO which makes suggestions based on a 'seed keyword' of those keywords that are related to the seed. We
+can filter these keywords based on TRAFFIC and pick those that people are searching for the most. In this way, we can 
+improve the catching of results using a traffic-based approach, abstracting the search from the initial seed provided 
+by the inspection analyzing the case. 
+
+As of 4th October 2024, the implementation is as follows
+- An initial configuration is imported from helpers, which makes implicit the country & language params for the API.
+- Then, the KeywordEnricher is executed with the given keyword, SerpapiExtractor, number of keywords=3, location,
+language and previous steps results (obtained from serpapi)
 
 
 ## Development settings

@@ -78,12 +78,12 @@ def apply(args: argparse.Namespace) -> None:
         # Step 0: create the results directory with searchitem = keyword
         context.output_dir = create_output_dir(args.searchitem, context.output_path)
 
-        # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
+        # Step 1 Extract URLs using SerpAPI based on a searchitem (=keyword) provided by the users
         serpapi_results = SerpapiExtractor(context).apply(
             keyword=args.searchitem, number_of_results=args.number_of_results
         )
 
-        # Step 2: Enricht query by adding additional keywords if `-e` argument was set
+        # Step 2: Enrich query by adding additional keywords if `-e` argument was set
         if args.enrich_keyword:
             # load dataForSeo configs based on the country information, if none provided, default to CH
             country = args.country if args.country else "CH"
@@ -102,7 +102,7 @@ def apply(args: argparse.Namespace) -> None:
             logger.warning(
                 "Skipping keyword enrichment as option `-e` was not specified"
             )
-            BaseStep._step_counter += 1  # doing this, so that the the output files still match the step count specified in the README.md. However, this will lead to gaps in the numbering of the output files (3 will be missing).
+            BaseStep._step_counter += 1  # doing this, so that the output files still match the step count specified in the README.md. However, this will lead to gaps in the numbering of the output files (3 will be missing).
 
     else:
         # Step 0: create the results directory with searchitem = url, so just name it 'reverse_image_search'.
