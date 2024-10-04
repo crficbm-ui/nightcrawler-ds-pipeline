@@ -111,6 +111,14 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
     )
 
     common_parser.add_argument(
+        "--page-type-detection-method",
+        choices=["infer", "zyte"],
+        required=False,
+        default="zyte",
+        help="By default we are using a probability of Zyte indicating, if the page type is ecommerce or not. You can change this to using a custom BERT modell served on the GPU.",
+    )
+
+    common_parser.add_argument(
         "-r",
         "--reverse-image-search",
         action="store_true",

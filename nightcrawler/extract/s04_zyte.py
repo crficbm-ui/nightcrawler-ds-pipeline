@@ -1,4 +1,5 @@
 import logging
+import base64
 from typing import List, Dict, Tuple, Any
 from tqdm.auto import tqdm
 
@@ -93,6 +94,8 @@ class ZyteExtractor(Extract):
         for index, response in enumerate(responses):
             product = response.get("product", {})
             serpapi_result = serpapi_results.results[index]
+            html = self._get_html_from_response(response)
+            metadata = product.get("metadata", {})
             price = f"{product.get('price', '')} {product.get('currencyRaw', '')}"  # returns " " if both fields were empty
             price = (
                 price if len(price.strip()) > 1 else ""
@@ -105,10 +108,19 @@ class ZyteExtractor(Extract):
                 title=product.get("name", ""),
                 fullDescription=product.get("description", ""),
                 zyteExecutionTime=response.get("seconds_taken", 0),
+                zyteProbability=metadata.get("probability", None),
+                html=html,
             )
             results.append(zyte_result)
 
         return results
+
+    def _get_html_from_response(self, response: Dict) -> str:
+        if "browserHtml" in response:
+            return response["browserHtml"]
+        elif "httpResponseBody" in response:
+            return base64.b64decode(response["httpResponseBody"]).decode()
+        return None
 
     def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:
         """

@@ -130,9 +130,10 @@ def apply(args: argparse.Namespace) -> None:
         previous_step_results=processor_results
     )
 
-    # Step 7: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]
+    # Step 7: page type filtering based on either a probability of Zyte or a custom BERT model deployed on the mutualized GPU. The pageType can be either 'ecommerce_product' or 'other'.
     page_type_filtering_results = PageTypeDetector(context).apply(
-        previous_step_results=delivery_policy_filtering_results
+        previous_step_results=delivery_policy_filtering_results,
+        page_type_detection_method=args.page_type_detection_method,
     )
 
     # Step 8: blocked / corrupted content detection based the prediction with a BERT model.
