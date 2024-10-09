@@ -19,6 +19,8 @@ from helpers.context import Context
 from helpers.utils import create_output_dir
 from helpers.decorators import timeit
 
+import libnightcrawler.objects as lo
+
 logger = logging.getLogger(LOGGER_NAME)
 
 
@@ -61,6 +63,12 @@ def add_parser(
         parents=parents_,
     )
 
+    parser.add_argument(
+        "--case-id", default=None, help="DB identifier of the case (%(default)s)"
+    )
+    parser.add_argument(
+        "--keyword-id", default=None, help="DB identifier of the keyword (%(default)s)"
+    )
     return parser
 
 
@@ -73,6 +81,21 @@ def apply(args: argparse.Namespace) -> None:
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
+    all_orgs = context.get_organization()
+    org = (
+        all_orgs[args.org]
+        if args.org
+        else next(x for x in all_orgs.values() if args.country in x.countries)
+    )
+    logger.debug("Using org: %s", org)
+
+    request = lo.CrawlRequest(
+        keyword_type="text" if not args.reverse_image_search else "image",
+        keyword_value=args.searchitem,
+        case_id=args.case_id,
+        keyword_id=args.keyword_id,
+        organization=org,
+    )
 
     if not args.reverse_image_search:
         # Step 0: create the results directory with searchitem = keyword
@@ -86,9 +109,8 @@ def apply(args: argparse.Namespace) -> None:
         # Step 2: Enricht query by adding additional keywords if `-e` argument was set
         if args.enrich_keyword:
             # load dataForSeo configs based on the country information, if none provided, default to CH
-            country = args.country if args.country else "CH"
             api_config_for_country = context.settings.data_for_seo.api_params.get(
-                country
+                org.countries[0]
             )
             serpapi_results = KeywordEnricher(context).apply(
                 keyword=args.searchitem,
@@ -121,8 +143,9 @@ def apply(args: argparse.Namespace) -> None:
 
     # Step 5: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
     # TODO replace the manual filtering logic with Mistral call by Nicolas W.
+    # TODO Must support a list of countries, not a single one
     processor_results = DataProcessor(context).apply(
-        previous_step_results=zyte_results, country=args.country
+        previous_step_results=zyte_results, country=org.countries[0]
     )
 
     # Step 6: delivery policy filtering based on offline analysis of domains public delivery information
@@ -152,7 +175,21 @@ def apply(args: argparse.Namespace) -> None:
     )
 
     # Step 11: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away.
-    ResultRanker(context).apply(previous_step_results=suspiscousness_results)
+    final_results = ResultRanker(context).apply(previous_step_results=suspiscousness_results)
 
-    # TODO transform final_results into List[CrawlResult] for the libnightcawler lib
-    # TODO store final_results as CrawlResult object to storage
+    if not context.settings.use_file_storage:
+        data = [
+            request.new_result(
+                url=x.url,
+                text=x.fullDescription,
+                root=x.offerRoot,
+                title=x.title,
+                uid="",
+                platform="",
+                source="",
+                language="",
+                score=0,
+            )
+            for x in final_results.results
+        ]
+        context.store_results(data, replace=True)

@@ -13,8 +13,10 @@ ENV POETRY_NO_INTERACTION=1 \
 ADD poetry.lock pyproject.toml README.md /usr/local/nightcrawler/
 ADD nightcrawler/ /usr/local/nightcrawler/nightcrawler/
 ADD nightcrawler-ds-helpers /usr/local/nightcrawler/nightcrawler-ds-helpers/
+ADD nightcrawler-library /usr/local/nightcrawler/nightcrawler-library/
 
 WORKDIR /usr/local/nightcrawler
+RUN apt-get update && apt-get install -y libpq-dev build-essential
 RUN pip install poetry==1.8.3 && poetry install && rm -rf $POETRY_CACHE_DIR
 
 COPY docker/requirements.txt /

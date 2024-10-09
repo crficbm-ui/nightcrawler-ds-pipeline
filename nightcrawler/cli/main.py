@@ -106,7 +106,7 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         "--country",
         choices=["CH", "AT", "CL"],
         required=False,
-        default=None,
+        default="CH",
         help="Processes URLs using a country specific pipeline",
     )
 
@@ -116,6 +116,13 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         required=False,
         default="zyte",
         help="By default we are using a probability of Zyte indicating, if the page type is ecommerce or not. You can change this to using a custom BERT model served on the GPU.",
+    )
+
+    common_parser.add_argument(
+        "--org",
+        required=False,
+        default=None,
+        help="Use configuration for this organization",
     )
 
     common_parser.add_argument(
