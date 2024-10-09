@@ -46,7 +46,7 @@ jobs:
 
       - name: Use local directory ds-helpers
         run: |
-          poetry remove helpers --lock
+          poetry remove helpers libnightcrawler --lock
           poetry add ./nightcrawler-ds-helpers --lock
           poetry add ./nightcrawler-library --lock
 

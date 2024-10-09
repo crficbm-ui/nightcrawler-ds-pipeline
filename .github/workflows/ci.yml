@@ -34,7 +34,6 @@ jobs:
     - name: Install dependencies
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
-        poetry add git+ssh://git@github.com/smc40/nightcrawler-library.git@0.1.0
         poetry install
 
     - name: Python Vulnerability Check
