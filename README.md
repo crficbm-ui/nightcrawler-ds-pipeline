@@ -10,7 +10,24 @@ This repo provides the NightCrawler pipeline as well as a CLI to run it.
 git pull
 ```
 
-2. In the [pyproject.tml](./pyproject.toml) on line 14 specify the path to `nightcralwer-ds-helpers` directory on your machine (if you need to develop in that repository) or use a tagged version from GitHub.
+2. Install postgresql development library
+
+2.1 On debian based linux:
+
+```sh
+sudo apt-get install -y libpq-dev build-essential
+```
+
+2.2 On Mac OS:
+
+```sh
+brew install libpq
+export LDFLAGS="-L/opt/homebrew/opt/libpq/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/libpq/include"
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+```
+
+3. In the [pyproject.tml](./pyproject.toml) on line 14 specify the path to `nightcralwer-ds-helpers` directory on your machine (if you need to develop in that repository) or use a tagged version from GitHub.
 
 ```bash
 helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
@@ -19,7 +36,7 @@ helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1
 
 > **_NOTE:_**  As of today, 04.10.2024 the current and tested helpers tag is v0.2.2. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
-3. Create a virtual environment with Poetry and activate it.
+4. Create a virtual environment with Poetry and activate it.
 
 ```bash
 poetry shell
@@ -30,13 +47,13 @@ poetry shell
 >curl -sSL https://install.python-poetry.org | python3 -
 >```
 
-4. Install the project dependencies.
+5. Install the project dependencies.
 
 ```bash
 poetry install --directory ./pyproject.toml
 ```
 
-5. Copy `.env_template` to `.env`. Fill with your credentials and source it by running `source .env`.
+6. Copy `.env_template` to `.env`. Fill with your credentials and source it by running `source .env`.
 
 ## CLI overview
 As of today, the CLI looks as follows:
