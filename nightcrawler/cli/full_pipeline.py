@@ -189,6 +189,7 @@ def apply(args: argparse.Namespace) -> None:
                 source="",
                 language="",
                 score=0,
+                relevant=True,
             )
             for x in final_results.results
         ]
