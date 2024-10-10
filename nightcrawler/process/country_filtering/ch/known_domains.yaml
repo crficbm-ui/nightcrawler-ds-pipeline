@@ -1,0 +1,11 @@
+domains_neg: {}
+domains_pos:
+  www.bafu.admin.ch:
+    filterer_name: url
+  www.ebay.ch:
+    filterer_name: url
+  www.galaxus.ch:
+    filterer_name: url
+  www.ricardo.ch:
+    filterer_name: url
+domains_unknwn: {}

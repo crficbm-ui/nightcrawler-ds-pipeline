@@ -170,8 +170,9 @@ class ProcessData(ExtractZyteData):
 class DeliveryPolicyData(ProcessData):
     """Data class for step 6: delivery policy filtering based on offline analysis of domains public delivery information"""
 
-    # TODO add fields relevant to only this step
-    pass
+    domain: Optional[str] = None
+    result: Optional[int] = 0
+    filtererName: Optional[str] = None
 
 
 @dataclass
