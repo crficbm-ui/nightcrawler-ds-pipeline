@@ -130,7 +130,7 @@ def apply(args: argparse.Namespace) -> None:
         previous_step_results=processor_results
     )
 
-    # Step 7: page type filtering based on either a probability of Zyte or a custom BERT model deployed on the mutualized GPU. The pageType can be either 'ecommerce_product' or 'other'.
+    # Step 7: page type filtering based on either a probability of Zyte (=default) or a custom BERT model deployed on the mutualized GPU. The pageType can be either 'ecommerce_product' or 'other'.
     page_type_filtering_results = PageTypeDetector(context).apply(
         previous_step_results=delivery_policy_filtering_results,
         page_type_detection_method=args.page_type_detection_method,

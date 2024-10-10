@@ -176,7 +176,7 @@ class DeliveryPolicyData(ProcessData):
 
 @dataclass
 class PageTypeData(DeliveryPolicyData):
-    """Data class for step 7: page type filtering based on either a probability of Zyte or a custom BERT model deployed on the mutualized GPU. The pageType can be either 'ecommerce_product' or 'other'."""
+    """Data class for step 7: page type filtering based on either a probability of Zyte (=default) or a custom BERT model deployed on the mutualized GPU. The pageType can be either 'ecommerce_product' or 'other'."""
 
     pageType: Optional[str] = None
 

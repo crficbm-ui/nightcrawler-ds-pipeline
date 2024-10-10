@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from typing import List
+import logging
 
 from nightcrawler.base import PipelineResult, PageTypes
 from helpers.context import Context
@@ -50,7 +51,7 @@ def invalid_pipeline_result():
     return PipelineResult(
         meta=MagicMock(),
         results=[
-            {"html": "<html></html>"}  # Missing zyteProbability
+            {"offerRoot":"","url":"","html": "<html></html>"}  # Missing zyteProbability
         ],
     )
 
@@ -69,10 +70,12 @@ def test_get_pagetype_from_zyte_valid(page_type_detector, sample_pipeline_result
     assert results[1].pageType == PageTypes.OTHER
 
 
-def test_get_pagetype_from_zyte_invalid(page_type_detector, invalid_pipeline_result):
+def test_get_pagetype_from_zyte_invalid(page_type_detector, invalid_pipeline_result, caplog):
     """Test the Zyte page type detection logic with invalid inputs."""
-    with pytest.raises(ValueError, match="Item does not contain Zyte probability"):
-        page_type_detector._get_pagetype_from_zyte(invalid_pipeline_result)
+    with caplog.at_level(logging.ERROR):
+        results = page_type_detector._get_pagetype_from_zyte(invalid_pipeline_result)
+        assert "Item does not contain Zyte probability" in caplog.text
+        assert results[0].pageType == PageTypes.OTHER
 
 
 def test_apply_step_zyte(page_type_detector, sample_pipeline_result):

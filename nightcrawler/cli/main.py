@@ -115,7 +115,7 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         choices=["infer", "zyte"],
         required=False,
         default="zyte",
-        help="By default we are using a probability of Zyte indicating, if the page type is ecommerce or not. You can change this to using a custom BERT modell served on the GPU.",
+        help="By default we are using a probability of Zyte indicating, if the page type is ecommerce or not. You can change this to using a custom BERT model served on the GPU.",
     )
 
     common_parser.add_argument(

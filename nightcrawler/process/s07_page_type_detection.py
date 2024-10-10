@@ -10,11 +10,11 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 class PageTypeDetector(BaseStep):
-    """Implementation of the page type detection (step 7)"""
+    """Implementation of a binary classifier, specifing if a website is likely to be a product page or not (step 7)."""
 
     _entity_name: str = __qualname__
 
-    DEFAULT_THRESHOLD = 0.4
+    THRESHOLD_ZYTE_PROB = 0.4
 
     def __init__(self, context: Context, *args, **kwargs):
         """
@@ -26,7 +26,7 @@ class PageTypeDetector(BaseStep):
         """
         super().__init__(self._entity_name)
         self.context = context
-        self.threshold: float = kwargs.get("threshold", self.DEFAULT_THRESHOLD)
+        self.threshold: float = kwargs.get("threshold", self.THRESHOLD_ZYTE_PROB)
 
     def _get_pagetype_from_zyte(
         self, previous_step_result: PipelineResult
@@ -43,12 +43,12 @@ class PageTypeDetector(BaseStep):
             zyte_probability = deliver_policy_object.get("zyteProbability", None)
 
             if not zyte_probability:
-                raise ValueError("Item does not contain Zyte probability")
+                logger.error("Item does not contain Zyte probability")
+                zyte_probability = 0
 
             page_type = PageTypes.OTHER
             if zyte_probability > self.threshold:
                 page_type = PageTypes.ECOMMERCE_PRODUCT
-
             results.append(PageTypeData(**deliver_policy_object, pageType=page_type))
 
         return results

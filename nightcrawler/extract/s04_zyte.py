@@ -120,7 +120,7 @@ class ZyteExtractor(Extract):
             return response["browserHtml"]
         elif "httpResponseBody" in response:
             return base64.b64decode(response["httpResponseBody"]).decode()
-        return None
+        return ""
 
     def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:
         """
