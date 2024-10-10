@@ -1,28 +1,43 @@
 import logging
+import ast
+import time
+import re
+import urllib.parse
 
+import abc
+import tqdm
+
+import nltk
+from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords
+
+from urllib.parse import urlparse
 from typing import List
+from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
 from nightcrawler.base import DeliveryPolicyData, PipelineResult, BaseStep
 
 from helpers import LOGGER_NAME
 from helpers.api.llm_apis import MistralAPI
 from helpers.api.zyte_api import ZyteAPI
-
 from helpers.context import Context
-
-
 from helpers.settings import Settings
-
-from helpers import utils, utils_io, utils_strings
+from helpers import utils_io, utils_strings
 
 import pandas as pd
-import time
 
 logger = logging.getLogger(LOGGER_NAME)
 
-import abc
-import tqdm
-import pandas as pd
-from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Download NLTK resources (only required for the first time)
+nltk.download("punkt")
+nltk.download("stopwords")
+nltk.download("punkt_tab")
+
+STEMMER = PorterStemmer()
+LANGS = stopwords.fileids()
 
 
 # base country filterer
@@ -48,10 +63,14 @@ class BaseCountryFilterer(abc.ABC):
             self.config = config
         else:
             self.config = {}
-        
+
         if country and config_filterers:
             if name == "known_domains":
-                self.setting = utils_io.load_setting(path_settings=config.get("PATH_CURRENT_PROJECT_SETTINGS"), country=country, file_name=name)
+                self.setting = utils_io.load_setting(
+                    path_settings=config.get("PATH_CURRENT_PROJECT_SETTINGS"),
+                    country=country,
+                    file_name=name,
+                )
             else:
                 self.setting = config_filterers.get(name)
         else:
@@ -114,14 +133,15 @@ class BaseCountryFilterer(abc.ABC):
                     # If the setting is set to save new classified domains
                     if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
                         # Add the domain to known domains if known_domains filterer is used and domain is not already in known_domains (filterer label != "known_domains")
-                        if (
-                            self.index_known_domains_filterer is not None
-                        ) & (page_labeled["filterer_name"] != "known_domains"):
-                            
+                        if (self.index_known_domains_filterer is not None) & (
+                            page_labeled["filterer_name"] != "known_domains"
+                        ):
                             # Add domain to known_domains filterer
                             try:
-                                self.add_domain_to_known_domains_filterer(page_labeled=page_labeled)
-                            
+                                self.add_domain_to_known_domains_filterer(
+                                    page_labeled=page_labeled
+                                )
+
                             except Exception as e:
                                 print(f"Error: {e}")
 
@@ -136,11 +156,15 @@ class BaseCountryFilterer(abc.ABC):
         df_labeled = pd.DataFrame(list_pages_labeled)
 
         return df_labeled
-    
+
     def get_index_known_domains_filterer(self):
         # Recover index of known_domains filterer
         list_filterer_names = self.name.split("+")
-        index_known_domains_filterer = list_filterer_names.index("known_domains") if "known_domains" in list_filterer_names else None
+        index_known_domains_filterer = (
+            list_filterer_names.index("known_domains")
+            if "known_domains" in list_filterer_names
+            else None
+        )
 
         return index_known_domains_filterer
 
@@ -149,7 +173,9 @@ class BaseCountryFilterer(abc.ABC):
         label, domain = page_labeled["RESULT"], page_labeled["domain"]
 
         # Filter page_labeled with relevant keys
-        page_labeled_filtered = filter_dict_keys(original_dict=page_labeled, keys_to_save=self.config["KEYS_TO_SAVE"])
+        page_labeled_filtered = filter_dict_keys(
+            original_dict=page_labeled, keys_to_save=self.config["KEYS_TO_SAVE"]
+        )
 
         # Extract known_domains_filterer
         known_domains_filterer = self.filterers[self.index_known_domains_filterer]
@@ -160,7 +186,7 @@ class BaseCountryFilterer(abc.ABC):
 
         elif label == 0:
             known_domains_filterer.domains_unknwn[domain] = page_labeled_filtered
-        
+
         elif label == -1:
             known_domains_filterer.domains_neg[domain] = page_labeled_filtered
 
@@ -170,15 +196,19 @@ class BaseCountryFilterer(abc.ABC):
     def save_new_known_domains(self):
         # Extract known_domains_filterer
         known_domains_filterer = self.filterers[self.index_known_domains_filterer]
-        
-        dict_known_domains = {"domains_pos": known_domains_filterer.domains_pos,
-                              "domains_unknwn": known_domains_filterer.domains_unknwn,
-                              "domains_neg": known_domains_filterer.domains_neg}
-        
-        _ = utils_io.save_and_load_setting(setting=dict_known_domains, 
-                                           path_settings=known_domains_filterer.path_settings, 
-                                           country=known_domains_filterer.country, 
-                                           file_name=known_domains_filterer.name)
+
+        dict_known_domains = {
+            "domains_pos": known_domains_filterer.domains_pos,
+            "domains_unknwn": known_domains_filterer.domains_unknwn,
+            "domains_neg": known_domains_filterer.domains_neg,
+        }
+
+        _ = utils_io.save_and_load_setting(
+            setting=dict_known_domains,
+            path_settings=known_domains_filterer.path_settings,
+            country=known_domains_filterer.country,
+            file_name=known_domains_filterer.name,
+        )
 
 
 def filter_dict_keys(original_dict, keys_to_save):
@@ -187,8 +217,6 @@ def filter_dict_keys(original_dict, keys_to_save):
     dict_filtered = {k: v for k, v in original_dict.items() if k in keys_to_save}
 
     return dict_filtered
-
-
 
 
 # Master country filterer
@@ -214,20 +242,29 @@ class MasterCountryFilterer(BaseCountryFilterer):
                 case "known_domains":
                     self.filterers.append(
                         KnownDomainsFilterer(
-                            **setting, config=config, config_filterers=config_filterers, country=country
+                            **setting,
+                            config=config,
+                            config_filterers=config_filterers,
+                            country=country,
                         )
                     )
                 case "url":
                     self.filterers.append(
                         UrlCountryFilterer(
-                            **setting, config_filterers=config_filterers, country=country
+                            **setting,
+                            config_filterers=config_filterers,
+                            country=country,
                         )
                     )
                 case "shipping_policy":
                     self.filterers.append(
                         ShippingPolicyFilterer(
-                            **setting, config_filterers=config_filterers, country=country, zyte_api_product_page=zyte_client_product_page, 
-                            zyte_api_policy_page=zyte_client_policy_page, mistral_api=mistral_client
+                            **setting,
+                            config_filterers=config_filterers,
+                            country=country,
+                            zyte_api_product_page=zyte_client_product_page,
+                            zyte_api_policy_page=zyte_client_policy_page,
+                            mistral_api=mistral_client,
                         )
                     )
                 case _:
@@ -253,37 +290,6 @@ class MasterCountryFilterer(BaseCountryFilterer):
         return page
 
 
-import logging
-import urllib.parse
-
-# Check
-# import sys
-# print(sys.path)
-
-from helpers import LOGGER_NAME
-
-
-logger = logging.getLogger(LOGGER_NAME)
-
-
-def process_url(url: str) -> str:
-    """Process url."""
-
-    return url.lower()
-
-
-def parse_url(url: str) -> urllib.parse.ParseResult:
-    """Parse url."""
-
-    return urllib.parse.urlparse(url)
-
-
-def extract_domain(url_parsed: urllib.parse.ParseResult) -> str:
-    """Extract domain from url."""
-
-    return url_parsed.hostname or url_parsed.netloc
-
-
 # Known domains filterer
 class KnownDomainsFilterer(BaseCountryFilterer):
     """Known domains filterer."""
@@ -299,13 +305,17 @@ class KnownDomainsFilterer(BaseCountryFilterer):
         config_filterers: dict | None = None,
     ) -> None:
         super().__init__(
-            name="known_domains", config=config, config_filterers=config_filterers, country=country
+            name="known_domains",
+            config=config,
+            config_filterers=config_filterers,
+            country=country,
         )
-        logger.error(self.setting)
         # Known domains
-        self.domains_pos = domains_pos or self.setting.get("domains_pos") # or []
-        self.domains_unknwn = domains_unknwn or self.setting.get("domains_unknwn") # or []
-        self.domains_neg = domains_neg or self.setting.get("domains_neg") # or []
+        self.domains_pos = domains_pos or self.setting.get("domains_pos")  # or []
+        self.domains_unknwn = domains_unknwn or self.setting.get(
+            "domains_unknwn"
+        )  # or []
+        self.domains_neg = domains_neg or self.setting.get("domains_neg")  # or []
 
         # Keep these variables to save new classified domains
         self.path_settings = config.get("PATH_CURRENT_PROJECT_SETTINGS")
@@ -349,28 +359,6 @@ class KnownDomainsFilterer(BaseCountryFilterer):
             page["RESULT"] = self.RESULT_NEGATIVE
 
         return page
-    
-from bs4 import BeautifulSoup
-
-import nltk
-from nltk.stem import PorterStemmer
-from nltk.corpus import stopwords
-# Download NLTK resources (only required for the first time)
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('punkt_tab')
-
-import logging
-from urllib.parse import urlparse
-import pandas as pd
-import ast
-
-from helpers import LOGGER_NAME
-
-
-logger = logging.getLogger(LOGGER_NAME)
-STEMMER = PorterStemmer()
-LANGS = stopwords.fileids()
 
 
 def extract_footers_and_links(html_content):
@@ -471,9 +459,10 @@ def get_df_page_links(page_url, page_hmtl_content):
     )
 
     # If links is an empty list, links_href and links_text will be empty lists
-    links_href, links_text = [link["href"] for link in links], [
-        link.get_text() for link in links
-    ]
+    links_href, links_text = (
+        [link["href"] for link in links],
+        [link.get_text() for link in links],
+    )
 
     # Create dataframe with 1 row = 1 link
     df_page_links = pd.DataFrame({"link_href": links_href, "link_text": links_text})
@@ -526,9 +515,7 @@ def process_llm_response_content(llm_response_content, country):
     dict_response_content = ast.literal_eval(llm_response_content)
 
     # Recover the answer and return it
-    llm_response_answer = dict_response_content.get(
-        f"is_shipping_{country}_answer", ""
-    )
+    llm_response_answer = dict_response_content.get(f"is_shipping_{country}_answer", "")
     print(f"LLM response answer: {llm_response_answer}")
 
     # Check llm justification
@@ -559,7 +546,7 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
         zyte_api_product_page: object | None = None,
         zyte_api_policy_page_config: dict | None = None,
         zyte_api_policy_page: object | None = None,
-        mistral_api: object | None = None
+        mistral_api: object | None = None,
     ) -> None:
         super().__init__(
             name="shipping_policy", config_filterers=config_filterers, country=country
@@ -590,20 +577,24 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
         )
 
         # LLM API
-        self.llm_api = mistral_api # MistralAPI()
+        self.llm_api = mistral_api  # MistralAPI()
         self.llm_api_prompt = llm_api_prompt or self.setting.get("llm_api_prompt") or ""
         self.llm_api_config = llm_api_config or self.setting.get("llm_api_config") or {}
 
         # Product page Zyte API
-        self.zyte_api_product_page = zyte_api_product_page # ZyteAPI(max_retries=1)
+        self.zyte_api_product_page = zyte_api_product_page  # ZyteAPI(max_retries=1)
         self.zyte_api_product_page_config = (
-            zyte_api_product_page_config or self.setting.get("zyte_api_product_page_config") or {}
+            zyte_api_product_page_config
+            or self.setting.get("zyte_api_product_page_config")
+            or {}
         )
-    
+
         # Policy page Zyte API
-        self.zyte_api_policy_page = zyte_api_policy_page # ZyteAPI(max_retries=1)
+        self.zyte_api_policy_page = zyte_api_policy_page  # ZyteAPI(max_retries=1)
         self.zyte_api_policy_page_config = (
-            zyte_api_policy_page_config or self.setting.get("zyte_api_policy_page_config") or {}
+            zyte_api_policy_page_config
+            or self.setting.get("zyte_api_policy_page_config")
+            or {}
         )
 
         # Country
@@ -637,8 +628,14 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
             return page
 
         # Define variables for Zyte API
-        zyte_api_product_page, zyte_api_product_page_config = self.zyte_api_product_page, self.zyte_api_product_page_config
-        zyte_api_policy_page, zyte_api_policy_page_config = self.zyte_api_policy_page, self.zyte_api_policy_page_config
+        zyte_api_product_page, zyte_api_product_page_config = (
+            self.zyte_api_product_page,
+            self.zyte_api_product_page_config,
+        )
+        zyte_api_policy_page, zyte_api_policy_page_config = (
+            self.zyte_api_policy_page,
+            self.zyte_api_policy_page_config,
+        )
 
         # Extract html content of the page
         try:
@@ -646,7 +643,9 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
                 f"Extracting html content of \nthe page {page_url} \nwith domain {url_domain}"
             )
             dict_zyte_api_response_page_url = zyte_api_product_page.call_api(
-                prompt=page_url, config=zyte_api_product_page_config, force_refresh=False
+                prompt=page_url,
+                config=zyte_api_product_page_config,
+                force_refresh=False,
             )
         except Exception as e:
             # logger.info(label_justif)
@@ -730,7 +729,9 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
             # Extract html content of the shipping policy page
             try:
                 dict_zyte_api_response_sp_page_url = zyte_api_policy_page.call_api(
-                    prompt=sp_page_url, config=zyte_api_policy_page_config, force_refresh=False
+                    prompt=sp_page_url,
+                    config=zyte_api_policy_page_config,
+                    force_refresh=False,
                 )
             except Exception as e:
                 logger.info(e)
@@ -788,9 +789,12 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
             # Process the response returned by the LLM
             try:
                 # Process the LLM response content
-                dict_response_content, llm_response_answer, llm_response_justification = process_llm_response_content(
-                    llm_response_content=llm_response_content, 
-                    country=self.country
+                (
+                    dict_response_content,
+                    llm_response_answer,
+                    llm_response_justification,
+                ) = process_llm_response_content(
+                    llm_response_content=llm_response_content, country=self.country
                 )  # yes/unknown/no
 
             except Exception:
@@ -811,7 +815,7 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
                 # Return the label of the page
                 if llm_response_answer == "yes":
                     # Label justification
-                    label_justif = llm_response_justification # "LLM response: yes"
+                    label_justif = llm_response_justification  # "LLM response: yes"
 
                     # Update urls_shipping_policy_page_found_analysis
                     page["urls_shipping_policy_page_found_analysis"].update(
@@ -836,7 +840,7 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
 
                 elif llm_response_answer == "no":
                     # Label justification
-                    label_justif = llm_response_justification # "LLM response: no"
+                    label_justif = llm_response_justification  # "LLM response: no"
 
                     # Update urls_shipping_policy_page_found_analysis
                     page["urls_shipping_policy_page_found_analysis"].update(
@@ -870,7 +874,13 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
 
         # If at least one shipping policy page was extracted with LLM not_clear label
         # if any("not_clear" == value for dict_response_content in page["urls_shipping_policy_page_found_analysis"].values() for value in dict_response_content.values()):
-        if any(isinstance(dict_response_content, dict) and "not_clear" in dict_response_content.values() for dict_response_content in page["urls_shipping_policy_page_found_analysis"].values()):
+        if any(
+            isinstance(dict_response_content, dict)
+            and "not_clear" in dict_response_content.values()
+            for dict_response_content in page[
+                "urls_shipping_policy_page_found_analysis"
+            ].values()
+        ):
             # Update page["url_shipping_policy_page_kept"]? with which shipping policy page if multiples?
             page["RESULT"], page["label_justif"] = (
                 self.RESULT_UNKNOWN,
@@ -885,9 +895,6 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
         )
 
         return page
-
-import re
-import urllib.parse
 
 
 def process_url(url: str) -> str:
@@ -1026,21 +1033,22 @@ class UrlCountryFilterer(BaseCountryFilterer):
             # page["REASON"] = "query_values"
 
         return page
-    
+
+
 class DeliveryPolicyDetector(BaseStep):
     """Implementation of the delivery policy detection (step 5)"""
 
     _entity_name: str = __qualname__
 
-
     SETTINGS = Settings().country_filtering
-    logger.warning(SETTINGS)
     DEFAULT_CONFIG = SETTINGS.config
     DEFAULT_CONFIG_FILTERERS = SETTINGS.config_filterers
 
-    def __init__(self, context: Context,*args, **kwargs):
+    def __init__(self, context: Context, *args, **kwargs):
         self.config = kwargs.get("config", self.DEFAULT_CONFIG)
-        self.config_filterers = kwargs.get("config_filterers", self.DEFAULT_CONFIG_FILTERERS)
+        self.config_filterers = kwargs.get(
+            "config_filterers", self.DEFAULT_CONFIG_FILTERERS
+        )
         self.zyte_client_product_page = self._setup_zyte_client_product_page()
         self.zyte_client_policy_page = self._setup_zyte_client_policy_page()
         self.mistral_client = self._setup_mistral_client()
@@ -1056,14 +1064,12 @@ class DeliveryPolicyDetector(BaseStep):
     def _setup_mistral_client(self):
         return MistralAPI()
 
-
-
     def get_step_results(
         self, previous_steps_results: PipelineResult
     ) -> List[DeliveryPolicyData]:
-        
-
-        dataset = pd.DataFrame({"page_url": [e.url for e in previous_steps_results.results]})
+        dataset = pd.DataFrame(
+            {"page_url": [e.url for e in previous_steps_results.results]}
+        )
 
         # Instantiate filterer
         filterer = MasterCountryFilterer(
@@ -1073,7 +1079,7 @@ class DeliveryPolicyDetector(BaseStep):
             config_filterers=self.config_filterers,
             zyte_client_product_page=self.zyte_client_product_page,
             zyte_client_policy_page=self.zyte_client_policy_page,
-            mistral_client=self.mistral_client
+            mistral_client=self.mistral_client,
         )
 
         # Perform filtering
@@ -1085,30 +1091,33 @@ class DeliveryPolicyDetector(BaseStep):
         dataset["time_elapsed"] = time_end - time_start
 
         # Transform dataset to a dictionary
-        dataset_to_dict = dataset.to_dict(orient="records") # dict, list, records
-        
+        dataset_to_dict = dataset.to_dict(orient="records")  # dict, list, records
+
         stage_results = []
         for element in previous_steps_results.results:
             if element.url in dataset["page_url"].values:
-                entry = next((item for item in dataset_to_dict if item['page_url'] == element.url), None)
+                entry = next(
+                    (
+                        item
+                        for item in dataset_to_dict
+                        if item["page_url"] == element.url
+                    ),
+                    None,
+                )
                 stage_results.append(
                     DeliveryPolicyData(
                         domain=entry.get("domain"),
-                        result=entry.get("result"),
                         filtererName=entry.get("filterer_name"),
-                        **element
+                        **element,
                     )
                 )
 
         return stage_results
 
-
-
     def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:
         # TODO implement logic
 
         results = self.get_step_results(previous_step_results)
-
 
         # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
         pipeline_results = self.add_pipeline_steps_to_results(
