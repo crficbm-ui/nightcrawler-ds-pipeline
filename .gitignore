@@ -7,7 +7,7 @@ models
 build
 logs/
 .cache/
-.coverage
+.coverage*
 
 # Byte-compiled / optimized / .DS_Store files
 __pycache__/
