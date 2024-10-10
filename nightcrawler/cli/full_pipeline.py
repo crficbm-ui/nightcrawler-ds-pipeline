@@ -192,4 +192,4 @@ def apply(args: argparse.Namespace) -> None:
             )
             for x in final_results.results
         ]
-        context.store_results(data, replace=True)
+        context.store_results(data)

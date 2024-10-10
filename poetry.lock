@@ -3317,8 +3317,8 @@ sqlalchemy = "^2.0.32"
 [package.source]
 type = "git"
 url = "ssh://git@github.com/smc40/nightcrawler-library.git"
-reference = "0.1.2"
-resolved_reference = "c7728d9d3f6a9b36052502e00712f74a2c808892"
+reference = "0.2.0"
+resolved_reference = "a5da19b106ab28e2977f3037d71c9cd94988d6fb"
 
 [[package]]
 name = "lxml"
@@ -6599,4 +6599,4 @@ test = ["zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "5670587ef8dd9725560f4bf13699ae07c6d077b636d4f956df0b95cd55dfcb6b"
+content-hash = "a139f6a3b2e7cb12f2687b8d95600284e4759d1ad24bc48b5302a0334875ef4c"
