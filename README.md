@@ -124,7 +124,10 @@ See all CLI options in the below table:
 | `searchitem`                                              | Positional        | `fullrun`                       | Keyword or URL (with `-r` parameter) to search for                                                                                           |
 | `-n NUMBER_OF_RESULTS, --number-of-results NUMBER_OF_RESULTS` | Option    | `fullrun`                       | Set the number of results from Serpapi (default: 50, max: 3 per Google Shopping, Google Site Search, Google, and eBay) |
 | `--country {CH,AT,CL}`                                 | Option            | `fullrun`                       | Processes URLs using a country-specific pipeline                                                                |
+| `--org ORG`                                 | Option            | `fullrun`                       | Processes URLs using an organization-specific pipeline                                                                |
 | `-r REVERSE_IMAGE_SEARCH [REVERSE_IMAGE_SEARCH ...], --reverse-image-search REVERSE_IMAGE_SEARCH [REVERSE_IMAGE_SEARCH ...]` | Option | `fullrun` | List of image URLs for reverse image search                                                                      |
+| `--case-id CASE_ID`                                 | Option            | `fullrun`                       | Database case identifier (only usefull for db storage)                                                                |
+| `--keyword-id KEYWORD_ID`                                 | Option            | `fullrun`                       | Database keyword identifier (only usefull for db storage)                                                                |
 
 ### Extraction
 To run the full extraction pipeline you can use any of the following commands:
