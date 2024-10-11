@@ -260,6 +260,9 @@ class BaseStep(ABC):
             structured_results (PipelineResult): The structured data to be stored.
             output_dir (str): The directory where the JSON file will be saved.
         """
+        if not self.context.settings.store_intermediate:
+            return
+
         # TODO try with deep copy
         structured_results_dict = PipelineResult(meta=MetaData(), results=[])
         structured_results_dict.meta = structured_results.meta.to_dict()

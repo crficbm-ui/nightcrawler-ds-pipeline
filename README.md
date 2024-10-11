@@ -10,7 +10,24 @@ This repo provides the NightCrawler pipeline as well as a CLI to run it.
 git pull
 ```
 
-2. In the [pyproject.tml](./pyproject.toml) on line 14 specify the path to `nightcralwer-ds-helpers` directory on your machine (if you need to develop in that repository) or use a tagged version from GitHub.
+2. Install postgresql development library
+
+2.1 On debian based linux:
+
+```sh
+sudo apt-get install -y libpq-dev build-essential
+```
+
+2.2 On Mac OS:
+
+```sh
+brew install libpq
+export LDFLAGS="-L/opt/homebrew/opt/libpq/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/libpq/include"
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+```
+
+3. In the [pyproject.tml](./pyproject.toml) on line 14 specify the path to `nightcralwer-ds-helpers` directory on your machine (if you need to develop in that repository) or use a tagged version from GitHub.
 
 ```bash
 helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
@@ -19,7 +36,7 @@ helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1
 
 > **_NOTE:_**  As of today, 04.10.2024 the current and tested helpers tag is v0.2.2. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
-3. Create a virtual environment with Poetry and activate it.
+4. Create a virtual environment with Poetry and activate it.
 
 ```bash
 poetry shell
@@ -30,13 +47,13 @@ poetry shell
 >curl -sSL https://install.python-poetry.org | python3 -
 >```
 
-4. Install the project dependencies.
+5. Install the project dependencies.
 
 ```bash
 poetry install --directory ./pyproject.toml
 ```
 
-5. Copy `.env_template` to `.env`. Fill with your credentials and source it by running `source .env`.
+6. Copy `.env_template` to `.env`. Fill with your credentials and source it by running `source .env`.
 
 ## CLI overview
 As of today, the CLI looks as follows:
@@ -107,7 +124,10 @@ See all CLI options in the below table:
 | `searchitem`                                              | Positional        | `fullrun`                       | Keyword or URL (with `-r` parameter) to search for                                                                                           |
 | `-n NUMBER_OF_RESULTS, --number-of-results NUMBER_OF_RESULTS` | Option    | `fullrun`                       | Set the number of results from Serpapi (default: 50, max: 3 per Google Shopping, Google Site Search, Google, and eBay) |
 | `--country {CH,AT,CL}`                                 | Option            | `fullrun`                       | Processes URLs using a country-specific pipeline                                                                |
+| `--org ORG`                                 | Option            | `fullrun`                       | Processes URLs using an organization-specific pipeline                                                                |
 | `-r REVERSE_IMAGE_SEARCH [REVERSE_IMAGE_SEARCH ...], --reverse-image-search REVERSE_IMAGE_SEARCH [REVERSE_IMAGE_SEARCH ...]` | Option | `fullrun` | List of image URLs for reverse image search                                                                      |
+| `--case-id CASE_ID`                                 | Option            | `fullrun`                       | Database case identifier (only usefull for db storage)                                                                |
+| `--keyword-id KEYWORD_ID`                                 | Option            | `fullrun`                       | Database keyword identifier (only usefull for db storage)                                                                |
 
 ### Extraction
 To run the full extraction pipeline you can use any of the following commands:
@@ -151,6 +171,43 @@ The  [**settings**](nightcrawler/settings.py) component is designed to store all
 
 > **_NOTE:_**  The same two components exist in the [helper repository](https://github.com/smc40/nightcrawler-ds-helpers), so be careful when importing.
 
+### Database usage
+
+- Run postgres with citus-data extension:
+
+```sh
+docker run -id \
+    --name nightcrawler \
+    -e POSTGRES_PASSWORD=secret \
+    -e POSTGRES_USER=user \
+    -e POSTGRES_DB=nightcrawler \
+    -p 5432:5432 \
+    citusdata/citus:12.1
+```
+
+- Run migration:
+
+```sh
+python ./venv/lib/python3.10/site-packages/libnightcrawler/cli cases list
+```
+
+- Insert case and keyword:
+
+```sh
+docker exec -it nightcrawler psql -U user nightcrawler -c "insert into cases (org_id, id, name, notifications_enabled, inactive) values (1, 4567, 'test', false, false);insert into keywords(id, case_id, notifications_enabled, query, type, crawl_state) values (111, 4567, false, 'aspirin', 'TEXT', 'PENDING');"
+```
+
+- Enable db usage:
+
+```sh
+export NIGHTCRAWLER_USE_FILE_STORAGE=false
+```
+
+- Add arguments `--case-id` and `keyword-id` to the `fullrun` command:
+
+```sh
+python nightcrawler fullrun aspirin -n 1 --org="Swissmedic MEP" --case-id 4567 --keyword-id 111
+```
 
 ### Logging
 The default logging level is set to `INFO`, and by default, logs are not stored in a file but are output to the console. 

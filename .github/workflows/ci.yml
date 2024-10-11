@@ -25,6 +25,12 @@ jobs:
       run: |
         git config --global url."https://${{ env.HELPER_REPO }}@github.com/".insteadOf "https://github.com/"
 
+
+    - name: Add SSH key to pull library
+      uses: tanmancan/action-setup-ssh-agent-key@1.0.0
+      with:
+        ssh-private-key: ${{ secrets.NC_LIBRARY_PULLER_KEY }}
+
     - name: Install dependencies
       run: |
         curl -sSL https://install.python-poetry.org | python3 -

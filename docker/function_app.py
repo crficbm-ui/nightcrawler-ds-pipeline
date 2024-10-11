@@ -3,6 +3,7 @@ import azure.durable_functions as df
 
 import json
 import logging
+import os
 import nightcrawler.cli.main
 
 app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
@@ -74,6 +75,20 @@ def pipeline_wrapper(query):
     country = query.get("country", "CH")
     step = query.get("step", "fullrun")
 
-    logging.info(f"Running pipeline for keyword `{keyword}' for country {country}")
-    nightcrawler.cli.main.run([step, keyword, f"--country={country}"])
-    logging.info("Pipeline terminated successfully")
+    if keyword == "ALL":
+        os.environ["NIGHTCRAWLER_USE_FILE_STORAGE"] = "false"
+        os.environ["NIGHTCRAWLER_STORE_INTERMEDIATE"] = "false"
+        from libnightcrawler.context import Context
+        context = Context()
+        requests = context.get_crawl_requests()
+        if not requests:
+            logging.warning("No requests found in database")
+            return
+        for request in requests:
+            logging.info(f'Running pipeline for keyword `{request.keyword_value}\' for organization {request.organization.name}')
+            nightcrawler.cli.main.run(["fullrun", request.keyword_value, '--org', request.organization.name, "--keyword-id", str(request.keyword_id), "--case-id", str(request.case_id), "-n", "5"])
+    else:
+        logging.info(f'Running pipeline for keyword `{keyword}\' for country {country}')
+        nightcrawler.cli.main.run( [step, keyword, f'--country={country}'] )
+
+    logging.info('Pipeline terminated successfully')
