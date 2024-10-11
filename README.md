@@ -17,7 +17,7 @@ helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a
 helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.7"} #for using a tagged version from GitHub
 ```
 
-> **_NOTE:_**  As of today, 03.10.2024 the current and tested helpers tag is v0.2.1. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
+> **_NOTE:_**  As of today, 04.10.2024 the current and tested helpers tag is v0.2.2. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
 
 3. Create a virtual environment with Poetry and activate it.
 
@@ -71,7 +71,7 @@ The pipeline contains 9 processing steps:
 | **4** | Structure data with Zyte | [BaseStep>Extract>ZyteExtractor](./nightcrawler/extract/s02_zyte.py)| Use Zyte to retrieve structured information from each URL collected by serpapi |
 | **5** | Processing | [BaseStep>DataProcessor](./nightcrawler/process/s03_dataprocessor.py) | Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.  |
 | **6** | Delivery policy filtering |  [BaseStep](./nightcrawler/process/s04_filter_swiss_result.py) | delivery policy filtering based on offline analysis of domains public delivery information |
-| **7** | Page type detection |  [BaseStep>DeliveryPolicyDetector](./nightcrawler/process/s05_delivery_page_detection.py)  | Page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z] |
+| **7** | Page type detection |  [BaseStep>DeliveryPolicyDetector](./nightcrawler/process/s05_delivery_page_detection.py)  | The pipeline uses by default a probability calculated by Zyte indicating, if the page is an ecommerce page or not. You can change this to using a custom BERT modell served on the GPU by setting the argument '--page-type-detection-method=infer'. |
 | **8** | Webpage Blocker Detection |  [BaseStep>PageTypeDetector](./nightcrawler/process/s06_page_type_detection.py) | Blocked / corrupted content detection based the prediction with a BERT model. |
 | **9** | Product Type Relevence per Organization |  [BaseStep>BlockedContentDetector](./nightcrawler/process/s07_blocket_content_detection.py) | Classification if the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD) |
 | **10** | Relevance Classifier |  [BaseStep>ContentDomainDetectors](./nightcrawler/process/s08_content_domain_detection.py) | Binary classifier per organisation, whether a product is classified as suspicious or not. |

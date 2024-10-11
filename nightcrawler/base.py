@@ -138,6 +138,8 @@ class ExtractZyteData(ExtractSerpapiData):
     title: Optional[str] = None
     fullDescription: Optional[str] = None
     zyteExecutionTime: Optional[float] = 0.0
+    html: Optional[str] = None
+    zyteProbability: Optional[float] = 0.0
 
 
 @dataclass
@@ -173,15 +175,14 @@ class DeliveryPolicyData(ProcessData):
 
 
 @dataclass
-class PageTyteData(DeliveryPolicyData):
-    """Data class for step 7: page type filtering based on an offline trained model which filters pages in a multiclass categorical problem assigining one of the following classes [X, Y, Z]"""
+class PageTypeData(DeliveryPolicyData):
+    """Data class for step 7: page type filtering based on either a probability of Zyte (=default) or a custom BERT model deployed on the mutualized GPU. The pageType can be either 'ecommerce_product' or 'other'."""
 
-    # TODO add fields relevant to only this step
-    pass
+    pageType: Optional[str] = None
 
 
 @dataclass
-class BlockedContentData(PageTyteData):
+class BlockedContentData(PageTypeData):
     """Data class for step 8: blocked / corrupted content detection based the prediction with a BERT model."""
 
     # TODO add fields relevant to only this step
@@ -445,3 +446,15 @@ GOOGLE_SITE_MARKETPLACES = DEFAULT_MARKETPLACES + [
     ),
     # TODO this was taken from MediCrawl withouth further testing. this should be tested.
 ]
+
+
+# ---------------------------------------------------
+# Process - Page types used in step 7: page type detection
+# ---------------------------------------------------
+class PageTypes:
+    ECOMMERCE_PRODUCT = "ecommerce_product"
+    ECOMMERCE_OTHER = "ecommerce_other"
+    WEB_PRODUCT_ARTICLE = "web_product_article"
+    WEB_ARTICLE = "web_article"
+    BLOGPOST = "blogpost"
+    OTHER = "other"
