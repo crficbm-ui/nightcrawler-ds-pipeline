@@ -181,9 +181,9 @@ def apply(args: argparse.Namespace) -> None:
         data = [
             request.new_result(
                 url=x.url,
-                text=x.fullDescription,
+                text=x.fullDescription or "",
                 root=x.offerRoot,
-                title=x.title,
+                title=x.title or "",
                 uid="",
                 platform="",
                 source="",
