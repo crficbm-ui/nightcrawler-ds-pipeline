@@ -171,6 +171,43 @@ The  [**settings**](nightcrawler/settings.py) component is designed to store all
 
 > **_NOTE:_**  The same two components exist in the [helper repository](https://github.com/smc40/nightcrawler-ds-helpers), so be careful when importing.
 
+### Database usage
+
+- Run postgres with citus-data extension:
+
+```sh
+docker run -id \
+    --name nightcrawler \
+    -e POSTGRES_PASSWORD=secret \
+    -e POSTGRES_USER=user \
+    -e POSTGRES_DB=nightcrawler \
+    -p 5432:5432 \
+    citusdata/citus:12.1
+```
+
+- Run migration:
+
+```sh
+python ./venv/lib/python3.10/site-packages/libnightcrawler/cli cases list
+```
+
+- Insert case and keyword:
+
+```sh
+docker exec -it nightcrawler psql -U user nightcrawler -c "insert into cases (org_id, id, name, notifications_enabled, inactive) values (1, 4567, 'test', false, false);insert into keywords(id, case_id, notifications_enabled, query, type, crawl_state) values (111, 4567, false, 'aspirin', 'TEXT', 'PENDING');"
+```
+
+- Enable db usage:
+
+```sh
+export NIGHTCRAWLER_USE_FILE_STORAGE=false
+```
+
+- Add arguments `--case-id` and `keyword-id` to the `fullrun` command:
+
+```sh
+python nightcrawler fullrun aspirin -n 1 --org="Swissmedic MEP" --case-id 4567 --keyword-id 111
+```
 
 ### Logging
 The default logging level is set to `INFO`, and by default, logs are not stored in a file but are output to the console. 
