@@ -86,7 +86,10 @@ def pipeline_wrapper(query):
             return
         for request in requests:
             logging.info(f'Running pipeline for keyword `{request.keyword_value}\' for organization {request.organization.name}')
-            nightcrawler.cli.main.run(["fullrun", request.keyword_value, '--org', request.organization.name, "--keyword-id", str(request.keyword_id), "--case-id", str(request.case_id), "-n", "5"])
+            args = ["fullrun", request.keyword_value, '--org', request.organization.name, "--keyword-id", str(request.keyword_id), "--case-id", str(request.case_id), "-n", "5"]
+            if request.keyword_type.lower() == "image":
+                args.append("--reverse-image-search")
+            nightcrawler.cli.main.run(args)
     else:
         logging.info(f'Running pipeline for keyword `{keyword}\' for country {country}')
         nightcrawler.cli.main.run( [step, keyword, f'--country={country}'] )

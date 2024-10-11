@@ -132,11 +132,18 @@ def apply(args: argparse.Namespace) -> None:
             "reverse_image_search", context.output_path
         )
 
+        # Make image publicly accessible if necessary
+        public_url = args.searchitem if "http" in args.searchitem else context.blob_client.make_public(args.searchitem)
+
         # Step 3 Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
         serpapi_results = GoogleReverseImageApi(context).apply(
-            image_url=args.searchitem,
+            image_url=public_url,
             number_of_results=args.number_of_results,
         )
+
+        # Remove image from publicly accessible container if necessary
+        if "http" not in args.searchitem :
+            context.blob_client.remove_from_public(args.searchitem)
 
     # Step 4: Use Zyte to process the URLs further
     zyte_results = ZyteExtractor(context).apply(serpapi_results)
@@ -190,6 +197,7 @@ def apply(args: argparse.Namespace) -> None:
                 language="",
                 score=0,
                 relevant=True,
+                images=[x.imageUrl] if x.imageUrl else []
             )
             for x in final_results.results
         ]
