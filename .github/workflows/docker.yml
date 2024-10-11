@@ -35,7 +35,7 @@ jobs:
           repository: 'smc40/nightcrawler-ds-helpers'
           ssh-key: ${{ secrets.HELPERS_KEY_PULLER }}
           path: nightcrawler-ds-helpers
-          ref: v0.2.1
+          ref: v0.2.3
 
       - uses: actions/checkout@v4
         with:
