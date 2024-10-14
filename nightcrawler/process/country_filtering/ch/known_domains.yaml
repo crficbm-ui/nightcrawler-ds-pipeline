@@ -1,29 +1,3 @@
-domains_neg: {}
-domains_pos:
-  kitchencorner.ch:
-    filterer_name: url
-  wfw.ch:
-    filterer_name: url
-  www.aspirin.ch:
-    filterer_name: url
-  www.bafu.admin.ch:
-    filterer_name: url
-  www.ebay.ch:
-    filterer_name: url
-  www.farmy.ch:
-    filterer_name: url
-  www.galaxus.ch:
-    filterer_name: url
-  www.google.ch:
-    filterer_name: url
-  www.justdrink.ch:
-    filterer_name: url
-  www.piccantino.ch:
-    filterer_name: url
-  www.ricardo.ch:
-    filterer_name: url
-  www.svgw.ch:
-    filterer_name: url
-  www.zh.ch:
-    filterer_name: url
-domains_unknwn: {}
+domains_neg: []
+domains_pos: []
+domains_unknwn: []

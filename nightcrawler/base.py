@@ -458,3 +458,363 @@ class PageTypes:
     WEB_ARTICLE = "web_article"
     BLOGPOST = "blogpost"
     OTHER = "other"
+
+
+# ---------------------------------------------------
+# BaseCountryFilterer
+# ---------------------------------------------------
+import logging
+import re
+
+import abc
+import tqdm
+
+from typing import List
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from helpers import LOGGER_NAME
+from helpers import utils_io
+
+import pandas as pd
+
+logger = logging.getLogger(LOGGER_NAME)
+
+
+# base country filterer
+class BaseCountryFilterer(abc.ABC):
+    """Base class for country filterers."""
+
+    RESULT_POSITIVE = +1
+    RESULT_UNKNOWN = 0
+    RESULT_NEGATIVE = -1
+
+    def __init__(
+        self,
+        name: str,
+        country: str | None = None,
+        config: dict | None = None,
+        config_filterers: dict | None = None,
+    ) -> None:
+        super().__init__()
+
+        self.name = name
+
+        if config:
+            self.config = config
+        else:
+            self.config = {}
+
+        if country and config_filterers:
+            if name == "known_domains":
+                self.setting = utils_io.load_setting(
+                    path_settings=config.get("PATH_CURRENT_PROJECT_SETTINGS"),
+                    country=country,
+                    file_name=name,
+                )
+            else:
+                self.setting = config_filterers.get(name)
+        else:
+            self.setting = {}
+
+    @abc.abstractmethod
+    def filter_page(self, **page: str) -> int:
+        """Filter page.
+
+        Args:
+            **page (str): page.
+
+        Returns:
+            int: result of filtering.
+        """
+
+        raise NotImplementedError
+
+    def perform_filtering(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Perform filtering.
+
+        Args:
+            df (pd.DataFrame): dataFrame to filter.
+
+        Returns:
+            pd.DataFrame: filtered dataFrame.
+        """
+
+        tqdm.tqdm.pandas(desc=f"Filtering with {self.name}...", leave=False)
+
+        # Create a list to store rows' indexes and labels
+        list_pages_labeled = []
+
+        # Recover known_domains filterer index if known_domains filterer is used
+        self.index_known_domains_filterer = self.get_index_known_domains_filterer()
+
+        def pseudo_filter_page(row):
+            return row.name, self.filter_page(
+                **row.dropna().to_dict()
+            )
+
+        with tqdm.tqdm(total=len(df)) as pbar:
+            for _, row in df.iterrows():
+                # Get page_labeled and add the index
+                row_index, page_labeled = pseudo_filter_page(row)
+                page_labeled["index"] = row_index
+
+                # Add it to the list
+                list_pages_labeled.append(page_labeled)
+                
+                # If the setting is set to save new classified domains
+                if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
+                    # Add the domain to known domains if known_domains filterer is used and domain is not already in known_domains (filterer label != "known_domains")
+                    if (self.index_known_domains_filterer is not None) & (
+                        page_labeled["filterer_name"] != "known_domains"
+                    ):
+                        # Add domain to known_domains filterer
+                        try:
+                            self.add_domain_to_known_domains_filterer(
+                                page_labeled=page_labeled
+                            )
+
+                        except Exception as e:
+                            print(f"Error: {e}")
+
+                pbar.update(1)
+
+        # If the setting is set to save new classified domains
+        if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
+            # Save new known domains
+            self.save_new_known_domains()
+
+        # Create a df with the outputs
+        df_labeled = pd.DataFrame(list_pages_labeled)
+
+        return df_labeled
+
+    def get_index_known_domains_filterer(self):
+        # Recover index of known_domains filterer
+        list_filterer_names = self.name.split("+")
+        index_known_domains_filterer = (
+            list_filterer_names.index("known_domains")
+            if "known_domains" in list_filterer_names
+            else None
+        )
+
+        return index_known_domains_filterer
+
+    @staticmethod
+    def filter_dict_keys(original_dict, keys_to_save):
+        # TODO: to put in helpers.utils
+
+        # Create the nested dictionary including the keys to save
+        # Not a problem if the key does not exist in the original dictionary
+        dict_filtered = {k: v for k, v in original_dict.items() if k in keys_to_save}
+
+        return dict_filtered
+    
+    def add_domain_to_known_domains_filterer(self, page_labeled):
+        # Recover label from page_labeled
+        label, domain = page_labeled["RESULT"], page_labeled["domain"]
+
+        # Filter page_labeled with relevant keys
+        page_labeled_filtered = filter_dict_keys(
+            original_dict=page_labeled, keys_to_save=self.config["KEYS_TO_SAVE"]
+        )
+
+        # Extract known_domains_filterer
+        known_domains_filterer = self.filterers[self.index_known_domains_filterer]
+
+        # Add domain labeled to dict
+        if label == 1:
+            known_domains_filterer.domains_pos[domain] = page_labeled_filtered
+
+        elif label == 0:
+            known_domains_filterer.domains_unknwn[domain] = page_labeled_filtered
+
+        elif label == -1:
+            known_domains_filterer.domains_neg[domain] = page_labeled_filtered
+
+        # Update self.filterers
+        self.filterers[self.index_known_domains_filterer] = known_domains_filterer
+
+    def save_new_known_domains(self):
+        # Extract known_domains_filterer
+        known_domains_filterer = self.filterers[self.index_known_domains_filterer]
+
+        dict_known_domains = {
+            "domains_pos": known_domains_filterer.domains_pos,
+            "domains_unknwn": known_domains_filterer.domains_unknwn,
+            "domains_neg": known_domains_filterer.domains_neg,
+        }
+
+        _ = utils_io.save_and_load_setting(
+            setting=dict_known_domains,
+            path_settings=known_domains_filterer.path_settings,
+            country=known_domains_filterer.country,
+            file_name=known_domains_filterer.name,
+        )
+
+
+class BaseShippingPolicyFilterer(abc.ABC):
+    """Base class for shipping policy filterer."""
+
+    RESULT_POSITIVE = +1
+    RESULT_UNKNOWN = 0
+    RESULT_NEGATIVE = -1
+
+    def __init__(
+        self,
+        name: str,
+        country: str | None = None,
+        config: dict | None = None,
+        config_filterer: dict | None = None,
+    ) -> None:
+        super().__init__()
+
+        # Name
+        self.name = name
+        
+        # Config
+        self.config = config
+
+        # Known domains
+        self.known_domains = utils_io.load_setting(
+            path_settings=config.get("PATH_CURRENT_PROJECT_SETTINGS"),
+            country=country,
+            file_name="known_domains",
+        )
+
+        # Setting
+        self.setting = config_filterer
+
+        # Keywords
+        self.keywords_shipping_policy = self.setting.get("keywords_shipping_policy")
+
+        # Url domains already classified
+        self.urls_domains_shipping_pos = self.setting.get("urls_domains_shipping_pos")
+        self.urls_domains_shipping_unknwn = self.setting.get("urls_domains_shipping_unknwn")
+        self.urls_domains_shipping_neg = self.setting.get("urls_domains_shipping_neg")
+
+        # LLM API
+        self.llm_api_prompt = self.setting.get("llm_api_prompt")
+        self.llm_api_config = self.setting.get("llm_api_config")
+
+        # Product page Zyte API
+        self.zyte_api_product_page_config = self.setting.get("zyte_api_product_page_config")
+
+        # Policy page Zyte API
+        self.zyte_api_policy_page_config = self.setting.get("zyte_api_policy_page_config")
+
+    @abc.abstractmethod
+    def filter_page(self, **page: str) -> int:
+        """Filter page.
+
+        Args:
+            **page (str): page.
+
+        Returns:
+            int: result of filtering.
+        """
+
+        raise NotImplementedError
+
+    def perform_filtering(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Perform filtering.
+
+        Args:
+            df (pd.DataFrame): dataFrame to filter.
+
+        Returns:
+            pd.DataFrame: filtered dataFrame.
+        """
+
+        tqdm.tqdm.pandas(desc=f"Filtering with {self.name}...", leave=False)
+
+        # Create a list to store rows' indexes and labels
+        list_pages_labeled = []
+
+        def pseudo_filter_page(row):
+            if row.filterer_name != "unknown":
+                return row.name, row
+            else:
+                return row.name, self.filter_page(
+                **row.dropna().to_dict()
+            )
+
+        # Use ThreadPoolExecutor to call zyte api in parallel for the shipping policy step
+        with ThreadPoolExecutor(max_workers=50) as executor:
+            futures = [
+                executor.submit(pseudo_filter_page, row) for _, row in df.iterrows()
+            ]
+
+            with tqdm.tqdm(total=len(futures)) as pbar:
+                for future in as_completed(futures):
+                    # Get page_labeled and add the index
+                    row_index, page_labeled = future.result()
+                    page_labeled["index"] = row_index
+
+                    # Add it to the list
+                    list_pages_labeled.append(page_labeled)
+
+                    # If the setting is set to save new classified domains
+                    if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
+                        # Add domain to known_domains variable
+                        try:
+                            self.add_domain_to_known_domains(
+                                page_labeled=page_labeled
+                            )
+
+                        except Exception as e:
+                            print(f"Error: {e}")
+
+                    pbar.update(1)
+
+        # If the setting is set to save new classified domains
+        if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
+            # Save new known domains
+            self.save_new_known_domains()
+
+        # Create a df with the outputs
+        df_labeled = pd.DataFrame(list_pages_labeled)
+
+        return df_labeled
+
+    @staticmethod
+    def filter_dict_keys(original_dict, keys_to_save):
+        # TODO: to put in helpers.utils
+
+        # Create the nested dictionary including the keys to save
+        # Not a problem if the key does not exist in the original dictionary
+        dict_filtered = {k: v for k, v in original_dict.items() if k in keys_to_save}
+
+        return dict_filtered
+
+    def add_domain_to_known_domains(self, page_labeled):
+        # Recover label from page_labeled
+        label, domain = page_labeled["RESULT"], page_labeled["domain"]
+
+        # Filter page_labeled with relevant keys
+        page_labeled_filtered = filter_dict_keys(
+            original_dict=page_labeled, keys_to_save=self.config["KEYS_TO_SAVE"]
+        )
+
+        # Add domain labeled to dict
+        if label == 1:
+            self.known_domains.domains_pos[domain] = page_labeled_filtered
+
+        elif label == 0:
+            self.known_domains.domains_unknwn[domain] = page_labeled_filtered
+
+        elif label == -1:
+            self.known_domains.domains_neg[domain] = page_labeled_filtered
+
+    def save_new_known_domains(self):
+        dict_known_domains = {
+            "domains_pos": self.known_domains.domains_pos,
+            "domains_unknwn": self.known_domains.domains_unknwn,
+            "domains_neg": self.known_domains.domains_neg,
+        }
+
+        _ = utils_io.save_and_load_setting(
+            setting=dict_known_domains,
+            path_settings=self.config.get("PATH_CURRENT_PROJECT_SETTINGS"),
+            country=self.country,
+            file_name="known_domains",
+        )
