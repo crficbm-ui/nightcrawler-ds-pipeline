@@ -3334,8 +3334,8 @@ types-setuptools = "^75.1.0.20240917"
 [package.source]
 type = "git"
 url = "ssh://git@github.com/smc40/nightcrawler-library.git"
-reference = "0.3.0"
-resolved_reference = "608d3bf901963d0ebd0a2f0adcc8d684b7948f42"
+reference = "0.3.1"
+resolved_reference = "f415f74a7795b51a6e425fb9b2447101f92fbe75"
 
 [[package]]
 name = "lxml"
@@ -6688,4 +6688,4 @@ test = ["zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "c78c71dc003b1d8ef3360a3ee4a91d82a1237872c2d498d0718a9a4e33b85b2d"
+content-hash = "39bea17e4d86b2eee007206520e05f9cac66a90b675f87310002a96ac35f67c5"

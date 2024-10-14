@@ -97,6 +97,9 @@ def apply(args: argparse.Namespace) -> None:
         organization=org,
     )
 
+    if not context.settings.use_file_storage:
+        context.set_crawl_pending(request.case_id, request.keyword_id)
+
     if not args.reverse_image_search:
         # Step 0: create the results directory with searchitem = keyword
         context.output_dir = create_output_dir(args.searchitem, context.output_path)
@@ -201,4 +204,4 @@ def apply(args: argparse.Namespace) -> None:
             )
             for x in final_results.results
         ]
-        context.store_results(data)
+        context.store_results(data, request.keyword_id)
