@@ -361,6 +361,144 @@ class KnownDomainsFilterer(BaseCountryFilterer):
         return page
 
 
+def process_url(url: str) -> str:
+    """Process url."""
+
+    return url.lower()
+
+
+def parse_url(url: str) -> urllib.parse.ParseResult:
+    """Parse url."""
+
+    return urllib.parse.urlparse(url)
+
+
+def extract_domain(url_parsed: urllib.parse.ParseResult) -> str:
+    """Extract domain from url."""
+
+    return url_parsed.hostname or url_parsed.netloc
+
+
+def extract_top_level_domain(domain: str) -> str:
+    """Extract top-level domain from domain."""
+
+    return domain.split(".")[-1]
+
+
+def extract_sub_level_domains(domain: str) -> list[str]:
+    """Extract sub-level domains from domain."""
+
+    return domain.split(".")[:-1]
+
+
+def extract_path_directories(url_parsed: urllib.parse.ParseResult) -> list[str]:
+    """Extract path directories from url."""
+
+    return url_parsed.path.split("/")
+
+
+def extract_query_values(url_parsed: urllib.parse.ParseResult) -> list[str]:
+    """Extract query values from url."""
+
+    return [
+        subvalue
+        for values in urllib.parse.parse_qs(url_parsed.query).values()
+        for value in values
+        for subvalue in re.split(r"\W+", value)
+    ]
+
+
+# Url country filterer
+class UrlCountryFilterer(BaseCountryFilterer):
+    """Url country filterer."""
+
+    def __init__(
+        self,
+        *,
+        countries: list[str] | None = None,
+        top_level_domains: list[str] | None = None,
+        sub_level_domains: list[str] | None = None,
+        languages: list[str] | None = None,
+        currencies: list[str] | None = None,
+        country: str | None = None,
+        config_filterers: dict | None = None,
+    ) -> None:
+        super().__init__(name="url", config_filterers=config_filterers, country=country)
+
+        self.countries = countries or self.setting.get("countries") or []
+        self.top_level_domains = (
+            top_level_domains or self.setting.get("top_level_domains") or []
+        )
+        self.sub_level_domains = (
+            sub_level_domains or self.setting.get("sub_level_domains") or []
+        )
+        self.languages = languages or self.setting.get("languages") or []
+        self.currencies = currencies or self.setting.get("currencies") or []
+
+    def filter_page(self, **page: str) -> int:
+        """Filter page with Url.
+
+        Args:
+            **page (str): page.
+
+        Returns:
+            int: result of filtering.
+        """
+        # Recover url
+        url = page.get("page_url", "")
+
+        # Process url
+        url = process_url(url)
+
+        # Parse url
+        url_parsed = parse_url(url)
+
+        # Extract domain
+        domain = extract_domain(url_parsed)
+
+        # Check top-level domain
+        top_level_domain = extract_top_level_domain(domain)
+        # print(f"Top level domain: {top_level_domain}")
+
+        if utils_strings.check_string_equals_any_substring(
+            top_level_domain, self.top_level_domains
+        ):
+            page["RESULT"] = self.RESULT_POSITIVE
+            # page["REASON"] = "top_level_domain"
+
+        # Check sub-level domains
+        sub_level_domains = extract_sub_level_domains(domain)
+        # print(f"Sub level domain: {sub_level_domains}")
+
+        if utils_strings.check_any_string_equals_any_substring(
+            sub_level_domains, self.top_level_domains + self.sub_level_domains
+        ):
+            page["RESULT"] = self.RESULT_POSITIVE
+            # page["REASON"] = "sub_level_domains"
+
+        # Check path directories
+        path_directories = extract_path_directories(url_parsed)
+        # print(f"Path directories: {path_directories}")
+
+        if utils_strings.check_any_string_equals_any_substring(
+            path_directories, self.countries + self.languages + self.currencies
+        ):
+            page["RESULT"] = self.RESULT_POSITIVE
+            # page["REASON"] = "path_directories"
+
+        # Check query parameters
+        query_values = extract_query_values(url_parsed)
+        # print(f"Queries: {query_values}")
+
+        if utils_strings.check_any_string_equals_any_substring(
+            query_values, self.countries + self.languages + self.currencies
+        ):
+            page["RESULT"] = self.RESULT_POSITIVE
+            # page["REASON"] = "query_values"
+
+        return page
+
+
 def extract_footers_and_links(html_content):
     soup = BeautifulSoup(html_content, "html.parser")
 
@@ -893,144 +1031,6 @@ class ShippingPolicyFilterer(BaseCountryFilterer):
             self.RESULT_UNKNOWN,
             "Zyte and or LLM api calls failed for all shipping policy pages found",
         )
-
-        return page
-
-
-def process_url(url: str) -> str:
-    """Process url."""
-
-    return url.lower()
-
-
-def parse_url(url: str) -> urllib.parse.ParseResult:
-    """Parse url."""
-
-    return urllib.parse.urlparse(url)
-
-
-def extract_domain(url_parsed: urllib.parse.ParseResult) -> str:
-    """Extract domain from url."""
-
-    return url_parsed.hostname or url_parsed.netloc
-
-
-def extract_top_level_domain(domain: str) -> str:
-    """Extract top-level domain from domain."""
-
-    return domain.split(".")[-1]
-
-
-def extract_sub_level_domains(domain: str) -> list[str]:
-    """Extract sub-level domains from domain."""
-
-    return domain.split(".")[:-1]
-
-
-def extract_path_directories(url_parsed: urllib.parse.ParseResult) -> list[str]:
-    """Extract path directories from url."""
-
-    return url_parsed.path.split("/")
-
-
-def extract_query_values(url_parsed: urllib.parse.ParseResult) -> list[str]:
-    """Extract query values from url."""
-
-    return [
-        subvalue
-        for values in urllib.parse.parse_qs(url_parsed.query).values()
-        for value in values
-        for subvalue in re.split(r"\W+", value)
-    ]
-
-
-# Url country filterer
-class UrlCountryFilterer(BaseCountryFilterer):
-    """Url country filterer."""
-
-    def __init__(
-        self,
-        *,
-        countries: list[str] | None = None,
-        top_level_domains: list[str] | None = None,
-        sub_level_domains: list[str] | None = None,
-        languages: list[str] | None = None,
-        currencies: list[str] | None = None,
-        country: str | None = None,
-        config_filterers: dict | None = None,
-    ) -> None:
-        super().__init__(name="url", config_filterers=config_filterers, country=country)
-
-        self.countries = countries or self.setting.get("countries") or []
-        self.top_level_domains = (
-            top_level_domains or self.setting.get("top_level_domains") or []
-        )
-        self.sub_level_domains = (
-            sub_level_domains or self.setting.get("sub_level_domains") or []
-        )
-        self.languages = languages or self.setting.get("languages") or []
-        self.currencies = currencies or self.setting.get("currencies") or []
-
-    def filter_page(self, **page: str) -> int:
-        """Filter page with Url.
-
-        Args:
-            **page (str): page.
-
-        Returns:
-            int: result of filtering.
-        """
-        # Recover url
-        url = page.get("page_url", "")
-
-        # Process url
-        url = process_url(url)
-
-        # Parse url
-        url_parsed = parse_url(url)
-
-        # Extract domain
-        domain = extract_domain(url_parsed)
-
-        # Check top-level domain
-        top_level_domain = extract_top_level_domain(domain)
-        # print(f"Top level domain: {top_level_domain}")
-
-        if utils_strings.check_string_equals_any_substring(
-            top_level_domain, self.top_level_domains
-        ):
-            page["RESULT"] = self.RESULT_POSITIVE
-            # page["REASON"] = "top_level_domain"
-
-        # Check sub-level domains
-        sub_level_domains = extract_sub_level_domains(domain)
-        # print(f"Sub level domain: {sub_level_domains}")
-
-        if utils_strings.check_any_string_equals_any_substring(
-            sub_level_domains, self.top_level_domains + self.sub_level_domains
-        ):
-            page["RESULT"] = self.RESULT_POSITIVE
-            # page["REASON"] = "sub_level_domains"
-
-        # Check path directories
-        path_directories = extract_path_directories(url_parsed)
-        # print(f"Path directories: {path_directories}")
-
-        if utils_strings.check_any_string_equals_any_substring(
-            path_directories, self.countries + self.languages + self.currencies
-        ):
-            page["RESULT"] = self.RESULT_POSITIVE
-            # page["REASON"] = "path_directories"
-
-        # Check query parameters
-        query_values = extract_query_values(url_parsed)
-        # print(f"Queries: {query_values}")
-
-        if utils_strings.check_any_string_equals_any_substring(
-            query_values, self.countries + self.languages + self.currencies
-        ):
-            page["RESULT"] = self.RESULT_POSITIVE
-            # page["REASON"] = "query_values"
 
         return page
 
