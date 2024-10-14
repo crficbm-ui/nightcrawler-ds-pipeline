@@ -77,7 +77,7 @@ def pipeline_wrapper(query):
 
     if keyword == "ALL":
         os.environ["NIGHTCRAWLER_USE_FILE_STORAGE"] = "false"
-        os.environ["NIGHTCRAWLER_STORE_INTERMEDIATE"] = "false"
+        #os.environ["NIGHTCRAWLER_STORE_INTERMEDIATE"] = "false"
         from libnightcrawler.context import Context
         context = Context()
         requests = context.get_crawl_requests()
