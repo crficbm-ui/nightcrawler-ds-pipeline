@@ -4,6 +4,7 @@ import azure.durable_functions as df
 import json
 import logging
 import os
+import gc
 import nightcrawler.cli.main
 
 app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
@@ -90,6 +91,7 @@ def pipeline_wrapper(query):
             if request.keyword_type.lower() == "image":
                 args.append("--reverse-image-search")
             nightcrawler.cli.main.run(args)
+            gc.collect()
     else:
         logging.info(f'Running pipeline for keyword `{keyword}\' for country {country}')
         nightcrawler.cli.main.run( [step, keyword, f'--country={country}'] )
