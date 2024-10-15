@@ -200,7 +200,7 @@ def apply(args: argparse.Namespace) -> None:
                 language="",
                 score=0,
                 relevant=True,
-                images=[x.imageUrl] if x.imageUrl else []
+                images=x.images
             )
             for x in final_results.results
         ]

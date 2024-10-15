@@ -140,6 +140,7 @@ class ExtractZyteData(ExtractSerpapiData):
     zyteExecutionTime: Optional[float] = 0.0
     html: Optional[str] = None
     zyteProbability: Optional[float] = 0.0
+    images: list[str] = field(default_factory=list)
 
 
 @dataclass
