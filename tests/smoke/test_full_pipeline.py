@@ -34,9 +34,15 @@ def test_full_pipeline_end_to_end():
     assert re.search(
         r"Executing step \d{1,2}: ZyteExtractor", combined_output
     ), "ZyteExtractor initialization not found in output."
+    # assert re.search(
+    #     r"Executing step \d{1,2}: DataProcessor", combined_output
+    # ), "DataProcessor initialization not found in output."
     assert re.search(
-        r"Executing step \d{1,2}: DataProcessor", combined_output
-    ), "DataProcessor initialization not found in output."
+        r"Executing step \d{1,2}: CountryFilterer", combined_output
+    ), "CountryFilterer initialization not found in output."
+    assert re.search(
+        r"Executing step \d{1,2}: DeliveryPolicyExtractor", combined_output
+    ), "DeliveryPolicyExtractor initialization not found in output."
     assert (
         "Run full pipeline" in combined_output
     ), "Pipeline completion message not found in output."
@@ -59,6 +65,7 @@ def test_full_pipeline_end_to_end():
             context.zyte_filename,
             context.processing_filename_raw,
             context.processing_filename_filtered.replace("country", country),
+            context.processing_filename_country_filtering,
             context.processing_filename_delivery_policy,
             context.processing_filename_page_type_detection,
             context.processing_filename_blocked_content_detection,

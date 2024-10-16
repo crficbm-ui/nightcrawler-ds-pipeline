@@ -193,13 +193,13 @@ def process_llm_response_content(llm_response_content, country):
 
     # Recover the answer and return it
     llm_response_answer = dict_response_content.get(f"is_shipping_{country}_answer", "")
-    print(f"LLM response answer: {llm_response_answer}")
+    # print(f"LLM response answer: {llm_response_answer}")
 
     # Check llm justification
     llm_response_justification = dict_response_content.get(
         f"is_shipping_{country}_justification", ""
     )
-    print(f"LLM response justification: {llm_response_justification}")
+    # print(f"LLM response justification: {llm_response_justification}")
 
     return dict_response_content, llm_response_answer, llm_response_justification
 
@@ -214,13 +214,14 @@ class ShippingPolicyFilterer(BaseShippingPolicyFilterer):
         self,
         *,
         country: str | None = None,
+        config: dict | None = None,
         config_filterer: dict | None = None,
         zyte_api_product_page: object | None = None,
         zyte_api_policy_page: object | None = None,
         mistral_api: object | None = None,
     ) -> None:
         super().__init__(
-            name="shipping_policy", config_filterer=config_filterer, country=country,
+            name="shipping_policy", config=config, config_filterer=config_filterer, country=country,
         )
 
         # Country
@@ -237,11 +238,12 @@ class ShippingPolicyFilterer(BaseShippingPolicyFilterer):
 
     def filter_page(self, **page: str) -> int:
         # Recover page_url
-        page_url = page.get("page_url", "")
+        page_url = page.get("page_url")
 
         # Extract domain
         # TODO: get_domain already in get_df_page_links
-        url_domain = get_domain(url=page_url)
+        # url_domain = get_domain(url=page_url)
+        url_domain = page.get("domain")
 
         # Check if the domain has already been processed
         if url_domain in self.urls_domains_shipping_pos:
@@ -564,23 +566,20 @@ class DeliveryPolicyExtractor(BaseStep):
     def get_step_results(
         self, previous_steps_results: PipelineResult
     ) -> List[DeliveryPolicyData]:
-        # dataset = pd.DataFrame(
-        #     {"page_url": [e.url for e in previous_steps_results.results]}
-        # )
-
         dataset = pd.DataFrame(
-            {"page_url": [e["url"] for e in previous_steps_results["results"]]}
+            {"page_url": [e.url for e in previous_steps_results.results],
+             "domain": [e.domain for e in previous_steps_results.results],
+             "filterer_name": [e.filtererName for e in previous_steps_results.results]}
         )
 
         # Instantiate filterer
         filterer = ShippingPolicyFilterer(
-            filterer_name=self.config["FILTERER_NAME"],
             country=self.config["COUNTRY"],
             config=self.config,
             config_filterer=self.config_filterer,
-            zyte_client_product_page=self.zyte_client_product_page,
-            zyte_client_policy_page=self.zyte_client_policy_page,
-            mistral_client=self.mistral_client,
+            zyte_api_product_page=self.zyte_client_product_page,
+            zyte_api_policy_page=self.zyte_client_policy_page,
+            mistral_api=self.mistral_client,
         )
 
         # Perform filtering
@@ -591,12 +590,15 @@ class DeliveryPolicyExtractor(BaseStep):
         # Compute time elapsed
         dataset["time_elapsed"] = time_end - time_start
 
+        # Fillna for label_justif col
+        if "label_justif" in dataset.columns:
+            dataset["label_justif"] = dataset["label_justif"].fillna("")
+
         # Transform dataset to a dictionary
-        dataset_to_dict = dataset.to_dict(orient="records")  # dict, list, records
+        dataset_to_dict = dataset.to_dict(orient="records") # dict, list, records
 
         stage_results = []
-        # for element in previous_steps_results.results:
-        for element in previous_steps_results["results"]:
+        for element in previous_steps_results.results:
             if element.url in dataset["page_url"].values:
                 entry = next(
                     (
@@ -610,7 +612,9 @@ class DeliveryPolicyExtractor(BaseStep):
                     DeliveryPolicyData(
                         domain=entry.get("domain"),
                         filtererName=entry.get("filterer_name"),
-                        **element,
+                        labelJustif=entry.get("label_justif", ""),
+                        # **element,
+                        **{key: value for key, value in element.items() if key not in ["domain", "filtererName"]},
                     )
                 )
 

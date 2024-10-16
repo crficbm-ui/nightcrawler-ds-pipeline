@@ -172,6 +172,7 @@ class DeliveryPolicyData(ProcessData):
 
     domain: Optional[str] = None
     filtererName: Optional[str] = None
+    labelJustif: Optional[str] = None
 
 
 @dataclass
@@ -546,6 +547,7 @@ class BaseCountryFilterer(abc.ABC):
 
         # Recover known_domains filterer index if known_domains filterer is used
         self.index_known_domains_filterer = self.get_index_known_domains_filterer()
+        print(f"index_known_domains_filterer: {self.index_known_domains_filterer}")
 
         def pseudo_filter_page(row):
             return row.name, self.filter_page(
@@ -577,7 +579,7 @@ class BaseCountryFilterer(abc.ABC):
                             print(f"Error: {e}")
 
                 pbar.update(1)
-
+        
         # If the setting is set to save new classified domains
         if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
             # Save new known domains
@@ -614,7 +616,7 @@ class BaseCountryFilterer(abc.ABC):
         label, domain = page_labeled["RESULT"], page_labeled["domain"]
 
         # Filter page_labeled with relevant keys
-        page_labeled_filtered = filter_dict_keys(
+        page_labeled_filtered = self.filter_dict_keys(
             original_dict=page_labeled, keys_to_save=self.config["KEYS_TO_SAVE"]
         )
 
@@ -680,6 +682,9 @@ class BaseShippingPolicyFilterer(abc.ABC):
             country=country,
             file_name="known_domains",
         )
+        self.domains_pos = self.known_domains.get("domains_pos", {})
+        self.domains_unknwn = self.known_domains.get("domains_unknwn", {})
+        self.domains_neg = self.known_domains.get("domains_neg", {})
 
         # Setting
         self.setting = config_filterer
@@ -731,9 +736,16 @@ class BaseShippingPolicyFilterer(abc.ABC):
         list_pages_labeled = []
 
         def pseudo_filter_page(row):
-            if row.filterer_name != "unknown":
-                return row.name, row
+            check, row = self.check_if_known_domains(row)
+            
+            if check:
+                return row.name, row.dropna().to_dict()
+            
+            elif row.filterer_name != "unknown":
+                return row.name, row.dropna().to_dict()
+            
             else:
+                row["filterer_name"] = self.name
                 return row.name, self.filter_page(
                 **row.dropna().to_dict()
             )
@@ -754,7 +766,7 @@ class BaseShippingPolicyFilterer(abc.ABC):
                     list_pages_labeled.append(page_labeled)
 
                     # If the setting is set to save new classified domains
-                    if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
+                    if (self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]) & (page_labeled["filterer_name"] == self.name):
                         # Add domain to known_domains variable
                         try:
                             self.add_domain_to_known_domains(
@@ -765,7 +777,6 @@ class BaseShippingPolicyFilterer(abc.ABC):
                             print(f"Error: {e}")
 
                     pbar.update(1)
-
         # If the setting is set to save new classified domains
         if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
             # Save new known domains
@@ -791,25 +802,25 @@ class BaseShippingPolicyFilterer(abc.ABC):
         label, domain = page_labeled["RESULT"], page_labeled["domain"]
 
         # Filter page_labeled with relevant keys
-        page_labeled_filtered = filter_dict_keys(
+        page_labeled_filtered = self.filter_dict_keys(
             original_dict=page_labeled, keys_to_save=self.config["KEYS_TO_SAVE"]
         )
 
         # Add domain labeled to dict
         if label == 1:
-            self.known_domains.domains_pos[domain] = page_labeled_filtered
+            self.domains_pos[domain] = page_labeled_filtered
 
         elif label == 0:
-            self.known_domains.domains_unknwn[domain] = page_labeled_filtered
+            self.domains_unknwn[domain] = page_labeled_filtered
 
         elif label == -1:
-            self.known_domains.domains_neg[domain] = page_labeled_filtered
+            self.domains_neg[domain] = page_labeled_filtered
 
     def save_new_known_domains(self):
         dict_known_domains = {
-            "domains_pos": self.known_domains.domains_pos,
-            "domains_unknwn": self.known_domains.domains_unknwn,
-            "domains_neg": self.known_domains.domains_neg,
+            "domains_pos": self.domains_pos,
+            "domains_unknwn": self.domains_unknwn,
+            "domains_neg": self.domains_neg,
         }
 
         _ = utils_io.save_and_load_setting(
@@ -818,3 +829,28 @@ class BaseShippingPolicyFilterer(abc.ABC):
             country=self.country,
             file_name="known_domains",
         )
+
+    def check_if_known_domains(self, page):
+        # Recover domain
+        domain = page.get("domain")
+
+        # Check if domain is already classified
+        if domain in self.domains_pos:
+            logger.info(f"Domain {domain} already classified as positive")
+            page["RESULT"] = self.RESULT_POSITIVE
+            page["filterer_name"] = "known_domains"
+            return True, page
+        
+        elif domain in self.domains_unknwn:
+            logger.info(f"Domain {domain} already classified as unknown")
+            page["RESULT"] = self.RESULT_UNKNOWN
+            page["filterer_name"] = "known_domains"
+            return True, page
+        
+        elif domain in self.domains_neg:
+            logger.info(f"Domain {domain} already classified as negative")
+            page["RESULT"] = self.RESULT_NEGATIVE
+            page["filterer_name"] = "known_domains"
+            return True, page
+        
+        return False, page 

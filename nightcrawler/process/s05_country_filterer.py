@@ -124,11 +124,11 @@ class KnownDomainsFilterer(BaseCountryFilterer):
             country=country,
         )
         # Known domains
-        self.domains_pos = domains_pos or self.setting.get("domains_pos") or []
+        self.domains_pos = domains_pos or self.setting.get("domains_pos") # or []
         self.domains_unknwn = domains_unknwn or self.setting.get(
             "domains_unknwn"
-        ) or []
-        self.domains_neg = domains_neg or self.setting.get("domains_neg") or []
+        ) # or []
+        self.domains_neg = domains_neg or self.setting.get("domains_neg") # or []
 
         # Keep these variables to save new classified domains
         self.path_settings = config.get("PATH_CURRENT_PROJECT_SETTINGS")
@@ -328,10 +328,6 @@ class CountryFilterer(BaseStep):
             {"page_url": [e.url for e in previous_steps_results.results]}
         )
 
-        # dataset = pd.DataFrame(
-        #     {"page_url": [e["url"] for e in previous_steps_results["results"]]}
-        # )
-
         # Instantiate filterer
         filterer = MasterCountryFilterer(
             filterer_name=self.config["FILTERER_NAME"],
@@ -352,8 +348,7 @@ class CountryFilterer(BaseStep):
         dataset_to_dict = dataset.to_dict(orient="records")  # dict, list, records
 
         stage_results = []
-        # for element in previous_steps_results.results:
-        for element in previous_steps_results["results"]:
+        for element in previous_steps_results.results:
             if element.url in dataset["page_url"].values:
                 entry = next(
                     (
@@ -373,6 +368,53 @@ class CountryFilterer(BaseStep):
 
         return stage_results
 
+    # def get_step_results(
+    #     self, previous_steps_results: PipelineResult
+    # ) -> List[DeliveryPolicyData]:
+    #     dataset = pd.DataFrame(
+    #         {"page_url": [e["url"] for e in previous_steps_results["results"]]}
+    #     )
+
+    #     # Instantiate filterer
+    #     filterer = MasterCountryFilterer(
+    #         filterer_name=self.config["FILTERER_NAME"],
+    #         country=self.config["COUNTRY"],
+    #         config=self.config,
+    #         config_filterers=self.config_filterers
+    #     )
+
+    #     # Perform filtering
+    #     time_start = time.time()
+    #     dataset = filterer.perform_filtering(dataset)
+    #     time_end = time.time()
+
+    #     # Compute time elapsed
+    #     dataset["time_elapsed"] = time_end - time_start
+
+    #     # Transform dataset to a dictionary
+    #     dataset_to_dict = dataset.to_dict(orient="records")  # dict, list, records
+
+    #     stage_results = []
+    #     for element in previous_steps_results["results"]:
+    #         if element["url"] in dataset["page_url"].values:
+    #             entry = next(
+    #                 (
+    #                     item
+    #                     for item in dataset_to_dict
+    #                     if item["page_url"] == element["url"]
+    #                 ),
+    #                 None,
+    #             )
+    #             stage_results.append(
+    #                 DeliveryPolicyData(
+    #                     domain=entry.get("domain"),
+    #                     filtererName=entry.get("filterer_name"),
+    #                     **element,
+    #                 )
+    #             )
+
+    #     return stage_results
+
     def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:
         # TODO implement logic
 
@@ -386,6 +428,6 @@ class CountryFilterer(BaseStep):
         self.store_results(
             pipeline_results,
             self.context.output_dir,
-            self.context.processing_filename_delivery_policy,
+            self.context.processing_filename_country_filtering,
         )
         return pipeline_results
