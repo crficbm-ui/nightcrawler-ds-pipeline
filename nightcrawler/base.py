@@ -167,13 +167,21 @@ class ProcessData(ExtractZyteData):
 
 
 @dataclass
-class DeliveryPolicyData(ProcessData):
+class CountryFilteringData(ExtractZyteData): # ProcessData
     """Data class for step 6: delivery policy filtering based on offline analysis of domains public delivery information"""
 
     domain: Optional[str] = None
     filtererName: Optional[str] = None
-    labelJustif: Optional[str] = None
+    DeliveringtoCountry: Optional[int] = None
 
+@dataclass
+class DeliveryPolicyData(CountryFilteringData): # ProcessData
+    """Data class for step 6: delivery policy filtering based on offline analysis of domains public delivery information"""
+
+    domain: Optional[str] = None
+    filtererName: Optional[str] = None
+    DeliveringtoCountry: Optional[int] = None
+    labelJustif: Optional[str] = None
 
 @dataclass
 class PageTypeData(DeliveryPolicyData):
@@ -494,7 +502,7 @@ class BaseCountryFilterer(abc.ABC):
         name: str,
         country: str | None = None,
         config: dict | None = None,
-        config_filterers: dict | None = None,
+        config_filterer: dict | None = None,
     ) -> None:
         super().__init__()
 
@@ -505,7 +513,7 @@ class BaseCountryFilterer(abc.ABC):
         else:
             self.config = {}
 
-        if country and config_filterers:
+        if country:
             if name == "known_domains":
                 self.setting = utils_io.load_setting(
                     path_settings=config.get("PATH_CURRENT_PROJECT_SETTINGS"),
@@ -513,7 +521,7 @@ class BaseCountryFilterer(abc.ABC):
                     file_name=name,
                 )
             else:
-                self.setting = config_filterers.get(name)
+                self.setting = config_filterer
         else:
             self.setting = {}
 
@@ -539,7 +547,7 @@ class BaseCountryFilterer(abc.ABC):
         Returns:
             pd.DataFrame: filtered dataFrame.
         """
-
+        
         tqdm.tqdm.pandas(desc=f"Filtering with {self.name}...", leave=False)
 
         # Create a list to store rows' indexes and labels
@@ -547,8 +555,7 @@ class BaseCountryFilterer(abc.ABC):
 
         # Recover known_domains filterer index if known_domains filterer is used
         self.index_known_domains_filterer = self.get_index_known_domains_filterer()
-        print(f"index_known_domains_filterer: {self.index_known_domains_filterer}")
-
+        
         def pseudo_filter_page(row):
             return row.name, self.filter_page(
                 **row.dropna().to_dict()
@@ -563,20 +570,18 @@ class BaseCountryFilterer(abc.ABC):
                 # Add it to the list
                 list_pages_labeled.append(page_labeled)
                 
-                # If the setting is set to save new classified domains
-                if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
-                    # Add the domain to known domains if known_domains filterer is used and domain is not already in known_domains (filterer label != "known_domains")
-                    if (self.index_known_domains_filterer is not None) & (
-                        page_labeled["filterer_name"] != "known_domains"
-                    ):
-                        # Add domain to known_domains filterer
-                        try:
-                            self.add_domain_to_known_domains_filterer(
-                                page_labeled=page_labeled
-                            )
+                # Add the domain to known domains if known_domains filterer is used and domain is not already in known_domains (filterer label != "known_domains")
+                if (self.index_known_domains_filterer is not None) & (
+                    page_labeled["filterer_name"] not in ["known_domains", "unknown"] # i.e., = "url"
+                ):
+                    # Add domain to known_domains filterer
+                    try:
+                        self.add_domain_to_known_domains_filterer(
+                            page_labeled=page_labeled
+                        )
 
-                        except Exception as e:
-                            print(f"Error: {e}")
+                    except Exception as e:
+                        print(f"Error: {e}")
 
                 pbar.update(1)
         
@@ -652,6 +657,11 @@ class BaseCountryFilterer(abc.ABC):
             country=known_domains_filterer.country,
             file_name=known_domains_filterer.name,
         )
+
+
+# ---------------------------------------------------
+# BaseShippingPolicyFilterer
+# ---------------------------------------------------
 
 
 class BaseShippingPolicyFilterer(abc.ABC):
@@ -736,20 +746,20 @@ class BaseShippingPolicyFilterer(abc.ABC):
         list_pages_labeled = []
 
         def pseudo_filter_page(row):
-            check, row = self.check_if_known_domains(row)
-            
-            if check:
-                return row.name, row.dropna().to_dict()
-            
-            elif row.filterer_name != "unknown":
-                return row.name, row.dropna().to_dict()
+            if row.filterer_name == "unknown":
+                domain_result, domain_filterer_name = self.recover_domain_result_filterer_name(row)
+                if domain_result and domain_filterer_name:
+                    row.filterer_name, row.result = domain_filterer_name, domain_result
+                    return row.name, row.dropna().to_dict()
+                else:
+                    row.filterer_name = self.name
+                    return row.name, self.filter_page(
+                        **row.dropna().to_dict()
+                    )
             
             else:
-                row["filterer_name"] = self.name
-                return row.name, self.filter_page(
-                **row.dropna().to_dict()
-            )
-
+                return row.name, row.dropna().to_dict()
+            
         # Use ThreadPoolExecutor to call zyte api in parallel for the shipping policy step
         with ThreadPoolExecutor(max_workers=50) as executor:
             futures = [
@@ -765,8 +775,8 @@ class BaseShippingPolicyFilterer(abc.ABC):
                     # Add it to the list
                     list_pages_labeled.append(page_labeled)
 
-                    # If the setting is set to save new classified domains
-                    if (self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]) & (page_labeled["filterer_name"] == self.name):
+                    # If the page has been classified by the shipping policy filterer
+                    if page_labeled["filterer_name"] == self.name:
                         # Add domain to known_domains variable
                         try:
                             self.add_domain_to_known_domains(
@@ -777,6 +787,7 @@ class BaseShippingPolicyFilterer(abc.ABC):
                             print(f"Error: {e}")
 
                     pbar.update(1)
+        
         # If the setting is set to save new classified domains
         if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
             # Save new known domains
@@ -830,27 +841,21 @@ class BaseShippingPolicyFilterer(abc.ABC):
             file_name="known_domains",
         )
 
-    def check_if_known_domains(self, page):
+    def recover_domain_result_filterer_name(self, page):
         # Recover domain
         domain = page.get("domain")
 
-        # Check if domain is already classified
+        # Recover domain_result and domain_filterer_name
         if domain in self.domains_pos:
-            logger.info(f"Domain {domain} already classified as positive")
-            page["RESULT"] = self.RESULT_POSITIVE
-            page["filterer_name"] = "known_domains"
-            return True, page
+            domain_result, domain_filterer_name = self.domains_pos[domain].get("RESULT"), self.domains_pos[domain].get("filterer_name")
+            return domain_result, domain_filterer_name
         
         elif domain in self.domains_unknwn:
-            logger.info(f"Domain {domain} already classified as unknown")
-            page["RESULT"] = self.RESULT_UNKNOWN
-            page["filterer_name"] = "known_domains"
-            return True, page
+            domain_result, domain_filterer_name = self.domains_unknwn[domain].get("RESULT"), self.domains_unknwn[domain].get("filterer_name")
+            return domain_result, domain_filterer_name
         
         elif domain in self.domains_neg:
-            logger.info(f"Domain {domain} already classified as negative")
-            page["RESULT"] = self.RESULT_NEGATIVE
-            page["filterer_name"] = "known_domains"
-            return True, page
-        
-        return False, page 
+            domain_result, domain_filterer_name = self.domains_neg[domain].get("RESULT"), self.domains_neg[domain].get("filterer_name")
+            return domain_result, domain_filterer_name
+
+        return None, None

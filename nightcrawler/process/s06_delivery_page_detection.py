@@ -569,7 +569,8 @@ class DeliveryPolicyExtractor(BaseStep):
         dataset = pd.DataFrame(
             {"page_url": [e.url for e in previous_steps_results.results],
              "domain": [e.domain for e in previous_steps_results.results],
-             "filterer_name": [e.filtererName for e in previous_steps_results.results]}
+             "filterer_name": [e.filtererName for e in previous_steps_results.results],
+             "RESULT": [e.DeliveringtoCountry for e in previous_steps_results.results],}
         )
 
         # Instantiate filterer
@@ -612,9 +613,10 @@ class DeliveryPolicyExtractor(BaseStep):
                     DeliveryPolicyData(
                         domain=entry.get("domain"),
                         filtererName=entry.get("filterer_name"),
-                        labelJustif=entry.get("label_justif", ""),
+                        DeliveringtoCountry=entry.get("RESULT"),
+                        labelJustif=entry.get("label_justif"),
                         # **element,
-                        **{key: value for key, value in element.items() if key not in ["domain", "filtererName"]},
+                        **{key: value for key, value in element.items() if key not in ["domain", "filtererName", "DeliveringtoCountry"]},
                     )
                 )
 

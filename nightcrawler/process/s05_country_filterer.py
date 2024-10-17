@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-from nightcrawler.base import DeliveryPolicyData, PipelineResult, BaseStep
+from nightcrawler.base import CountryFilteringData, PipelineResult, BaseStep
 
 from helpers import LOGGER_NAME
 from helpers.api.llm_apis import MistralAPI
@@ -52,7 +52,7 @@ class MasterCountryFilterer(BaseCountryFilterer):
         filterer_name: str,
         country: str | None = None,
         config: dict | None = None,
-        config_filterers: dict | None = None,
+        config_filterer: dict | None = None,
         **setting,
     ) -> None:
         super().__init__(name=filterer_name, config=config)
@@ -65,7 +65,6 @@ class MasterCountryFilterer(BaseCountryFilterer):
                         KnownDomainsFilterer(
                             **setting,
                             config=config,
-                            config_filterers=config_filterers,
                             country=country,
                         )
                     )
@@ -73,7 +72,7 @@ class MasterCountryFilterer(BaseCountryFilterer):
                     self.filterers.append(
                         UrlCountryFilterer(
                             **setting,
-                            config_filterers=config_filterers,
+                            config_filterer=config_filterer,
                             country=country,
                         )
                     )
@@ -115,12 +114,10 @@ class KnownDomainsFilterer(BaseCountryFilterer):
         domains_neg: list[str] | None = None,
         country: str | None = None,
         config: dict | None = None,
-        config_filterers: dict | None = None,
     ) -> None:
         super().__init__(
             name="known_domains",
             config=config,
-            config_filterers=config_filterers,
             country=country,
         )
         # Known domains
@@ -234,9 +231,9 @@ class UrlCountryFilterer(BaseCountryFilterer):
         languages: list[str] | None = None,
         currencies: list[str] | None = None,
         country: str | None = None,
-        config_filterers: dict | None = None,
+        config_filterer: dict | None = None,
     ) -> None:
-        super().__init__(name="url", config_filterers=config_filterers, country=country)
+        super().__init__(name="url", config_filterer=config_filterer, country=country)
 
         self.countries = countries or self.setting.get("countries") or []
         self.top_level_domains = (
@@ -311,19 +308,18 @@ class CountryFilterer(BaseStep):
 
     SETTINGS = Settings().country_filtering
     DEFAULT_CONFIG = SETTINGS.config
-    DEFAULT_CONFIG_FILTERERS = SETTINGS.config_filterers
+    DEFAULT_CONFIG_URL_FILTERER = SETTINGS.config_url_filterer
 
     def __init__(self, context: Context, *args, **kwargs):
         self.config = kwargs.get("config", self.DEFAULT_CONFIG)
-        self.config_filterers = kwargs.get(
-            "config_filterers", self.DEFAULT_CONFIG_FILTERERS
-        )
+        self.config_url_filterer = kwargs.get("config_url_filterer", self.DEFAULT_CONFIG_URL_FILTERER)
+
         super().__init__(self._entity_name)
         self.context = context
 
     def get_step_results(
         self, previous_steps_results: PipelineResult
-    ) -> List[DeliveryPolicyData]:
+    ) -> List[CountryFilteringData]:
         dataset = pd.DataFrame(
             {"page_url": [e.url for e in previous_steps_results.results]}
         )
@@ -333,7 +329,7 @@ class CountryFilterer(BaseStep):
             filterer_name=self.config["FILTERER_NAME"],
             country=self.config["COUNTRY"],
             config=self.config,
-            config_filterers=self.config_filterers
+            config_filterer=self.config_url_filterer
         )
 
         # Perform filtering
@@ -359,61 +355,15 @@ class CountryFilterer(BaseStep):
                     None,
                 )
                 stage_results.append(
-                    DeliveryPolicyData(
+                    CountryFilteringData(
                         domain=entry.get("domain"),
                         filtererName=entry.get("filterer_name"),
+                        DeliveringtoCountry=entry.get("RESULT"),
                         **element,
                     )
                 )
 
         return stage_results
-
-    # def get_step_results(
-    #     self, previous_steps_results: PipelineResult
-    # ) -> List[DeliveryPolicyData]:
-    #     dataset = pd.DataFrame(
-    #         {"page_url": [e["url"] for e in previous_steps_results["results"]]}
-    #     )
-
-    #     # Instantiate filterer
-    #     filterer = MasterCountryFilterer(
-    #         filterer_name=self.config["FILTERER_NAME"],
-    #         country=self.config["COUNTRY"],
-    #         config=self.config,
-    #         config_filterers=self.config_filterers
-    #     )
-
-    #     # Perform filtering
-    #     time_start = time.time()
-    #     dataset = filterer.perform_filtering(dataset)
-    #     time_end = time.time()
-
-    #     # Compute time elapsed
-    #     dataset["time_elapsed"] = time_end - time_start
-
-    #     # Transform dataset to a dictionary
-    #     dataset_to_dict = dataset.to_dict(orient="records")  # dict, list, records
-
-    #     stage_results = []
-    #     for element in previous_steps_results["results"]:
-    #         if element["url"] in dataset["page_url"].values:
-    #             entry = next(
-    #                 (
-    #                     item
-    #                     for item in dataset_to_dict
-    #                     if item["page_url"] == element["url"]
-    #                 ),
-    #                 None,
-    #             )
-    #             stage_results.append(
-    #                 DeliveryPolicyData(
-    #                     domain=entry.get("domain"),
-    #                     filtererName=entry.get("filterer_name"),
-    #                     **element,
-    #                 )
-    #             )
-
-    #     return stage_results
 
     def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:
         # TODO implement logic
