@@ -1,30 +1,21 @@
 import logging
 import ast
 import time
-import re
-import urllib.parse
-
-import abc
-import tqdm
-
+from typing import List
+from urllib.parse import urlparse
+from bs4 import BeautifulSoup
+import pandas as pd
 import nltk
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 
-from typing import List
-from urllib.parse import urlparse
-from bs4 import BeautifulSoup
-
 from nightcrawler.base import DeliveryPolicyData, PipelineResult, BaseStep
-
 from helpers.api.llm_apis import MistralAPI
 from helpers.api.zyte_api import ZyteAPI
 from helpers.context import Context
 from helpers.settings import Settings
 from helpers import LOGGER_NAME
 from helpers import utils_strings
-
-import pandas as pd
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -62,7 +53,7 @@ def extract_footers_and_links(html_content):
 def remove_stop_words(tokens):
     # Load stop words for all available languages
     stop_words = set()
-    for lang in LANGS:  # stopwords.fileids()
+    for lang in LANGS:
         stop_words.update(stopwords.words(lang))
 
     # Filter out stop words
@@ -177,7 +168,6 @@ def get_clean_full_text_from_html(html_content):
     # Clean up the text by removing superfluous spaces and unnecessary new lines
     lines = [line.strip() for line in raw_full_text.splitlines() if line.strip()]
     cleaned_full_text = "\n".join(lines)
-    # cleaned_full_text = ' '.join(lines)
 
     return cleaned_full_text
 
@@ -193,13 +183,11 @@ def process_llm_response_content(llm_response_content, country):
 
     # Recover the answer and return it
     llm_response_answer = dict_response_content.get(f"is_shipping_{country}_answer", "")
-    # print(f"LLM response answer: {llm_response_answer}")
 
     # Check llm justification
     llm_response_justification = dict_response_content.get(
         f"is_shipping_{country}_justification", ""
     )
-    # print(f"LLM response justification: {llm_response_justification}")
 
     return dict_response_content, llm_response_answer, llm_response_justification
 
@@ -237,12 +225,26 @@ class ShippingPolicyFilterer(BaseShippingPolicyFilterer):
         self.zyte_api_policy_page = zyte_api_policy_page
 
     def filter_page(self, **page: str) -> int:
+        """Filter page.
+        Executes the Shipping policy filter only for urls which have not yet been classified by the offline 
+        filterers (i.e., known_domains and url): it extracts the product page, then identifies in its footer 
+        the shipping policy page then extracts it and sends it to an LLM asking it to say if the site delivers 
+        or not or does not know in the country of interest.
+        Each new classified domain is added to the domain registry.
+        The extraction of the product and shipping policy pages for all urls is done in parallel using the 
+        Zyte API in order to go faster.
+        
+        Args:
+            **page (str): page.
+
+        Returns:
+            int: result of filtering.
+        """
+
         # Recover page_url
         page_url = page.get("page_url")
 
         # Extract domain
-        # TODO: get_domain already in get_df_page_links
-        # url_domain = get_domain(url=page_url)
         url_domain = page.get("domain")
 
         # Check if the domain has already been processed
@@ -293,7 +295,6 @@ class ShippingPolicyFilterer(BaseShippingPolicyFilterer):
 
         page_hmtl_content = dict_zyte_api_response_page_url.get("browserHtml", "")
         # page_hmtl_content = dict_zyte_api_response_page_url.get("httpResponseBody", "")
-        # page_hmtl_content = extract_html_content_with_zyte(url=page_url, url_type="product_page", zyte_api_key=ZYTE_API_KEY)
         if not page_hmtl_content:
             logger.info(
                 f"Html content of \nthe page{page_url} \nwith domain {url_domain} extracted but empty"
@@ -344,10 +345,6 @@ class ShippingPolicyFilterer(BaseShippingPolicyFilterer):
                             list of shipping policy page: {list_sp_page_urls}
                             """
                 )
-
-            # Store shipping policy pages found
-            # page["urls_shipping_policy_page_found"] = list_sp_page_urls
-
         else:
             logger.info(
                 f"No shipping policy page found with keywords model for \nthe page {page_url} \nwith domain {url_domain}"
@@ -452,7 +449,7 @@ class ShippingPolicyFilterer(BaseShippingPolicyFilterer):
                 # Return the label of the page
                 if llm_response_answer == "yes":
                     # Label justification
-                    label_justif = llm_response_justification  # "LLM response: yes"
+                    label_justif = llm_response_justification
 
                     # Update urls_shipping_policy_page_found_analysis
                     page["urls_shipping_policy_page_found_analysis"].update(
@@ -477,7 +474,7 @@ class ShippingPolicyFilterer(BaseShippingPolicyFilterer):
 
                 elif llm_response_answer == "no":
                     # Label justification
-                    label_justif = llm_response_justification  # "LLM response: no"
+                    label_justif = llm_response_justification
 
                     # Update urls_shipping_policy_page_found_analysis
                     page["urls_shipping_policy_page_found_analysis"].update(
@@ -510,7 +507,6 @@ class ShippingPolicyFilterer(BaseShippingPolicyFilterer):
                 continue
 
         # If at least one shipping policy page was extracted with LLM not_clear label
-        # if any("not_clear" == value for dict_response_content in page["urls_shipping_policy_page_found_analysis"].values() for value in dict_response_content.values()):
         if any(
             isinstance(dict_response_content, dict)
             and "not_clear" in dict_response_content.values()
@@ -584,14 +580,9 @@ class DeliveryPolicyExtractor(BaseStep):
         )
 
         # Perform filtering
-        time_start = time.time()
         dataset = filterer.perform_filtering(dataset)
-        time_end = time.time()
 
-        # Compute time elapsed
-        dataset["time_elapsed"] = time_end - time_start
-
-        # Fillna for label_justif col
+        # Fillna for label_justif col if delivery policy extraction was used for one url
         if "label_justif" in dataset.columns:
             dataset["label_justif"] = dataset["label_justif"].fillna("")
 
@@ -615,7 +606,6 @@ class DeliveryPolicyExtractor(BaseStep):
                         filtererName=entry.get("filterer_name"),
                         DeliveringtoCountry=entry.get("RESULT"),
                         labelJustif=entry.get("label_justif"),
-                        # **element,
                         **{key: value for key, value in element.items() if key not in ["domain", "filtererName", "DeliveringtoCountry"]},
                     )
                 )
@@ -624,8 +614,11 @@ class DeliveryPolicyExtractor(BaseStep):
 
     def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:
         # TODO implement logic
-
+        
+        time_start = time.time()
         results = self.get_step_results(previous_step_results)
+        time_end = time.time()
+        previous_step_results.meta.time_delivery_policy_extractor = time_end - time_start
 
         # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
         pipeline_results = self.add_pipeline_steps_to_results(

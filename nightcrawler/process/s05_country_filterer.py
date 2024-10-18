@@ -1,32 +1,18 @@
 import logging
-import ast
 import time
 import re
 import urllib.parse
-
-import abc
-import tqdm
-
+from typing import List
 import nltk
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
+import pandas as pd
 
-from urllib.parse import urlparse
-from typing import List
-from bs4 import BeautifulSoup
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-
-from nightcrawler.base import CountryFilteringData, PipelineResult, BaseStep
-
+from nightcrawler.base import BaseCountryFilterer, CountryFilteringData, PipelineResult, BaseStep
 from helpers import LOGGER_NAME
-from helpers.api.llm_apis import MistralAPI
-from helpers.api.zyte_api import ZyteAPI
 from helpers.context import Context
 from helpers.settings import Settings
-from helpers import utils_io, utils_strings
-
-import pandas as pd
+from helpers import utils_strings
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -38,9 +24,6 @@ nltk.download("punkt_tab")
 
 STEMMER = PorterStemmer()
 LANGS = stopwords.fileids()
-
-
-from nightcrawler.base import BaseCountryFilterer
 
 
 # Master country filterer
@@ -81,7 +64,9 @@ class MasterCountryFilterer(BaseCountryFilterer):
 
     def filter_page(self, **page: str) -> int:
         """Filter page with Master.
-
+        Executes the known domain filterer and then the url filterer. 
+        Naturally, if the known domain filterer gives a result for the url, then the url filterer is not executed.
+        
         Args:
             **page (str): page.
 
@@ -95,7 +80,7 @@ class MasterCountryFilterer(BaseCountryFilterer):
                 page["filterer_name"] = filterer.name
                 return page
 
-        # Enter here if no filterer has returned a result (ie neither known_domains nor url)
+        # Enter here if no filterer has returned a result (i.e., neither known_domains nor url)
         page["RESULT"] = self.RESULT_UNKNOWN
         page["filterer_name"] = "unknown"
 
@@ -121,11 +106,11 @@ class KnownDomainsFilterer(BaseCountryFilterer):
             country=country,
         )
         # Known domains
-        self.domains_pos = domains_pos or self.setting.get("domains_pos") # or []
+        self.domains_pos = domains_pos or self.setting.get("domains_pos")
         self.domains_unknwn = domains_unknwn or self.setting.get(
             "domains_unknwn"
-        ) # or []
-        self.domains_neg = domains_neg or self.setting.get("domains_neg") # or []
+        )
+        self.domains_neg = domains_neg or self.setting.get("domains_neg")
 
         # Keep these variables to save new classified domains
         self.path_settings = config.get("PATH_CURRENT_PROJECT_SETTINGS")
@@ -333,15 +318,10 @@ class CountryFilterer(BaseStep):
         )
 
         # Perform filtering
-        time_start = time.time()
         dataset = filterer.perform_filtering(dataset)
-        time_end = time.time()
-
-        # Compute time elapsed
-        dataset["time_elapsed"] = time_end - time_start
 
         # Transform dataset to a dictionary
-        dataset_to_dict = dataset.to_dict(orient="records")  # dict, list, records
+        dataset_to_dict = dataset.to_dict(orient="records")
 
         stage_results = []
         for element in previous_steps_results.results:
@@ -368,7 +348,10 @@ class CountryFilterer(BaseStep):
     def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:
         # TODO implement logic
 
+        time_start = time.time()
         results = self.get_step_results(previous_step_results)
+        time_end = time.time()
+        previous_step_results.meta.time_country_filterer = time_end - time_start
 
         # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
         pipeline_results = self.add_pipeline_steps_to_results(

@@ -5,9 +5,14 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, Iterator, List, Union
 from collections.abc import Mapping
 from datetime import datetime, timezone
+import abc
 from abc import ABC, abstractmethod
+import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import pandas as pd
 
-from helpers.utils import _get_uuid, write_json
+from helpers.utils import _get_uuid, write_json, filter_dict_keys
+from helpers import utils_io
 from helpers.context import Context
 from helpers import LOGGER_NAME
 
@@ -102,6 +107,8 @@ class MetaData(ObjectUtilitiesContainer):
         default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
     )
     uuid: str = field(init=False)
+    time_country_filterer: float = field(default_factory=float)
+    time_delivery_policy_extractor: float = field(default_factory=float)
 
     def __post_init__(self):
         self.uuid = _get_uuid(self.keyword, self.resultDate)
@@ -472,21 +479,6 @@ class PageTypes:
 # ---------------------------------------------------
 # BaseCountryFilterer
 # ---------------------------------------------------
-import logging
-import re
-
-import abc
-import tqdm
-
-from typing import List
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-from helpers import LOGGER_NAME
-from helpers import utils_io
-
-import pandas as pd
-
-logger = logging.getLogger(LOGGER_NAME)
 
 
 # base country filterer
@@ -540,6 +532,14 @@ class BaseCountryFilterer(abc.ABC):
 
     def perform_filtering(self, df: pd.DataFrame) -> pd.DataFrame:
         """Perform filtering.
+        Classifies for each url of the dataframe if delivery is possible to the country of interest.
+        Executes (if specified in the settings) successively the known domains filter which will check 
+        if in the domain registry if the domain associated with the url has already been classified, 
+        then the url filter which will check if the url contains characters indicating delivery to the 
+        country of interest.
+        If the url is not classified by the 2 previous filters as delivering or not in the country of 
+        interest then it is classified as "unknown".
+        Each new classified domain is added to the domain registry.
 
         Args:
             df (pd.DataFrame): dataFrame to filter.
@@ -570,7 +570,7 @@ class BaseCountryFilterer(abc.ABC):
                 # Add it to the list
                 list_pages_labeled.append(page_labeled)
                 
-                # Add the domain to known domains if known_domains filterer is used and domain is not already in known_domains (filterer label != "known_domains")
+                # Add the domain to known domains if known_domains filterer is used and domain is not already in known_domains and is not unknown
                 if (self.index_known_domains_filterer is not None) & (
                     page_labeled["filterer_name"] not in ["known_domains", "unknown"] # i.e., = "url"
                 ):
@@ -605,23 +605,13 @@ class BaseCountryFilterer(abc.ABC):
         )
 
         return index_known_domains_filterer
-
-    @staticmethod
-    def filter_dict_keys(original_dict, keys_to_save):
-        # TODO: to put in helpers.utils
-
-        # Create the nested dictionary including the keys to save
-        # Not a problem if the key does not exist in the original dictionary
-        dict_filtered = {k: v for k, v in original_dict.items() if k in keys_to_save}
-
-        return dict_filtered
     
     def add_domain_to_known_domains_filterer(self, page_labeled):
         # Recover label from page_labeled
         label, domain = page_labeled["RESULT"], page_labeled["domain"]
 
         # Filter page_labeled with relevant keys
-        page_labeled_filtered = self.filter_dict_keys(
+        page_labeled_filtered = filter_dict_keys(
             original_dict=page_labeled, keys_to_save=self.config["KEYS_TO_SAVE"]
         )
 
@@ -732,6 +722,14 @@ class BaseShippingPolicyFilterer(abc.ABC):
 
     def perform_filtering(self, df: pd.DataFrame) -> pd.DataFrame:
         """Perform filtering.
+        Classifies for each url of the dataframe if the delivery is possible to the country of interest.
+        Executes the Shipping policy filter only for urls which have not yet been classified by the offline 
+        filterers (i.e., known_domains and url): it extracts the product page, then identifies in its footer 
+        the shipping policy page then extracts it and sends it to an LLM asking it to say if the site delivers 
+        or not or does not know in the country of interest.
+        Each new classified domain is added to the domain registry.
+        The extraction of the product and shipping policy pages for all urls is done in parallel using the 
+        Zyte API in order to go faster.
 
         Args:
             df (pd.DataFrame): dataFrame to filter.
@@ -798,22 +796,12 @@ class BaseShippingPolicyFilterer(abc.ABC):
 
         return df_labeled
 
-    @staticmethod
-    def filter_dict_keys(original_dict, keys_to_save):
-        # TODO: to put in helpers.utils
-
-        # Create the nested dictionary including the keys to save
-        # Not a problem if the key does not exist in the original dictionary
-        dict_filtered = {k: v for k, v in original_dict.items() if k in keys_to_save}
-
-        return dict_filtered
-
     def add_domain_to_known_domains(self, page_labeled):
         # Recover label from page_labeled
         label, domain = page_labeled["RESULT"], page_labeled["domain"]
 
         # Filter page_labeled with relevant keys
-        page_labeled_filtered = self.filter_dict_keys(
+        page_labeled_filtered = filter_dict_keys(
             original_dict=page_labeled, keys_to_save=self.config["KEYS_TO_SAVE"]
         )
 
