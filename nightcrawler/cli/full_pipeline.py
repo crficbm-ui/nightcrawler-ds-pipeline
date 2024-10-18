@@ -6,7 +6,6 @@ from nightcrawler.extract.s01_serp_api import SerpapiExtractor
 from nightcrawler.extract.s02_enriched_keywords import KeywordEnricher
 from nightcrawler.extract.s04_zyte import ZyteExtractor
 from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
-# from nightcrawler.process.s06_delivery_page_detection import DeliveryPolicyDetector
 from nightcrawler.process.s07_page_type_detection import PageTypeDetector
 from nightcrawler.process.s08_blocket_content_detection import BlockedContentDetector
 from nightcrawler.process.s09_content_domain_detection import ContentDomainDetector
@@ -121,17 +120,6 @@ def apply(args: argparse.Namespace) -> None:
 
     # Step 4: Use Zyte to process the URLs further
     zyte_results = ZyteExtractor(context).apply(serpapi_results)
-
-    # Step 5: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.
-    # TODO replace the manual filtering logic with Mistral call by Nicolas W.
-    # processor_results = DataProcessor(context).apply(
-    #     previous_step_results=zyte_results, country=args.country
-    # )
-
-    # Step 6: delivery policy filtering based on offline analysis of domains public delivery information
-    # delivery_policy_filtering_results = DeliveryPolicyDetector(context).apply(
-    #     previous_step_results=processor_results
-    # )
     
     # Step 5: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists
     country_filtering_results = CountryFilterer(context).apply(
