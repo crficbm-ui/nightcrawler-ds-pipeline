@@ -3,27 +3,195 @@ import time
 import re
 import urllib.parse
 from typing import List
-import nltk
-from nltk.stem import PorterStemmer
-from nltk.corpus import stopwords
 import pandas as pd
+from abc import ABC, abstractmethod
+import tqdm
 
-from nightcrawler.base import BaseCountryFilterer, CountryFilteringData, PipelineResult, BaseStep
-from helpers import LOGGER_NAME
+from nightcrawler.base import CountryFilteringData, PipelineResult, BaseStep
 from helpers.context import Context
 from helpers.settings import Settings
-from helpers import utils_strings
+from helpers import utils_io, utils_strings, LOGGER_NAME
+from helpers.utils import filter_dict_keys
 
 logger = logging.getLogger(LOGGER_NAME)
 
 
-# Download NLTK resources (only required for the first time)
-nltk.download("punkt")
-nltk.download("stopwords")
-nltk.download("punkt_tab")
+# ---------------------------------------------------
+# BaseCountryFilterer
+# ---------------------------------------------------
 
-STEMMER = PorterStemmer()
-LANGS = stopwords.fileids()
+
+# base country filterer
+class BaseCountryFilterer(ABC):
+    """Base class for country filterers."""
+
+    RESULT_POSITIVE = +1
+    RESULT_UNKNOWN = 0
+    RESULT_NEGATIVE = -1
+
+    def __init__(
+        self,
+        name: str,
+        country: str | None = None,
+        config: dict | None = None,
+        config_filterer: dict | None = None,
+    ) -> None:
+        super().__init__()
+
+        self.name = name
+
+        if config:
+            self.config = config
+        else:
+            self.config = {}
+
+        if country:
+            if name == "known_domains":
+                self.setting = utils_io.load_setting(
+                    path_settings=config.get("PATH_CURRENT_PROJECT_SETTINGS"),
+                    country=country,
+                    file_name=name,
+                )
+            else:
+                self.setting = config_filterer
+        else:
+            self.setting = {}
+
+    @abstractmethod
+    def filter_page(self, **page: str) -> int:
+        """Filter page.
+
+        Args:
+            **page (str): page.
+
+        Returns:
+            int: result of filtering.
+        """
+
+        raise NotImplementedError
+
+    def perform_filtering(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Perform filtering.
+        Classifies for each url of the dataframe if delivery is possible to the country of interest.
+        Executes (if specified in the settings) successively the known domains filter which will check 
+        if in the domain registry if the domain associated with the url has already been classified, 
+        then the url filter which will check if the url contains characters indicating delivery to the 
+        country of interest.
+        If the url is not classified by the 2 previous filters as delivering or not in the country of 
+        interest then it is classified as "unknown".
+        Each new classified domain is added to the domain registry.
+
+        Args:
+            df (pd.DataFrame): dataFrame to filter.
+
+        Returns:
+            pd.DataFrame: filtered dataFrame.
+        """
+        
+        tqdm.tqdm.pandas(desc=f"Filtering with {self.name}...", leave=False)
+
+        # Create a list to store rows' indexes and labels
+        list_pages_labeled = []
+
+        # Recover known_domains filterer index if known_domains filterer is used
+        self.index_known_domains_filterer = self.get_index_known_domains_filterer()
+        
+        def pseudo_filter_page(row):
+            return row.name, self.filter_page(
+                **row.dropna().to_dict()
+            )
+
+        with tqdm.tqdm(total=len(df)) as pbar:
+            for _, row in df.iterrows():
+                # Get page_labeled and add the index
+                row_index, page_labeled = pseudo_filter_page(row)
+                page_labeled["index"] = row_index
+
+                # Add it to the list
+                list_pages_labeled.append(page_labeled)
+                
+                # Add the domain to known domains if known_domains filterer is used and domain is not already in known_domains and is not unknown
+                if (self.index_known_domains_filterer is not None) & (
+                    page_labeled["filterer_name"] not in ["known_domains", "unknown"] # i.e., = "url"
+                ):
+                    # Add domain to known_domains filterer
+                    try:
+                        self.add_domain_to_known_domains_filterer(
+                            page_labeled=page_labeled
+                        )
+
+                    except Exception as e:
+                        print(f"Error: {e}")
+
+                pbar.update(1)
+        
+        # If the setting is set to save new classified domains
+        if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
+            # Save new known domains
+            self.save_new_known_domains()
+
+        # Create a df with the outputs
+        df_labeled = pd.DataFrame(list_pages_labeled)
+
+        return df_labeled
+
+    def get_index_known_domains_filterer(self):
+        # Recover index of known_domains filterer
+        list_filterer_names = self.name.split("+")
+        index_known_domains_filterer = (
+            list_filterer_names.index("known_domains")
+            if "known_domains" in list_filterer_names
+            else None
+        )
+
+        return index_known_domains_filterer
+    
+    def add_domain_to_known_domains_filterer(self, page_labeled):
+        # Recover label from page_labeled
+        label, domain = page_labeled["RESULT"], page_labeled["domain"]
+
+        # Filter page_labeled with relevant keys
+        page_labeled_filtered = filter_dict_keys(
+            original_dict=page_labeled, keys_to_save=self.config["KEYS_TO_SAVE"]
+        )
+
+        # Extract known_domains_filterer
+        known_domains_filterer = self.filterers[self.index_known_domains_filterer]
+
+        # Add domain labeled to dict
+        if label == 1:
+            known_domains_filterer.domains_pos[domain] = page_labeled_filtered
+
+        elif label == 0:
+            known_domains_filterer.domains_unknwn[domain] = page_labeled_filtered
+
+        elif label == -1:
+            known_domains_filterer.domains_neg[domain] = page_labeled_filtered
+
+        # Update self.filterers
+        self.filterers[self.index_known_domains_filterer] = known_domains_filterer
+
+    def save_new_known_domains(self):
+        # Extract known_domains_filterer
+        known_domains_filterer = self.filterers[self.index_known_domains_filterer]
+
+        dict_known_domains = {
+            "domains_pos": known_domains_filterer.domains_pos,
+            "domains_unknwn": known_domains_filterer.domains_unknwn,
+            "domains_neg": known_domains_filterer.domains_neg,
+        }
+
+        _ = utils_io.save_and_load_setting(
+            setting=dict_known_domains,
+            path_settings=known_domains_filterer.path_settings,
+            country=known_domains_filterer.country,
+            file_name=known_domains_filterer.name,
+        )
+
+
+# ---------------------------------------------------
+# MasterCountryFilterer
+# ---------------------------------------------------
 
 
 # Master country filterer
@@ -85,6 +253,11 @@ class MasterCountryFilterer(BaseCountryFilterer):
         page["filterer_name"] = "unknown"
 
         return page
+
+
+# ---------------------------------------------------
+# KnownDomainsFilterer
+# ---------------------------------------------------
 
 
 # Known domains filterer
@@ -154,6 +327,11 @@ class KnownDomainsFilterer(BaseCountryFilterer):
             page["RESULT"] = self.RESULT_NEGATIVE
 
         return page
+
+
+# ---------------------------------------------------
+# UrlCountryFilterer
+# ---------------------------------------------------
 
 
 def process_url(url: str) -> str:
@@ -284,8 +462,13 @@ class UrlCountryFilterer(BaseCountryFilterer):
             page["RESULT"] = self.RESULT_POSITIVE
 
         return page
-    
 
+
+# ---------------------------------------------------
+# CountryFilterer
+# ---------------------------------------------------
+
+# Country filterer
 class CountryFilterer(BaseStep):
     """Implementation of the country filterer (step 5)"""
 

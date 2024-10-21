@@ -1,11 +1,12 @@
 import argparse
 import logging
 from typing import List
-from nightcrawler.process.s05_dataprocessor import DataProcessor
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
 from nightcrawler.extract.s02_enriched_keywords import KeywordEnricher
-from nightcrawler.extract.s04_zyte import ZyteExtractor
 from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
+from nightcrawler.extract.s04_zyte import ZyteExtractor
+from nightcrawler.process.s05_country_filterer import CountryFilterer
+from nightcrawler.process.s06_delivery_page_detection import DeliveryPolicyExtractor
 from nightcrawler.process.s07_page_type_detection import PageTypeDetector
 from nightcrawler.process.s08_blocket_content_detection import BlockedContentDetector
 from nightcrawler.process.s09_content_domain_detection import ContentDomainDetector
@@ -62,9 +63,6 @@ def add_parser(
 
     return parser
 
-
-from nightcrawler.process.s05_country_filterer import CountryFilterer
-from nightcrawler.process.s06_delivery_page_detection import DeliveryPolicyExtractor
 
 @timeit
 def apply(args: argparse.Namespace) -> None:

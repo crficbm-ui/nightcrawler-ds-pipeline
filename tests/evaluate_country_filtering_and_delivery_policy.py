@@ -6,9 +6,7 @@ import seaborn as sns
 
 from nightcrawler.process.s05_country_filterer import MasterCountryFilterer
 from helpers.settings import Settings
-
 from nightcrawler.process.s06_delivery_page_detection import ShippingPolicyFilterer
-from helpers.settings import Settings
 from helpers.api.llm_apis import MistralAPI
 from helpers.api.zyte_api import ZyteAPI
 from helpers import utils_io
