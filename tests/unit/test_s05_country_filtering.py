@@ -1,71 +1,120 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import patch, MagicMock
 
-from nightcrawler.base import PipelineResult, CrawlResultData
+from nightcrawler.base import PipelineResult, CrawlResultData, CountryFilteringData
 from helpers.context import Context
-from nightcrawler.process.s05_country_filterer import CountryFilterer
+from nightcrawler.process.s05_country_filterer import CountryFilterer, BaseCountryFilterer
+
+
+# ---------------------------------------------------
+# Tests for Switzerland
+# ---------------------------------------------------
 
 
 @pytest.fixture
-def mock_context():
-    """Fixture to create a mock context object."""
-    context = MagicMock(spec=Context)
-    context.output_dir = "/mock/output/dir"
-    context.processing_filename_country_filtering = "process_country_filtering.json"
-    return context
-
-
-@pytest.fixture(params=["CH", "AT"])
-def country_filterer(mock_context, request):
-    """Fixture to create a Country Filterer instance for different countries."""
-    return CountryFilterer(context=mock_context, country=request.param)
-
-
-@pytest.fixture
-def sample_previous_pipeline_result():
-    """Fixture to create a sample PipelineResult object with mock results."""
+def sample_previous_pipeline_result_ch():
+    """Fixture to create a sample PipelineResult object of previous step (step 4 zyte extraction) with mock results, for Switzerland."""
     return PipelineResult(
         meta=MagicMock(),
-        results=[CrawlResultData(offerRoot="GOOGLE",
+        results=[CrawlResultData(offerRoot="GOOGLE", # offerRoot is mandatory
                                  url="u1.ch"),
                 CrawlResultData(offerRoot="GOOGLE",
-                                url="u2.com")]
+                                url="u2.at")]
     )
 
 
 @pytest.fixture
-def sample_pipeline_result():
-    return PipelineResult(
-        meta=MagicMock(),
-        results=[CrawlResultData(offerRoot="GOOGLE",
+def sample_country_filtering_result_ch():
+    """Fixture to create a sample Country filtering result, for Switzerland."""
+    return [CountryFilteringData(offerRoot="GOOGLE", # offerRoot is mandatory
                                  url="u1.ch",
                                  domain="u1.ch",
                                  filtererName="url",
-                                 deliveringToCountry=1),
-                CrawlResultData(offerRoot="GOOGLE",
-                                url="u2.com",
-                                domain="u2.com",
-                                filtererName="unknown",
-                                deliveringToCountry=0)]
-    )
+                                 deliveringToCountry=1,
+                                 ),
+            CountryFilteringData(offerRoot="GOOGLE",
+                                 url='u2.at',
+                                 domain='u2.at', 
+                                 filtererName='unknown', 
+                                 deliveringToCountry=0,
+                                 ),
+        ]
 
 
-def test_apply_step_country_filterer(country_filterer, sample_previous_pipeline_result, sample_pipeline_result):
-    """Test the apply_step method for Zyte detection."""
-    # Mock the `add_pipeline_steps_to_results` and `store_results` methods
-    country_filterer.add_pipeline_steps_to_results = MagicMock(
-        return_value=sample_pipeline_result
-    )
-    country_filterer.store_results = MagicMock()
+
+@patch.object(BaseCountryFilterer, "save_new_known_domains")
+def test_get_step_results_country_filterer_ch(mock_save_new_known_domains, sample_previous_pipeline_result_ch, sample_country_filtering_result_ch):
+    """Test the get_step_results method for Country filtering, for Switzerland."""
+    # Mock save_new_known_domains
+    mock_save_new_known_domains.return_value = None
+
+    # Init context
+    context = Context()
+    
+    # Init country filterer
+    country_filterer = CountryFilterer(context=context, country="CH")
 
     # Apply country filtering
-    result = country_filterer.apply_step(
-        previous_step_results=sample_previous_pipeline_result
+    country_filtering_result_ch = country_filterer.get_step_results(sample_previous_pipeline_result_ch)
+    print(country_filtering_result_ch)
+    print(sample_country_filtering_result_ch)
+
+    # Check country filerer worked
+    assert(country_filtering_result_ch == sample_country_filtering_result_ch)
+
+
+# ---------------------------------------------------
+# Tests for Austria
+# ---------------------------------------------------
+
+
+@pytest.fixture
+def sample_previous_pipeline_result_at():
+    """Fixture to create a sample PipelineResult object of previous step (step 4 zyte extraction) with mock results, for Austria."""
+    return PipelineResult(
+        meta=MagicMock(),
+        results=[CrawlResultData(offerRoot="GOOGLE", # offerRoot is mandatory
+                                 url="u1.at"),
+                CrawlResultData(offerRoot="GOOGLE",
+                                url="u2.ch")]
     )
 
-    # Check that results are added and stored correctly
-    country_filterer.add_pipeline_steps_to_results.assert_called_once()
-    country_filterer.store_results.assert_called_once()
 
-    # Ensure that the returned result is a PipelineResult
-    assert isinstance(result, PipelineResult)
+@pytest.fixture
+def sample_country_filtering_result_at():
+    return [CountryFilteringData(offerRoot="GOOGLE", # offerRoot is mandatory
+                                 url="u1.at",
+                                 domain="u1.at",
+                                 filtererName="url",
+                                 deliveringToCountry=1,
+                                 ),
+            CountryFilteringData(offerRoot="GOOGLE",
+                                 url='u2.ch',
+                                 domain='u2.ch', 
+                                 filtererName='url', # .ch is included in domains to be classified as positive in UrlCountryFilterer for AT/Austria
+                                 deliveringToCountry=1, 
+                                 ),
+        ]
+
+
+
+@patch.object(BaseCountryFilterer, "save_new_known_domains")
+def test_get_step_results_country_filterer_at(mock_save_new_known_domains, sample_previous_pipeline_result_at, sample_country_filtering_result_at):
+    """Test the get_step_results method for Country filtering, for Austria."""
+    # Mock save_new_known_domains
+    mock_save_new_known_domains.return_value = None
+
+    # Init context
+    context = Context()
+    
+    # Init country filterer
+    country_filterer = CountryFilterer(context=context, country="AT")
+
+    # Apply country filtering
+    country_filtering_result_at = country_filterer.get_step_results(sample_previous_pipeline_result_at)
+    print(country_filtering_result_at)
+    print(sample_country_filtering_result_at)
+
+    # Check country filerer worked
+    assert(country_filtering_result_at == sample_country_filtering_result_at)
+
