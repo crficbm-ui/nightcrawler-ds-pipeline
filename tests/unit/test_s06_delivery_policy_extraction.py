@@ -15,10 +15,10 @@ def mock_context():
     return context
 
 
-@pytest.fixture
-def delivery_policy_extractor(mock_context):
-    """Fixture to create a PageTypeDetector instance."""
-    return DeliveryPolicyExtractor(context=mock_context)
+@pytest.fixture(params=["CH", "AT"])
+def delivery_policy_extractor(mock_context, request):
+    """Fixture to create a Delivery Policy Extractor instance for different countries."""
+    return DeliveryPolicyExtractor(context=mock_context, country=request.param)
 
 
 @pytest.fixture

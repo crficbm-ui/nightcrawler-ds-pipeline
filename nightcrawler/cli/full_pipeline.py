@@ -73,7 +73,10 @@ def apply(args: argparse.Namespace) -> None:
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
-
+    
+    # Set country
+    country = args.country if args.country else "CH"
+    
     if not args.reverse_image_search:
         # Step 0: create the results directory with searchitem = keyword
         context.output_dir = create_output_dir(args.searchitem, context.output_path)
@@ -86,7 +89,6 @@ def apply(args: argparse.Namespace) -> None:
         # Step 2: Enricht query by adding additional keywords if `-e` argument was set
         if args.enrich_keyword:
             # load dataForSeo configs based on the country information, if none provided, default to CH
-            country = args.country if args.country else "CH"
             api_config_for_country = context.settings.data_for_seo.api_params.get(
                 country
             )
@@ -120,12 +122,12 @@ def apply(args: argparse.Namespace) -> None:
     zyte_results = ZyteExtractor(context).apply(serpapi_results)
     
     # Step 5: Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists
-    country_filtering_results = CountryFilterer(context).apply(
+    country_filtering_results = CountryFilterer(context=context, country=country).apply(
         previous_step_results=zyte_results
     )
 
     # Step 6: delivery policy filtering based on online analysis of domains public delivery information
-    delivery_policy_filtering_results = DeliveryPolicyExtractor(context).apply(
+    delivery_policy_filtering_results = DeliveryPolicyExtractor(context=context, country=country).apply(
         previous_step_results=country_filtering_results
     )
 

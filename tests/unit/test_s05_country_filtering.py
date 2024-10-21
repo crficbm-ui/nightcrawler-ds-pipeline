@@ -15,10 +15,10 @@ def mock_context():
     return context
 
 
-@pytest.fixture
-def country_filterer(mock_context):
-    """Fixture to create a PageTypeDetector instance."""
-    return CountryFilterer(context=mock_context)
+@pytest.fixture(params=["CH", "AT"])
+def country_filterer(mock_context, request):
+    """Fixture to create a Country Filterer instance for different countries."""
+    return CountryFilterer(context=mock_context, country=request.param)
 
 
 @pytest.fixture

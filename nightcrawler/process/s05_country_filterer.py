@@ -479,8 +479,10 @@ class CountryFilterer(BaseStep):
     DEFAULT_CONFIG_URL_FILTERER = SETTINGS.config_url_filterer
 
     def __init__(self, context: Context, *args, **kwargs):
-        self.config = kwargs.get("config", self.DEFAULT_CONFIG)
-        self.config_url_filterer = kwargs.get("config_url_filterer", self.DEFAULT_CONFIG_URL_FILTERER)
+        country = kwargs.get("country")
+
+        self.config = self.DEFAULT_CONFIG.get(country)
+        self.config_url_filterer = self.DEFAULT_CONFIG_URL_FILTERER.get(country)
 
         super().__init__(self._entity_name)
         self.context = context

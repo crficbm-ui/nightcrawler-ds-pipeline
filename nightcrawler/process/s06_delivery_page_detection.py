@@ -774,13 +774,15 @@ class DeliveryPolicyExtractor(BaseStep):
     DEFAULT_CONFIG_FILTERER = SETTINGS.config_filterer
 
     def __init__(self, context: Context, *args, **kwargs):
-        self.config = kwargs.get("config", self.DEFAULT_CONFIG)
-        self.config_filterer = kwargs.get(
-            "config_filterer", self.DEFAULT_CONFIG_FILTERER
-        )
+        country = kwargs.get("country")
+
+        self.config = self.DEFAULT_CONFIG.get(country)
+        self.config_filterer = self.DEFAULT_CONFIG_FILTERER.get(country)
+
         self.zyte_client_product_page = self._setup_zyte_client_product_page()
         self.zyte_client_policy_page = self._setup_zyte_client_policy_page()
         self.mistral_client = self._setup_mistral_client()
+
         super().__init__(self._entity_name)
         self.context = context
 
