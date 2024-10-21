@@ -143,7 +143,8 @@ def main():
     )
 
     # Evaluate
-    evaluate_filterers_dataset_labeled(blob_2024_top_domain_raw_spf)
+    metrics = evaluate_filterers_dataset_labeled(blob_2024_top_domain_raw_spf)
+    print(metrics)
 
 
 if __name__ == "__main__":

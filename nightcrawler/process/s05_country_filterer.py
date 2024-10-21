@@ -338,7 +338,7 @@ class CountryFilterer(BaseStep):
                     CountryFilteringData(
                         domain=entry.get("domain"),
                         filtererName=entry.get("filterer_name"),
-                        DeliveringtoCountry=entry.get("RESULT"),
+                        deliveringToCountry=entry.get("RESULT"),
                         **element,
                     )
                 )

@@ -9,7 +9,7 @@ import nltk
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 
-from nightcrawler.base import DeliveryPolicyData, PipelineResult, BaseStep
+from nightcrawler.base import DeliveryPolicyData, BaseShippingPolicyFilterer, PipelineResult, BaseStep
 from helpers.api.llm_apis import MistralAPI
 from helpers.api.zyte_api import ZyteAPI
 from helpers.context import Context
@@ -191,8 +191,6 @@ def process_llm_response_content(llm_response_content, country):
 
     return dict_response_content, llm_response_answer, llm_response_justification
 
-
-from nightcrawler.base import BaseShippingPolicyFilterer
 
 # Shipping Policy filterer
 class ShippingPolicyFilterer(BaseShippingPolicyFilterer):
@@ -566,7 +564,7 @@ class DeliveryPolicyExtractor(BaseStep):
             {"page_url": [e.url for e in previous_steps_results.results],
              "domain": [e.domain for e in previous_steps_results.results],
              "filterer_name": [e.filtererName for e in previous_steps_results.results],
-             "RESULT": [e.DeliveringtoCountry for e in previous_steps_results.results],}
+             "RESULT": [e.deliveringToCountry for e in previous_steps_results.results],}
         )
 
         # Instantiate filterer
@@ -604,9 +602,9 @@ class DeliveryPolicyExtractor(BaseStep):
                     DeliveryPolicyData(
                         domain=entry.get("domain"),
                         filtererName=entry.get("filterer_name"),
-                        DeliveringtoCountry=entry.get("RESULT"),
+                        deliveringToCountry=entry.get("RESULT"),
                         labelJustif=entry.get("label_justif"),
-                        **{key: value for key, value in element.items() if key not in ["domain", "filtererName", "DeliveringtoCountry"]},
+                        **{key: value for key, value in element.items() if key not in ["domain", "filtererName", "deliveringToCountry"]},
                     )
                 )
 

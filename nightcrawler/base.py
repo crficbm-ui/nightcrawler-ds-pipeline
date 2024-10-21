@@ -5,16 +5,14 @@ from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, Iterator, List, Union
 from collections.abc import Mapping
 from datetime import datetime, timezone
-import abc
 from abc import ABC, abstractmethod
 import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 
 from helpers.utils import _get_uuid, write_json, filter_dict_keys
-from helpers import utils_io
 from helpers.context import Context
-from helpers import LOGGER_NAME
+from helpers import utils_io, LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -179,7 +177,7 @@ class CountryFilteringData(ExtractZyteData): # ProcessData
 
     domain: Optional[str] = None
     filtererName: Optional[str] = None
-    DeliveringtoCountry: Optional[int] = None
+    deliveringToCountry: Optional[int] = None
 
 @dataclass
 class DeliveryPolicyData(CountryFilteringData): # ProcessData
@@ -187,7 +185,7 @@ class DeliveryPolicyData(CountryFilteringData): # ProcessData
 
     domain: Optional[str] = None
     filtererName: Optional[str] = None
-    DeliveringtoCountry: Optional[int] = None
+    deliveringToCountry: Optional[int] = None
     labelJustif: Optional[str] = None
 
 @dataclass
@@ -482,7 +480,7 @@ class PageTypes:
 
 
 # base country filterer
-class BaseCountryFilterer(abc.ABC):
+class BaseCountryFilterer(ABC):
     """Base class for country filterers."""
 
     RESULT_POSITIVE = +1
@@ -517,7 +515,7 @@ class BaseCountryFilterer(abc.ABC):
         else:
             self.setting = {}
 
-    @abc.abstractmethod
+    @abstractmethod
     def filter_page(self, **page: str) -> int:
         """Filter page.
 
@@ -654,7 +652,7 @@ class BaseCountryFilterer(abc.ABC):
 # ---------------------------------------------------
 
 
-class BaseShippingPolicyFilterer(abc.ABC):
+class BaseShippingPolicyFilterer(ABC):
     """Base class for shipping policy filterer."""
 
     RESULT_POSITIVE = +1
@@ -707,7 +705,10 @@ class BaseShippingPolicyFilterer(abc.ABC):
         # Policy page Zyte API
         self.zyte_api_policy_page_config = self.setting.get("zyte_api_policy_page_config")
 
-    @abc.abstractmethod
+        # Use concurrency
+        self.use_concurrency = self.setting.get("use_concurrency")
+
+    @abstractmethod
     def filter_page(self, **page: str) -> int:
         """Filter page.
 
@@ -757,17 +758,12 @@ class BaseShippingPolicyFilterer(abc.ABC):
             
             else:
                 return row.name, row.dropna().to_dict()
-            
-        # Use ThreadPoolExecutor to call zyte api in parallel for the shipping policy step
-        with ThreadPoolExecutor(max_workers=50) as executor:
-            futures = [
-                executor.submit(pseudo_filter_page, row) for _, row in df.iterrows()
-            ]
-
-            with tqdm.tqdm(total=len(futures)) as pbar:
-                for future in as_completed(futures):
+        
+        if not self.use_concurrency:
+            with tqdm.tqdm(total=len(df)) as pbar:
+                for _, row in df.iterrows():
                     # Get page_labeled and add the index
-                    row_index, page_labeled = future.result()
+                    row_index, page_labeled = pseudo_filter_page(row)
                     page_labeled["index"] = row_index
 
                     # Add it to the list
@@ -785,6 +781,35 @@ class BaseShippingPolicyFilterer(abc.ABC):
                             print(f"Error: {e}")
 
                     pbar.update(1)
+
+        else:
+            # Use ThreadPoolExecutor to call zyte api in parallel for the shipping policy step
+            with ThreadPoolExecutor(max_workers=50) as executor:
+                futures = [
+                    executor.submit(pseudo_filter_page, row) for _, row in df.iterrows()
+                ]
+
+                with tqdm.tqdm(total=len(futures)) as pbar:
+                    for future in as_completed(futures):
+                        # Get page_labeled and add the index
+                        row_index, page_labeled = future.result()
+                        page_labeled["index"] = row_index
+
+                        # Add it to the list
+                        list_pages_labeled.append(page_labeled)
+
+                        # If the page has been classified by the shipping policy filterer
+                        if page_labeled["filterer_name"] == self.name:
+                            # Add domain to known_domains variable
+                            try:
+                                self.add_domain_to_known_domains(
+                                    page_labeled=page_labeled
+                                )
+
+                            except Exception as e:
+                                print(f"Error: {e}")
+
+                        pbar.update(1)
         
         # If the setting is set to save new classified domains
         if self.config["SAVE_NEW_CLASSIFIED_DOMAINS"]:
