@@ -342,7 +342,9 @@ def process_url(url: str) -> str:
 
 def parse_url(url: str) -> urllib.parse.ParseResult:
     """Parse url."""
-
+    if not url.startswith("https://"):
+        url = "https://" + url
+    
     return urllib.parse.urlparse(url)
 
 

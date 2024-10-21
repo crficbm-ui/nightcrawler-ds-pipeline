@@ -1,24 +1,42 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import patch, MagicMock
 
 from nightcrawler.base import PipelineResult, CrawlResultData
 from helpers.context import Context
 from nightcrawler.process.s06_delivery_page_detection import DeliveryPolicyExtractor
 
 
+# @pytest.fixture
+# def mock_context():
+#     """Fixture to create a mock context object."""
+#     context = MagicMock(spec=Context)
+#     context.output_dir = "/mock/output/dir"
+#     context.processing_filename_delivery_policy = "process_delivery_policy.json"
+#     return context
+
+
+# @pytest.fixture(params=["CH", "AT"])
+# def delivery_policy_extractor(mock_context, request):
+#     """Fixture to create a Delivery Policy Extractor instance for different countries."""
+#     return DeliveryPolicyExtractor(context=mock_context, country=request.param)
+
+
 @pytest.fixture
-def mock_context():
-    """Fixture to create a mock context object."""
-    context = MagicMock(spec=Context)
-    context.output_dir = "/mock/output/dir"
-    context.processing_filename_delivery_policy = "process_delivery_policy.json"
-    return context
+@patch('nightcrawler.process.s06_delivery_page_detection.DeliveryPolicyExtractor._setup_zyte_client_product_page')  # Patch _setup_zyte_client_product_page in MasterCountryFilterer
+def master_country_filterer(mock_setup_zyte_client_product_page):
+    mock_client = MagicMock()
+    mock_setup_zyte_client_product_page.return_value = {}
+
+    return DeliveryPolicyExtractor(context=Context(), country="CH")
 
 
-@pytest.fixture(params=["CH", "AT"])
-def delivery_policy_extractor(mock_context, request):
-    """Fixture to create a Delivery Policy Extractor instance for different countries."""
-    return DeliveryPolicyExtractor(context=mock_context, country=request.param)
+@patch.object(DeliveryPolicyExtractor, "._setup_zyte_client_product_page")  # Patch _setup_zyte_client_product_page in DeliveryPolicyExtractor
+def DeliveryPolicyExtractor(mock_setup_zyte_client_product_page, mock_setup_zyte_client_policy_page):
+    mock_client = MagicMock()
+    mock_setup_zyte_client_product_page.return_value = {}
+    mock_setup_zyte_client_policy_page.return_value = {}
+
+    # return MasterCountryFilterer()
 
 
 @pytest.fixture

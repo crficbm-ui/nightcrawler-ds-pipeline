@@ -1,24 +1,9 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import patch, MagicMock
 
-from nightcrawler.base import PipelineResult, CrawlResultData
+from nightcrawler.base import PipelineResult, CrawlResultData, CountryFilteringData
 from helpers.context import Context
-from nightcrawler.process.s05_country_filterer import CountryFilterer
-
-
-@pytest.fixture
-def mock_context():
-    """Fixture to create a mock context object."""
-    context = MagicMock(spec=Context)
-    context.output_dir = "/mock/output/dir"
-    context.processing_filename_country_filtering = "process_country_filtering.json"
-    return context
-
-
-@pytest.fixture(params=["CH", "AT"])
-def country_filterer(mock_context, request):
-    """Fixture to create a Country Filterer instance for different countries."""
-    return CountryFilterer(context=mock_context, country=request.param)
+from nightcrawler.process.s05_country_filterer import CountryFilterer, MasterCountryFilterer
 
 
 @pytest.fixture
@@ -29,43 +14,69 @@ def sample_previous_pipeline_result():
         results=[CrawlResultData(offerRoot="GOOGLE",
                                  url="u1.ch"),
                 CrawlResultData(offerRoot="GOOGLE",
-                                url="u2.com")]
+                                url="u2.at")]
     )
 
 
 @pytest.fixture
-def sample_pipeline_result():
-    return PipelineResult(
-        meta=MagicMock(),
-        results=[CrawlResultData(offerRoot="GOOGLE",
+def sample_pipeline_result_ch():
+    return [CountryFilteringData(offerRoot="GOOGLE",
                                  url="u1.ch",
+                                 keywordEnriched=None,
+                                 keywordVolume=-1,
+                                 keywordLanguage=None, 
+                                 keywordLocation=None,
+                                 imageUrl=None,
+                                 price=None, 
+                                 title=None,
+                                 fullDescription=None,
+                                 zyteExecutionTime=0.0, 
+                                 html=None, 
+                                 zyteProbability=0.0,
                                  domain="u1.ch",
                                  filtererName="url",
-                                 deliveringToCountry=1),
-                CrawlResultData(offerRoot="GOOGLE",
-                                url="u2.com",
-                                domain="u2.com",
-                                filtererName="unknown",
-                                deliveringToCountry=0)]
-    )
+                                 deliveringToCountry=1,
+                                 ),
+            CountryFilteringData(offerRoot='GOOGLE', 
+                            url='u2.at', 
+                            keywordEnriched=None, 
+                            keywordVolume=-1, 
+                            keywordLanguage=None, 
+                            keywordLocation=None, 
+                            imageUrl=None, 
+                            price=None, 
+                            title=None, 
+                            fullDescription=None, 
+                            zyteExecutionTime=0.0, 
+                            html=None, 
+                            zyteProbability=0.0, 
+                            domain='u2.at', 
+                            filtererName='unknown', 
+                            deliveringToCountry=0,
+                            ),
+        ]
+
+# @pytest.fixture
+# @patch('nightcrawler.process.s05_country_filterer.MasterCountryFilterer.save_new_known_domains')  # Patch save_new_known_domains in MasterCountryFilterer
+# def master_country_filterer(mock_save_new_known_domains):
+#     mock_client = MagicMock()
+#     mock_save_new_known_domains.return_value = mock_client
+
+#     return MasterCountryFilterer()
 
 
-def test_apply_step_country_filterer(country_filterer, sample_previous_pipeline_result, sample_pipeline_result):
+def test_apply_step_country_filterer_ch(sample_previous_pipeline_result, sample_pipeline_result_ch):
     """Test the apply_step method for Zyte detection."""
-    # Mock the `add_pipeline_steps_to_results` and `store_results` methods
-    country_filterer.add_pipeline_steps_to_results = MagicMock(
-        return_value=sample_pipeline_result
-    )
-    country_filterer.store_results = MagicMock()
+    # Init context
+    context = Context()
+    
+    # Init country filterer
+    country_filterer = CountryFilterer(context=context, country="CH")
 
     # Apply country filtering
-    result = country_filterer.apply_step(
-        previous_step_results=sample_previous_pipeline_result
-    )
+    pipeline_result_ch = country_filterer.get_step_results(sample_previous_pipeline_result)
+    print(pipeline_result_ch)
+    print(sample_pipeline_result_ch)
 
-    # Check that results are added and stored correctly
-    country_filterer.add_pipeline_steps_to_results.assert_called_once()
-    country_filterer.store_results.assert_called_once()
-
-    # Ensure that the returned result is a PipelineResult
-    assert isinstance(result, PipelineResult)
+    # Check country filerer worked
+    assert(pipeline_result_ch == sample_pipeline_result_ch)
