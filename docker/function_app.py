@@ -18,7 +18,8 @@ app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
 @app.durable_client_input(client_name="client")
 async def pipeline_start(req: func.HttpRequest, client):
     try:
-        instance_id = await client.start_new("pipeline_orchestrator", None, req.params)
+        req_data = {x: req.params.get(x) for x in req.params.keys()}
+        instance_id = await client.start_new("pipeline_orchestrator", None, req_data)
         logging.info(f"Trigger pipeline with instance id {instance_id}")
         response = client.create_check_status_response(req, instance_id)
     except Exception as e:
@@ -43,7 +44,9 @@ def sb_pipeline_start(msg: func.ServiceBusMessage):
 # Orchestrator
 @app.orchestration_trigger(context_name="context")
 def pipeline_orchestrator(context: df.DurableOrchestrationContext):
-    status = yield context.call_activity("pipeline_work", context.get_input())
+    params = context.get_input()
+    req_data = {x: params.get(x) for x in params.keys()}
+    status = yield context.call_activity("pipeline_work", req_data)
 
     return [status]
 
