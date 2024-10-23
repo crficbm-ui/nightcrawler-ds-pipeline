@@ -7,7 +7,7 @@ import os
 import gc
 import nightcrawler.cli.main
 import nightcrawler.cli.full_pipeline
-from libnightcrawler.context import Context
+from helpers.context import Context
 
 app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
 
