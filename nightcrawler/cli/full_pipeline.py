@@ -1,4 +1,5 @@
 import argparse
+import backoff
 import logging
 from typing import List
 from nightcrawler.process.s05_dataprocessor import DataProcessor
@@ -73,47 +74,35 @@ def add_parser(
 
 
 @timeit
-def apply(args: argparse.Namespace) -> None:
+@backoff.on_exception(backoff.expo,
+                      Exception,
+                      logger=logger,
+                      max_tries=8)
+def handle_request(context: Context, request: lo.CrawlRequest) -> None:
     """
-    Applies the full pipeline, combining extraction and processing.
-
-    Args:
-        args (argparse.Namespace): Parsed arguments as a namespace object.
+    Applies the full pipeline on a single request
     """
-    context = Context()
-    all_orgs = context.get_organization()
-    org = (
-        all_orgs[args.org]
-        if args.org
-        else next(x for x in all_orgs.values() if args.country in x.countries)
-    )
-    logger.debug("Using org: %s", org)
 
-    request = lo.CrawlRequest(
-        keyword_type="text" if not args.reverse_image_search else "image",
-        keyword_value=args.searchitem,
-        case_id=args.case_id,
-        keyword_id=args.keyword_id,
-        organization=org,
-    )
+    if not context.settings.use_file_storage:
+        context.set_crawl_pending(request.case_id, request.keyword_id)
 
-    if not args.reverse_image_search:
+    if request.keyword_type != "image":
         # Step 0: create the results directory with searchitem = keyword
-        context.output_dir = create_output_dir(args.searchitem, context.output_path)
+        context.output_dir = create_output_dir(request.keyword_value, context.output_path)
 
         # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
         serpapi_results = SerpapiExtractor(context).apply(
-            keyword=args.searchitem, number_of_results=args.number_of_results
+            keyword=request.keyword_value, number_of_results=request.number_of_results
         )
 
         # Step 2: Enricht query by adding additional keywords if `-e` argument was set
-        if args.enrich_keyword:
+        if request.enrich_keyword:
             # load dataForSeo configs based on the country information, if none provided, default to CH
             api_config_for_country = context.settings.data_for_seo.api_params.get(
-                org.countries[0]
+                request.organization.countries[0]
             )
             serpapi_results = KeywordEnricher(context).apply(
-                keyword=args.searchitem,
+                keyword=request.keyword_value,
                 serpapi=SerpapiExtractor(context),
                 number_of_keywords=3,
                 location=api_config_for_country.get("location"),
@@ -132,11 +121,18 @@ def apply(args: argparse.Namespace) -> None:
             "reverse_image_search", context.output_path
         )
 
+        # Make image publicly accessible if necessary
+        public_url = request.keyword_value if "http" in request.keyword_value else context.blob_client.make_public(request.keyword_value)
+
         # Step 3 Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
         serpapi_results = GoogleReverseImageApi(context).apply(
-            image_url=args.searchitem,
-            number_of_results=args.number_of_results,
+            image_url=public_url,
+            number_of_results=request.number_of_results,
         )
+
+        # Remove image from publicly accessible container if necessary
+        if "http" not in request.keyword_value :
+            context.blob_client.remove_from_public(request.keyword_value)
 
     # Step 4: Use Zyte to process the URLs further
     zyte_results = ZyteExtractor(context).apply(serpapi_results)
@@ -145,7 +141,7 @@ def apply(args: argparse.Namespace) -> None:
     # TODO replace the manual filtering logic with Mistral call by Nicolas W.
     # TODO Must support a list of countries, not a single one
     processor_results = DataProcessor(context).apply(
-        previous_step_results=zyte_results, country=org.countries[0]
+        previous_step_results=zyte_results, country=request.organization.countries[0]
     )
 
     # Step 6: delivery policy filtering based on offline analysis of domains public delivery information
@@ -156,7 +152,7 @@ def apply(args: argparse.Namespace) -> None:
     # Step 7: page type filtering based on either a probability of Zyte (=default) or a custom BERT model deployed on the mutualized GPU. The pageType can be either 'ecommerce_product' or 'other'.
     page_type_filtering_results = PageTypeDetector(context).apply(
         previous_step_results=delivery_policy_filtering_results,
-        page_type_detection_method=args.page_type_detection_method,
+        page_type_detection_method=request.page_type_detection_method,
     )
 
     # Step 8: blocked / corrupted content detection based the prediction with a BERT model.
@@ -190,7 +186,38 @@ def apply(args: argparse.Namespace) -> None:
                 language="",
                 score=0,
                 relevant=True,
+                images=x.images
             )
             for x in final_results.results
         ]
-        context.store_results(data)
+        context.store_results(data, request.keyword_id)
+
+
+@timeit
+def apply(args: argparse.Namespace) -> None:
+    """
+    Applies the full pipeline, combining extraction and processing.
+
+    Args:
+        args (argparse.Namespace): Parsed arguments as a namespace object.
+    """
+    context = Context()
+    all_orgs = context.get_organization()
+    org = (
+        all_orgs[args.org]
+        if args.org
+        else next(x for x in all_orgs.values() if args.country in x.countries)
+    )
+    logger.debug("Using org: %s", org)
+
+    request = lo.CrawlRequest(
+        keyword_type="text" if not args.reverse_image_search else "image",
+        keyword_value=args.searchitem,
+        case_id=args.case_id,
+        keyword_id=args.keyword_id,
+        organization=org,
+        number_of_results=args.number_of_results,
+        page_type_detection_method=args.page_type_detection_method,
+        enrich_keyword=args.enrich_keyword
+    )
+    handle_request(context, request)

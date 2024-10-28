@@ -185,6 +185,21 @@ docker run -id \
     citusdata/citus:12.1
 ```
 
+- Run azurite (Azure blob service emulator):
+
+```sh
+docker run -i -d \
+     --name azurite \
+     -p 10000:10000 -p 10001:10001 -p 10002:10002 \
+     mcr.microsoft.com/azure-storage/azurite
+```
+
+- Configure 3 containers:
+
+```sh
+for blob in images processing public;do docker run -it --rm --network host mcr.microsoft.com/azure-cli az storage container create -n ${blob} --connection-string "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;";done;
+```
+
 - Run migration:
 
 ```sh

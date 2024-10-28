@@ -100,6 +100,12 @@ class ZyteExtractor(Extract):
             price = (
                 price if len(price.strip()) > 1 else ""
             )  # hence remove the whitespace
+            images = set()
+            main_image = product.get("mainImage", None)
+            if main_image:
+                images.add(main_image["url"])
+            for image in (product.get("images") or []):
+                images.add(main_image["url"])
 
             # Extract Zyte data
             zyte_result = ExtractZyteData(
@@ -110,6 +116,7 @@ class ZyteExtractor(Extract):
                 zyteExecutionTime=response.get("seconds_taken", 0),
                 zyteProbability=metadata.get("probability", None),
                 html=html,
+                images=list(images),
             )
             results.append(zyte_result)
 
