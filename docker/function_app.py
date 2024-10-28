@@ -135,8 +135,6 @@ def pipeline_wrapper(query: dict) -> None:
         logging.info(
             f"Running pipeline for keyword `{request.keyword_value}' for organization {request.organization.name}"
         )
-        # TODO: remove next line when fixed
-        request.number_of_results = 5
         try:
             nightcrawler.cli.full_pipeline.handle_request(context, request)
         except Exception as e:

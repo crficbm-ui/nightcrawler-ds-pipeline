@@ -74,7 +74,7 @@ def add_parser(
 
 
 @timeit
-@backoff.on_exception(backoff.expo, Exception, logger=logger, max_tries=8)
+@backoff.on_exception(backoff.expo, Exception, logger=logger, factor=3, max_tries=4)
 def handle_request(context: Context, request: lo.CrawlRequest) -> None:
     """
     Applies the full pipeline on a single request
