@@ -67,7 +67,13 @@ class ZyteExtractor(Extract):
         responses = []
         with tqdm(total=len(urls)) as pbar:
             for url in urls:
-                response = client.call_api(url, api_config)
+                try:
+                    response = client.call_api(url, api_config)
+                except Exception as e:
+                    logger.critical("Failed to call api for url %s", url)
+                    logger.debug(e, exc_info=True)
+                    pbar.update(1)
+                    continue
                 if not response:
                     logger.error(f"Failed to collect product from {url}")
                     continue
@@ -94,7 +100,12 @@ class ZyteExtractor(Extract):
         for index, response in enumerate(responses):
             product = response.get("product", {})
             serpapi_result = serpapi_results.results[index]
-            html = self._get_html_from_response(response)
+            try:
+                html = self._get_html_from_response(response)
+            except Exception as e:
+                logger.error("Failed to extract html from response")
+                logger.warning(e, exc_info=True)
+                html = ""
             metadata = product.get("metadata", {})
             price = f"{product.get('price', '')} {product.get('currencyRaw', '')}"  # returns " " if both fields were empty
             price = (
