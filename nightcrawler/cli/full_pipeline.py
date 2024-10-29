@@ -13,7 +13,7 @@ from nightcrawler.process.s08_blocket_content_detection import BlockedContentDet
 from nightcrawler.process.s09_content_domain_detection import ContentDomainDetector
 from nightcrawler.process.s10_suspiciousness_classifier import SuspiciousnessClassifier
 from nightcrawler.process.s11_result_ranker import ResultRanker
-from nightcrawler.base import BaseStep
+from nightcrawler.base import BaseStep, PipelineResult, MetaData, ExtractSerpapiData
 
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.context import Context
@@ -83,16 +83,19 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
     if not context.settings.use_file_storage:
         context.set_crawl_pending(request.case_id, request.keyword_id)
 
-    if request.keyword_type != "image":
+    if request.keyword_type in ["text", "url"]:
         # Step 0: create the results directory with searchitem = keyword
         context.output_dir = create_output_dir(
             request.keyword_value, context.output_path
         )
 
-        # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
-        serpapi_results = SerpapiExtractor(context).apply(
-            keyword=request.keyword_value, number_of_results=request.number_of_results
-        )
+        if request.keyword_type == "text":
+            # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
+            serpapi_results = SerpapiExtractor(context).apply(
+                keyword=request.keyword_value, number_of_results=request.number_of_results
+            )
+        elif request.keyword_type == "url":
+            serpapi_results = PipelineResult(meta=MetaData(keyword=request.keyword_value, numberOfResults=1, numberOfResultsAfterStage=1), results=[ExtractSerpapiData(offerRoot="manual", url=request.keyword_value)])
 
         # Step 2: Enricht query by adding additional keywords if `-e` argument was set
         if request.enrich_keyword:
@@ -114,7 +117,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             )
             BaseStep._step_counter += 1  # doing this, so that the the output files still match the step count specified in the README.md. However, this will lead to gaps in the numbering of the output files (3 will be missing).
 
-    else:
+    elif request.keyword_type == "image":
         # Step 0: create the results directory with searchitem = url, so just name it 'reverse_image_search'.
         context.output_dir = create_output_dir(
             "reverse_image_search", context.output_path
@@ -136,6 +139,9 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         # Remove image from publicly accessible container if necessary
         if "http" not in request.keyword_value:
             context.blob_client.remove_from_public(request.keyword_value)
+
+    else:
+        raise ValueError("Unknown keyword type %s", request.keyword_type)
 
     # Step 4: Use Zyte to process the URLs further
     zyte_results = ZyteExtractor(context).apply(serpapi_results)
@@ -215,8 +221,13 @@ def apply(args: argparse.Namespace) -> None:
     )
     logger.debug("Using org: %s", org)
 
+    keyword_type="text"
+    if args.searchitem.startswith("http") and not args.reverse_image_search:
+        keyword_type="url"
+    if args.reverse_image_search:
+        keyword_type="image"
     request = lo.CrawlRequest(
-        keyword_type="text" if not args.reverse_image_search else "image",
+        keyword_type=keyword_type,
         keyword_value=args.searchitem,
         case_id=args.case_id,
         keyword_id=args.keyword_id,
