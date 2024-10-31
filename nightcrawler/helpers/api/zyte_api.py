@@ -48,6 +48,7 @@ class ZyteAPI(APICaller):
                             "url": prompt,
                             **config,
                         },
+                        timeout=10,
                     )
 
                     if raw_response.status_code != 200:

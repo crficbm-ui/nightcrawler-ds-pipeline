@@ -30,7 +30,7 @@ class DiffbotAPI(APICaller):
                     start_time = time.time()
                     params = {"url": url, "token": config["token"]}
                     raw_response = requests.get(
-                        self.endpoint, headers=self.headers, params=params
+                        self.endpoint, headers=self.headers, params=params, timeout=10
                     )
 
                     if raw_response.status_code != 200:

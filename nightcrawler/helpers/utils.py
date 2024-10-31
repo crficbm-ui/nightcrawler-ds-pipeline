@@ -142,7 +142,9 @@ def _get_stable_hash_id(text):
 
 def _get_uuid(*args) -> str:
     concatenated_string = "".join(str(value) for value in args)
-    hashed_value = hashlib.sha1(concatenated_string.encode("utf-8")).hexdigest()
+    hashed_value = hashlib.sha1(
+        concatenated_string.encode("utf-8"), usedforsecurity=False
+    ).hexdigest()
     generated_id = uuid.UUID(
         hashed_value[:32]
     )  # UUID requires a 32 character hexadecimal string
