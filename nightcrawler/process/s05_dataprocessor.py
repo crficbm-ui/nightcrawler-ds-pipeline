@@ -2,9 +2,9 @@ import logging
 
 from typing import Dict, List, Any
 
-from helpers import LOGGER_NAME
-from helpers.utils import evaluate_not_na
-from helpers.context import Context
+from nightcrawler.helpers import LOGGER_NAME
+from nightcrawler.helpers.utils import evaluate_not_na
+from nightcrawler.helpers.context import Context
 
 from nightcrawler.base import ProcessData, PipelineResult, ExtractZyteData, BaseStep
 

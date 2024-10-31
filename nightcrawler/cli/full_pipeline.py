@@ -15,10 +15,10 @@ from nightcrawler.process.s10_suspiciousness_classifier import SuspiciousnessCla
 from nightcrawler.process.s11_result_ranker import ResultRanker
 from nightcrawler.base import BaseStep
 
-from helpers import LOGGER_NAME
-from helpers.context import Context
-from helpers.utils import create_output_dir
-from helpers.decorators import timeit
+from nightcrawler.helpers import LOGGER_NAME
+from nightcrawler.helpers.context import Context
+from nightcrawler.helpers.utils import create_output_dir
+from nightcrawler.helpers.decorators import timeit
 
 import libnightcrawler.objects as lo
 

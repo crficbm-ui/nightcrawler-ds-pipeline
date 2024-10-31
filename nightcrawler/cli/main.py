@@ -9,7 +9,7 @@ import nightcrawler.cli.processor as processor
 import nightcrawler.cli.full_pipeline as fullrun
 import nightcrawler.cli.version
 
-from helpers import LOGGER_NAME
+from nightcrawler.helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 MODULES = [extractor, processor, fullrun]

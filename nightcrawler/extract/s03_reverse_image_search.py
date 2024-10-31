@@ -2,9 +2,9 @@ from typing import List, Tuple, Dict
 from urllib.parse import quote_plus
 
 import logging
-from helpers import LOGGER_NAME
-from helpers.context import Context
-from helpers.api.serp_api import SerpAPI
+from nightcrawler.helpers import LOGGER_NAME
+from nightcrawler.helpers.context import Context
+from nightcrawler.helpers.api.serp_api import SerpAPI
 
 from nightcrawler.base import ExtractSerpapiData, MetaData, PipelineResult, BaseStep
 

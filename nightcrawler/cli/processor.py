@@ -4,10 +4,10 @@ import logging
 from typing import List
 from nightcrawler.process.s05_dataprocessor import DataProcessor
 from nightcrawler.base import ProcessData
-from nightcrawler.utils import get_object_from_file
 
-from helpers import LOGGER_NAME
-from helpers.context import Context
+from nightcrawler.helpers.utils_io import get_object_from_file
+from nightcrawler.helpers import LOGGER_NAME
+from nightcrawler.helpers.context import Context
 
 logger = logging.getLogger(LOGGER_NAME)
 

@@ -1,11 +1,11 @@
 from unittest.mock import patch
-from helpers.context import Context
+from nightcrawler.helpers.context import Context
 from nightcrawler.base import PipelineResult
 from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
 
 
 # Test for _run_reverse_image_search method
-@patch("helpers.api.serp_api.SerpAPI.call_serpapi")
+@patch("nightcrawler.helpers.api.serp_api.SerpAPI.call_serpapi")
 def test_run_reverse_image_search(mock_call_serpapi):
     # Mock response from SerpAPI
     mock_response = {

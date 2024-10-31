@@ -3,7 +3,7 @@ from typing import List
 
 from nightcrawler.base import ProcessSuspiciousnessData, PipelineResult, BaseStep
 
-from helpers import LOGGER_NAME
+from nightcrawler.helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 

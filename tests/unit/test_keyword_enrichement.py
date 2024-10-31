@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from helpers.api.serp_api import SerpAPI
-from helpers.api.dataforseo_api import DataforSeoAPI
+from nightcrawler.helpers.api.serp_api import SerpAPI
+from nightcrawler.helpers.api.dataforseo_api import DataforSeoAPI
 
 from nightcrawler.base import (
     ExtractSerpapiData,
@@ -82,12 +82,12 @@ def test_keyword_enricher_apply():
     ):
         # Mock the keywords_selection functions
         with patch(
-            "helpers.analytics.keywords_selection.filter_keywords",
+            "nightcrawler.helpers.analytics.keywords_selection.filter_keywords",
             side_effect=lambda x: x,
         ) as aggregate_keywords_mock, patch(
-            "helpers.analytics.keywords_selection.estimate_volume_per_url"
+            "nightcrawler.helpers.analytics.keywords_selection.estimate_volume_per_url"
         ) as estimate_volume_per_url_mock, patch(
-            "helpers.analytics.keywords_selection.aggregate_urls"
+            "nightcrawler.helpers.analytics.keywords_selection.aggregate_urls"
         ) as aggregate_urls_mock:
             # Mock return values for aggregate_keywords
             aggregate_keywords_mock.return_value.to_dict.return_value = [
@@ -119,7 +119,7 @@ def test_keyword_enricher_apply():
 
             # Patch from_dict function
             with patch(
-                "helpers.utils.from_dict", side_effect=lambda cls, data: cls(**data)
+                "nightcrawler.helpers.utils_io.from_dict", side_effect=lambda cls, data: cls(**data)
             ):
                 # Patch store_results method to avoid file I/O
                 with patch.object(KeywordEnricher, "store_results", return_value=None):

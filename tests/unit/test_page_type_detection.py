@@ -4,7 +4,7 @@ from typing import List
 import logging
 
 from nightcrawler.base import PipelineResult, PageTypes
-from helpers.context import Context
+from nightcrawler.helpers.context import Context
 from nightcrawler.process.s07_page_type_detection import PageTypeDetector
 
 
