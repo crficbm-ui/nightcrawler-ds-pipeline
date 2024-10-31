@@ -1,6 +1,7 @@
 import yaml
 import os
 import pandas as pd
+import json
 
 from . import utils_path
 from nightcrawler.base import MetaData, PipelineResult, ProcessData
@@ -14,10 +15,6 @@ def create_directory(directory: str) -> None:
         # Create the directory
         os.makedirs(directory)
         print("Directory created successfully!")
-
-
-
-
 
 
 def get_object_from_file(
@@ -52,6 +49,7 @@ def get_object_from_file(
     pipeline_result = from_dict(PipelineResult, json_input)
 
     return pipeline_result
+
 
 def from_dict(data_class: Type, data: dict):
     """Recursively convert a dictionary to a dataclass, handling fields with init=False."""

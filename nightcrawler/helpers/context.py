@@ -49,7 +49,9 @@ class Context(StorageContext):
         # ----------------------------------------------------------------------------------------
         self.processing_filename_raw: str = "process_raw.json"
         self.processing_filename_filtered: str = "process_filtered_country.json"
-        self.processing_filename_country_filtering: str = "process_country_filtering.json"
+        self.processing_filename_country_filtering: str = (
+            "process_country_filtering.json"
+        )
         self.processing_filename_delivery_policy: str = "process_delivery_policy.json"
         self.processing_filename_page_type_detection: str = "process_page_type.json"
         self.processing_filename_blocked_content_detection: str = (

@@ -51,7 +51,11 @@ def invalid_pipeline_result():
     return PipelineResult(
         meta=MagicMock(),
         results=[
-            {"offerRoot":"","url":"","html": "<html></html>"}  # Missing zyteProbability
+            {
+                "offerRoot": "",
+                "url": "",
+                "html": "<html></html>",
+            }  # Missing zyteProbability
         ],
     )
 
@@ -70,7 +74,9 @@ def test_get_pagetype_from_zyte_valid(page_type_detector, sample_pipeline_result
     assert results[1].pageType == PageTypes.OTHER
 
 
-def test_get_pagetype_from_zyte_invalid(page_type_detector, invalid_pipeline_result, caplog):
+def test_get_pagetype_from_zyte_invalid(
+    page_type_detector, invalid_pipeline_result, caplog
+):
     """Test the Zyte page type detection logic with invalid inputs."""
     with caplog.at_level(logging.ERROR):
         results = page_type_detector._get_pagetype_from_zyte(invalid_pipeline_result)

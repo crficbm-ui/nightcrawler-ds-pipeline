@@ -76,11 +76,11 @@ class CountryFiltererSettings(BaseSettings):
                 "filterer_name",
                 "RESULT",
                 "label_justif",
-                "urls_shipping_policy_page_found_analysis", 
+                "urls_shipping_policy_page_found_analysis",
                 "url_shipping_policy_page_kept",
             ],
             "SAVE_NEW_CLASSIFIED_DOMAINS": True,
-            },
+        },
         "AT": {
             "FILTERER_NAME": "known_domains+url",
             "COUNTRY": "at",
@@ -94,11 +94,11 @@ class CountryFiltererSettings(BaseSettings):
                 "filterer_name",
                 "RESULT",
                 "label_justif",
-                "urls_shipping_policy_page_found_analysis", 
+                "urls_shipping_policy_page_found_analysis",
                 "url_shipping_policy_page_kept",
             ],
             "SAVE_NEW_CLASSIFIED_DOMAINS": True,
-            },
+        },
     }
 
     config_url_filterer: dict = {
@@ -107,28 +107,90 @@ class CountryFiltererSettings(BaseSettings):
             "top_level_domains": ["ch", "swiss"],
             "sub_level_domains": [],
             "languages": [
-                "de-ch", "en-ch", "fr-ch", "gsw-ch", "it-ch", "pt-ch", "rm-ch", "wae-ch",
-                "ch-de", "ch-en", "ch-fr", "ch-gsw", "ch-it", "ch-pt", "ch-rm", "ch-wae",
-                "de_ch", "en_ch", "fr_ch", "gsw_ch", "it_ch", "pt_ch", "rm_ch", "wae_ch",
-                "ch_de", "ch_en", "ch_fr", "ch_gsw", "ch_it", "ch_pt", "ch_rm", "ch_wae",
+                "de-ch",
+                "en-ch",
+                "fr-ch",
+                "gsw-ch",
+                "it-ch",
+                "pt-ch",
+                "rm-ch",
+                "wae-ch",
+                "ch-de",
+                "ch-en",
+                "ch-fr",
+                "ch-gsw",
+                "ch-it",
+                "ch-pt",
+                "ch-rm",
+                "ch-wae",
+                "de_ch",
+                "en_ch",
+                "fr_ch",
+                "gsw_ch",
+                "it_ch",
+                "pt_ch",
+                "rm_ch",
+                "wae_ch",
+                "ch_de",
+                "ch_en",
+                "ch_fr",
+                "ch_gsw",
+                "ch_it",
+                "ch_pt",
+                "ch_rm",
+                "ch_wae",
             ],
             "currencies": ["chf"],
         },
         "AT": {
             "countries": ["at"],
             "top_level_domains": [
-                "at", "com", "de", "ch", "au", "eu",
+                "at",
+                "com",
+                "de",
+                "ch",
+                "au",
+                "eu",
             ],
             "sub_level_domains": [],
             "languages": [
-                "de-at", "en-at", "sl-at", "hr-at", "hu-at", "ch-at", "it-at", "fr-at",
-                "at-de", "at-en", "at-sl", "at-hr", "at-hu", "at-ch", "at-it", "at-fr",
-                "de_at", "en_at", "sl_at", "hr_at", "hu_at", "ch_at", "it_at", "fr_at",
-                "at_de", "at_en", "at_sl", "at_hr", "at_hu", "at_ch", "at_it", "at_fr",
+                "de-at",
+                "en-at",
+                "sl-at",
+                "hr-at",
+                "hu-at",
+                "ch-at",
+                "it-at",
+                "fr-at",
+                "at-de",
+                "at-en",
+                "at-sl",
+                "at-hr",
+                "at-hu",
+                "at-ch",
+                "at-it",
+                "at-fr",
+                "de_at",
+                "en_at",
+                "sl_at",
+                "hr_at",
+                "hu_at",
+                "ch_at",
+                "it_at",
+                "fr_at",
+                "at_de",
+                "at_en",
+                "at_sl",
+                "at_hr",
+                "at_hu",
+                "at_ch",
+                "at_it",
+                "at_fr",
             ],
             "currencies": ["eur"],
-        }
+        },
     }
+
 
 class DeliveryPolicyExtractionSettings(BaseSettings):
     llm_api_prompt: str = """
@@ -224,16 +286,22 @@ class DeliveryPolicyExtractionSettings(BaseSettings):
                 "urls_shipping_policy_page_found_analysis",
             ],
             "SAVE_NEW_CLASSIFIED_DOMAINS": True,
-        }
+        },
     }
 
     config_filterer: dict = {
         "CH": {
             "keywords_shipping_policy": [
-                "livraison", "expédit", "expedit",
-                "lieferung", "versand", "liefer",
-                "deliveri", "ship",
-                "consegna", "spedizion",
+                "livraison",
+                "expédit",
+                "expedit",
+                "lieferung",
+                "versand",
+                "liefer",
+                "deliveri",
+                "ship",
+                "consegna",
+                "spedizion",
             ],
             "urls_domains_shipping_pos": [
                 "www.ebay.co.uk",
@@ -259,7 +327,8 @@ class DeliveryPolicyExtractionSettings(BaseSettings):
             "urls_domains_shipping_neg": ["www.eneba.com"],
             "llm_api_config": {"model": "mistral-large-latest", "temperature": 0.0},
             "llm_api_prompt": llm_api_prompt.format(
-                country=config["CH"]["COUNTRY"], country_long=config["CH"]["COUNTRY_LONG"]
+                country=config["CH"]["COUNTRY"],
+                country_long=config["CH"]["COUNTRY_LONG"],
             ),
             "zyte_api_product_page_config": {
                 "browserHtml": True,
@@ -277,21 +346,25 @@ class DeliveryPolicyExtractionSettings(BaseSettings):
         },
         "AT": {
             "keywords_shipping_policy": [
-                "lieferung", "versand", "liefer",    # German (mainly spoken in Austria)
-                "deliveri", "ship",                  # English
-                "dostava", "pošiljka",               # Slovenian (spoken in Carinthia and Styria)
-                "dostava", "pošiljka",               # Croatian (also a minority language in Austria)
-                "dostava", "pošta"                   # Hungarian (spoken in some parts of Austria)
+                "lieferung",
+                "versand",
+                "liefer",  # German (mainly spoken in Austria)
+                "deliveri",
+                "ship",  # English
+                "dostava",
+                "pošiljka",  # Slovenian (spoken in Carinthia and Styria)
+                "dostava",
+                "pošiljka",  # Croatian (also a minority language in Austria)
+                "dostava",
+                "pošta",  # Hungarian (spoken in some parts of Austria)
             ],
-            "urls_domains_shipping_pos": [
-            ],
-            "urls_domains_shipping_unknwn": [
-            ],
-            "urls_domains_shipping_neg": [
-            ],
+            "urls_domains_shipping_pos": [],
+            "urls_domains_shipping_unknwn": [],
+            "urls_domains_shipping_neg": [],
             "llm_api_config": {"model": "mistral-large-latest", "temperature": 0.0},
             "llm_api_prompt": llm_api_prompt.format(
-                country=config["AT"]["COUNTRY"], country_long=config["AT"]["COUNTRY_LONG"]
+                country=config["AT"]["COUNTRY"],
+                country_long=config["AT"]["COUNTRY_LONG"],
             ),
             "zyte_api_product_page_config": {
                 "browserHtml": True,
@@ -306,8 +379,9 @@ class DeliveryPolicyExtractionSettings(BaseSettings):
                 "geolocation": "AT",
             },
             "use_concurrency": False,
-        }
+        },
     }
+
 
 class Settings(StorageSettings):
     """

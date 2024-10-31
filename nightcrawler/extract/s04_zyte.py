@@ -104,7 +104,7 @@ class ZyteExtractor(Extract):
             main_image = product.get("mainImage", None)
             if main_image:
                 images.add(main_image["url"])
-            for image in (product.get("images") or []):
+            for image in product.get("images") or []:
                 images.add(main_image["url"])
 
             # Extract Zyte data

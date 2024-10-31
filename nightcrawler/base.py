@@ -274,7 +274,9 @@ class BaseStep(ABC):
         path = f"{BaseStep._step_counter}_{filename}"
         if not self.context.settings.use_file_storage:
             blob_path = (output_dir + path).replace("/", "_")
-            self.context.blob_client.put_processing(blob_path, structured_results_dict.to_dict())
+            self.context.blob_client.put_processing(
+                blob_path, structured_results_dict.to_dict()
+            )
             return
 
         write_json(

@@ -74,10 +74,7 @@ def add_parser(
 
 
 @timeit
-@backoff.on_exception(backoff.expo,
-                      Exception,
-                      logger=logger,
-                      max_tries=8)
+@backoff.on_exception(backoff.expo, Exception, logger=logger, max_tries=8)
 def handle_request(context: Context, request: lo.CrawlRequest) -> None:
     """
     Applies the full pipeline on a single request
@@ -88,7 +85,9 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
 
     if request.keyword_type != "image":
         # Step 0: create the results directory with searchitem = keyword
-        context.output_dir = create_output_dir(request.keyword_value, context.output_path)
+        context.output_dir = create_output_dir(
+            request.keyword_value, context.output_path
+        )
 
         # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
         serpapi_results = SerpapiExtractor(context).apply(
@@ -122,7 +121,11 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         )
 
         # Make image publicly accessible if necessary
-        public_url = request.keyword_value if "http" in request.keyword_value else context.blob_client.make_public(request.keyword_value)
+        public_url = (
+            request.keyword_value
+            if "http" in request.keyword_value
+            else context.blob_client.make_public(request.keyword_value)
+        )
 
         # Step 3 Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
         serpapi_results = GoogleReverseImageApi(context).apply(
@@ -131,7 +134,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         )
 
         # Remove image from publicly accessible container if necessary
-        if "http" not in request.keyword_value :
+        if "http" not in request.keyword_value:
             context.blob_client.remove_from_public(request.keyword_value)
 
     # Step 4: Use Zyte to process the URLs further
@@ -171,7 +174,9 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
     )
 
     # Step 11: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away.
-    final_results = ResultRanker(context).apply(previous_step_results=suspiscousness_results)
+    final_results = ResultRanker(context).apply(
+        previous_step_results=suspiscousness_results
+    )
 
     if not context.settings.use_file_storage:
         data = [
@@ -186,7 +191,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
                 language="",
                 score=0,
                 relevant=True,
-                images=x.images
+                images=x.images,
             )
             for x in final_results.results
         ]
@@ -218,6 +223,6 @@ def apply(args: argparse.Namespace) -> None:
         organization=org,
         number_of_results=args.number_of_results,
         page_type_detection_method=args.page_type_detection_method,
-        enrich_keyword=args.enrich_keyword
+        enrich_keyword=args.enrich_keyword,
     )
     handle_request(context, request)

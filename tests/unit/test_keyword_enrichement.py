@@ -119,7 +119,8 @@ def test_keyword_enricher_apply():
 
             # Patch from_dict function
             with patch(
-                "nightcrawler.helpers.utils_io.from_dict", side_effect=lambda cls, data: cls(**data)
+                "nightcrawler.helpers.utils_io.from_dict",
+                side_effect=lambda cls, data: cls(**data),
             ):
                 # Patch store_results method to avoid file I/O
                 with patch.object(KeywordEnricher, "store_results", return_value=None):
