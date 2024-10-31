@@ -4,7 +4,7 @@ from typing import Dict, List, Any
 
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.helpers.utils import evaluate_not_na
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 
 from nightcrawler.base import ProcessData, PipelineResult, ExtractZyteData, BaseStep
 

@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 from nightcrawler.base import PipelineResult
 from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
 

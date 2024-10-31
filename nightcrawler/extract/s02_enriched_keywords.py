@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.helpers.api.dataforseo_api import DataforSeoAPI
 from nightcrawler.helpers.analytics import keywords_selection

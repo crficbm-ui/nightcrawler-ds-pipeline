@@ -1,10 +1,10 @@
 from typing import Any
-from nightcrawler.helpers.settings import Settings
+from nightcrawler.settings import Settings
 from datetime import datetime
 
 try:
     from libnightcrawler.context import Context as StorageContext
-except:
+except ImportError:
     StorageContext = object
 
 

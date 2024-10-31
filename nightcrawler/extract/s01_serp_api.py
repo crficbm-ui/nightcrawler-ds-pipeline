@@ -1,6 +1,6 @@
 import logging
 from typing import Any, Dict, List
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.helpers import LOGGER_NAME
 

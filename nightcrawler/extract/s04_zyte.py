@@ -3,7 +3,7 @@ import base64
 from typing import List, Dict, Tuple, Any
 from tqdm.auto import tqdm
 
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 from nightcrawler.helpers.api.zyte_api import ZyteAPI, DEFAULT_CONFIG
 from nightcrawler.helpers import LOGGER_NAME
 

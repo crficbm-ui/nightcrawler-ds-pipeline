@@ -4,7 +4,7 @@ from typing import List
 from nightcrawler.base import PageTypeData, PipelineResult, BaseStep, PageTypes
 
 from nightcrawler.helpers import LOGGER_NAME
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 
 logger = logging.getLogger(LOGGER_NAME)
 

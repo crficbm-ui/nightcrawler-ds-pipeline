@@ -85,7 +85,6 @@ def aggregate_keywords(keywords):
                 "keywordVolume": "sum",
                 "keywordLocation": "first",
                 "keywordLanguage": "first",
-                "keywordVolume": "first",
                 "offerRoot": "first",
             }
         )

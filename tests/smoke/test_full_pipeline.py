@@ -6,7 +6,7 @@ from io import StringIO
 from nightcrawler.cli.main import run
 
 from nightcrawler.helpers import LOGGER_NAME
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 
 logger = logging.getLogger(LOGGER_NAME)
 

@@ -5,7 +5,7 @@ import os
 
 try:
     from libnightcrawler.settings import Settings as StorageSettings
-except:
+except ImportError:
     StorageSettings = BaseSettings
 
 

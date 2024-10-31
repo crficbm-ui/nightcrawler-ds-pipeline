@@ -6,7 +6,7 @@ import logging
 
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.helpers.api.api_caller import APICaller
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 
 logger = logging.getLogger(LOGGER_NAME)
 

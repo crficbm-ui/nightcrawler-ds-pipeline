@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from abc import ABC, abstractmethod
 
 from nightcrawler.helpers.utils import _get_uuid, write_json
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 from nightcrawler.helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)

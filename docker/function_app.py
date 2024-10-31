@@ -7,7 +7,7 @@ import os
 import gc
 import nightcrawler.cli.main
 import nightcrawler.cli.full_pipeline
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 from typing import Generator
 
 app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)

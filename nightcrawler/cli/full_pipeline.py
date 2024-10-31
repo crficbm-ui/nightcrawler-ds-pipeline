@@ -16,7 +16,7 @@ from nightcrawler.process.s11_result_ranker import ResultRanker
 from nightcrawler.base import BaseStep
 
 from nightcrawler.helpers import LOGGER_NAME
-from nightcrawler.helpers.context import Context
+from nightcrawler.context import Context
 from nightcrawler.helpers.utils import create_output_dir
 from nightcrawler.helpers.decorators import timeit
 
