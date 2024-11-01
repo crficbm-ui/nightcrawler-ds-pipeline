@@ -6,6 +6,9 @@ import logging
 from nightcrawler.base import PipelineResult, PageTypes
 from nightcrawler.context import Context
 from nightcrawler.process.s07_page_type_detection import PageTypeDetector
+from nightcrawler.helpers import LOGGER_NAME
+
+logger = logging.getLogger(LOGGER_NAME)
 
 
 @pytest.fixture
@@ -78,6 +81,7 @@ def test_get_pagetype_from_zyte_invalid(
     page_type_detector, invalid_pipeline_result, caplog
 ):
     """Test the Zyte page type detection logic with invalid inputs."""
+    logger.propagate = True  # In nightcrawler.helpers.__init__.py we disabled logs propagation to not dublicate LOGS. However, caplog requires propagation therefore we enable it for the test.
     with caplog.at_level(logging.ERROR):
         results = page_type_detector._get_pagetype_from_zyte(invalid_pipeline_result)
         assert "Item does not contain Zyte probability" in caplog.text
