@@ -3,9 +3,9 @@ import base64
 from typing import List, Dict, Tuple, Any
 from tqdm.auto import tqdm
 
-from helpers.context import Context
-from helpers.api.zyte_api import ZyteAPI, DEFAULT_CONFIG
-from helpers import LOGGER_NAME
+from nightcrawler.context import Context
+from nightcrawler.helpers.api.zyte_api import ZyteAPI, DEFAULT_CONFIG
+from nightcrawler.helpers import LOGGER_NAME
 
 from nightcrawler.base import (
     ExtractZyteData,
@@ -104,7 +104,7 @@ class ZyteExtractor(Extract):
             main_image = product.get("mainImage", None)
             if main_image:
                 images.add(main_image["url"])
-            for image in (product.get("images") or []):
+            for image in product.get("images") or []:
                 images.add(main_image["url"])
 
             # Extract Zyte data

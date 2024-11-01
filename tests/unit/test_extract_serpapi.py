@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from helpers.api.serp_api import SerpAPI
+from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
 from nightcrawler.base import ExtractSerpapiData, PipelineResult
 

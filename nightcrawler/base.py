@@ -7,9 +7,9 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from abc import ABC, abstractmethod
 
-from helpers.utils import _get_uuid, write_json
-from helpers.context import Context
-from helpers import LOGGER_NAME
+from nightcrawler.helpers.utils import _get_uuid, write_json
+from nightcrawler.context import Context
+from nightcrawler.helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -274,7 +274,9 @@ class BaseStep(ABC):
         path = f"{BaseStep._step_counter}_{filename}"
         if not self.context.settings.use_file_storage:
             blob_path = (output_dir + path).replace("/", "_")
-            self.context.blob_client.put_processing(blob_path, structured_results_dict.to_dict())
+            self.context.blob_client.put_processing(
+                blob_path, structured_results_dict.to_dict()
+            )
             return
 
         write_json(

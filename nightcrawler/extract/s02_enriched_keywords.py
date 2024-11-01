@@ -1,10 +1,10 @@
 from typing import List, Dict, Any
 
-from helpers.context import Context
-from helpers.api.serp_api import SerpAPI
-from helpers.api.dataforseo_api import DataforSeoAPI
-from helpers.analytics import keywords_selection
-from helpers.utils import from_dict
+from nightcrawler.context import Context
+from nightcrawler.helpers.api.serp_api import SerpAPI
+from nightcrawler.helpers.api.dataforseo_api import DataforSeoAPI
+from nightcrawler.helpers.analytics import keywords_selection
+from nightcrawler.helpers.utils_io import from_dict
 
 from nightcrawler.base import ExtractSerpapiData, PipelineResult, BaseStep
 

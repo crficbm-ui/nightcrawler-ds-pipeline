@@ -27,16 +27,7 @@ export CPPFLAGS="-I/opt/homebrew/opt/libpq/include"
 export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 ```
 
-3. In the [pyproject.tml](./pyproject.toml) on line 14 specify the path to `nightcralwer-ds-helpers` directory on your machine (if you need to develop in that repository) or use a tagged version from GitHub.
-
-```bash
-helpers = { path = "../nightcrawler-ds-helpers/", develop = true }  #for using a local version of nigthcrawler-ds-helpers
-helpers = {git = "https://github.com/smc40/nightcrawler-ds-helpers", tag = "v0.1.7"} #for using a tagged version from GitHub
-```
-
-> **_NOTE:_**  As of today, 04.10.2024 the current and tested helpers tag is v0.2.2. When updating the tag in the pyproject.toml, you need to delete the poetry.lock file.
-
-4. Create a virtual environment with Poetry and activate it.
+3. Create a virtual environment with Poetry and activate it.
 
 ```bash
 poetry shell
@@ -47,13 +38,13 @@ poetry shell
 >curl -sSL https://install.python-poetry.org | python3 -
 >```
 
-5. Install the project dependencies.
+4. Install the project dependencies.
 
 ```bash
 poetry install --directory ./pyproject.toml
 ```
 
-6. Copy `.env_template` to `.env`. Fill with your credentials and source it by running `source .env`.
+5. Copy `.env_template` to `.env`. Fill with your credentials and source it by running `source .env`.
 
 ## CLI overview
 As of today, the CLI looks as follows:
@@ -168,8 +159,6 @@ python -m nightcrawler process --country=CH 20240823_210829_triofan_defaultuser
 ## Development settings
 ### Configuration
 The  [**settings**](nightcrawler/settings.py) component is designed to store all variables that are not tied to specific commands and do not change throughout the runtime of the CLI. On the other hand, [**context**](nightcrawler/context.py) is intended to include variables that originate from the command line, as well as any helpers or long-lived objects (e.g., database connections). While it’s possible to consolidate everything into the settings, having a separate Context object can be beneficial as the codebase expands. This distinction helps maintain organization and scalability as the project grows.
-
-> **_NOTE:_**  The same two components exist in the [helper repository](https://github.com/smc40/nightcrawler-ds-helpers), so be careful when importing.
 
 ### Database usage
 
