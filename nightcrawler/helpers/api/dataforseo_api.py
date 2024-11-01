@@ -14,6 +14,7 @@ logger = logging.getLogger(LOGGER_NAME)
 class DataforSeoAPI(APICaller):
     def __init__(
         self,
+        context: Context,
         cache_name: str = "dataforseoapi",
         max_retries: int = 3,
         retry_delay: int = 2,
@@ -26,8 +27,7 @@ class DataforSeoAPI(APICaller):
             max_retries (int): The maximum number of retries for API calls (default is 3).
             retry_delay (int): The delay in seconds between retry attempts (default is 2).
         """
-        super().__init__(cache_name, max_retries, retry_delay)
-        self.context = Context()
+        super().__init__(context, cache_name, max_retries, retry_delay, 24 * 60 * 60)
 
     def request(self, path, method, data=None):
         """Make a request to the DataforSEO API

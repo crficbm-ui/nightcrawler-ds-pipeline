@@ -63,7 +63,7 @@ class SerpapiExtractor(Extract):
         Returns:
             SerpAPI: An instance of the SerpAPI client.
         """
-        return SerpAPI()
+        return SerpAPI(self.context)
 
     def retrieve_response(
         self,

@@ -43,7 +43,7 @@ class ZyteExtractor(Extract):
         Returns:
             Tuple[ZyteAPI, Dict[str, Any]]: The ZyteAPI client instance and its configuration.
         """
-        client = ZyteAPI()
+        client = ZyteAPI(self.context)
         return client, DEFAULT_CONFIG
 
     def retrieve_response(
@@ -67,10 +67,11 @@ class ZyteExtractor(Extract):
         responses = []
         with tqdm(total=len(urls)) as pbar:
             for url in urls:
+                logger.warning("Zyte processing url %s", url)
                 try:
                     response = client.call_api(url, api_config)
                 except Exception as e:
-                    logger.critical("Failed to call api for url %s", url)
+                    logger.critical("Failed to call zyte for url %s", url)
                     logger.debug(e, exc_info=True)
                     pbar.update(1)
                     continue

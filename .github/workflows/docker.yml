@@ -35,7 +35,7 @@ jobs:
           repository: 'smc40/nightcrawler-library'
           ssh-key: ${{ secrets.NC_LIBRARY_PULLER_KEY }}
           path: nightcrawler-library
-          ref: 0.4.3
+          ref: 0.5.0
 
       - name: Use local directory libnightcrawler
         run: |
