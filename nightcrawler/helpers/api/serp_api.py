@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Callable
 from serpapi.google_search import GoogleSearch
 
 from nightcrawler.helpers.api.requests_wrapper import (
@@ -40,7 +40,7 @@ class SerpAPI(APICaller):
         super().__init__(context, cache_name, max_retries, retry_delay, 24 * 60 * 60)
 
     def call_serpapi(
-        self, params: Dict[str, Any], log_name: str, force_refresh: bool = False
+        self, params: Dict[str, Any], log_name: str, force_refresh: bool = False, callback: Callable[int, None] | None = None
     ) -> Dict[str, Any]:
         """
         Calls the SerpAPI and returns the response, with optional caching.
@@ -76,6 +76,8 @@ class SerpAPI(APICaller):
                 )
                 response.raise_for_status()
                 self._write_cache(data_hash, response.json())
+                if callback is not None:
+                    callback(1)
                 return response.json()
             except Exception as e:
                 logger.warning(

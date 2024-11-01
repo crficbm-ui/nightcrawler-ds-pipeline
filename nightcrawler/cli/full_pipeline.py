@@ -65,10 +65,10 @@ def add_parser(
     )
 
     parser.add_argument(
-        "--case-id", default=None, help="DB identifier of the case (%(default)s)"
+        "--case-id", type=int, default=None, help="DB identifier of the case (%(default)s)"
     )
     parser.add_argument(
-        "--keyword-id", default=None, help="DB identifier of the keyword (%(default)s)"
+        "--keyword-id", type=int, default=None, help="DB identifier of the keyword (%(default)s)"
     )
     return parser
 
@@ -211,7 +211,8 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             )
             for x in final_results.results
         ]
-        context.store_results(data, request.keyword_id)
+        context.store_results(data, request.case_id, request.keyword_id)
+        context.report_cost(request.case_id, final_results.cost)
 
 
 @timeit

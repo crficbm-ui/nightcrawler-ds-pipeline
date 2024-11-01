@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, ANY
 from nightcrawler.extract.s04_zyte import ZyteExtractor
 from nightcrawler.base import PipelineResult, ExtractZyteData, MetaData
 from copy import deepcopy
@@ -68,7 +68,7 @@ def test_apply_method(
     # Assertions to verify each method is called correctly
     mock_initiate_client.assert_called_once()
     mock_retrieve_response.assert_called_once_with(
-        expected_client, input_pipeline_result, expected_config
+        expected_client, input_pipeline_result, expected_config, callback=ANY
     )
     mock_structure_results.assert_called_once_with(
         expected_retrieve_response, input_pipeline_result
