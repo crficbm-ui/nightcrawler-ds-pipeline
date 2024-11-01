@@ -57,7 +57,7 @@ class SerpAPI(APICaller):
         data_hash = self._generate_hash(str(params))
 
         if not force_refresh and self._is_cached(data_hash):
-            logger.info("Using cached response for serpapi")
+            logger.warning("Using cached response for serpapi")
             return self._read_cache(data_hash)
         else:
             attempts = 0

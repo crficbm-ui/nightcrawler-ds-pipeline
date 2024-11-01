@@ -92,10 +92,20 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         if request.keyword_type == "text":
             # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
             serpapi_results = SerpapiExtractor(context).apply(
-                keyword=request.keyword_value, number_of_results=request.number_of_results
+                keyword=request.keyword_value,
+                number_of_results=request.number_of_results,
             )
         elif request.keyword_type == "url":
-            serpapi_results = PipelineResult(meta=MetaData(keyword=request.keyword_value, numberOfResults=1, numberOfResultsAfterStage=1), results=[ExtractSerpapiData(offerRoot="manual", url=request.keyword_value)])
+            serpapi_results = PipelineResult(
+                meta=MetaData(
+                    keyword=request.keyword_value,
+                    numberOfResults=1,
+                    numberOfResultsAfterStage=1,
+                ),
+                results=[
+                    ExtractSerpapiData(offerRoot="manual", url=request.keyword_value)
+                ],
+            )
 
         # Step 2: Enricht query by adding additional keywords if `-e` argument was set
         if request.enrich_keyword:
@@ -221,11 +231,11 @@ def apply(args: argparse.Namespace) -> None:
     )
     logger.debug("Using org: %s", org)
 
-    keyword_type="text"
+    keyword_type = "text"
     if args.searchitem.startswith("http") and not args.reverse_image_search:
-        keyword_type="url"
+        keyword_type = "url"
     if args.reverse_image_search:
-        keyword_type="image"
+        keyword_type = "image"
     request = lo.CrawlRequest(
         keyword_type=keyword_type,
         keyword_value=args.searchitem,

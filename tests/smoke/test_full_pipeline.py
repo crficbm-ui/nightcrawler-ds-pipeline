@@ -1,7 +1,6 @@
 import re
 import os
 import logging
-from io import StringIO
 
 from nightcrawler.cli.main import run
 
@@ -11,17 +10,14 @@ from nightcrawler.context import Context
 logger = logging.getLogger(LOGGER_NAME)
 
 
-def test_full_pipeline_end_to_end():
-    # Configure logging to write to string
-    stream = StringIO()
-    logger.addHandler(logging.StreamHandler(stream=stream))
+def test_full_pipeline_end_to_end(caplog):
+    logger.propagate = True  # In nightcrawler.helpers.__init__.py we disabled logs propagation to not dublicate LOGS. However, caplog requires propagation therefore we enable it for the test.
+    with caplog.at_level(logging.DEBUG, logger=LOGGER_NAME):
+        country = "CH"
+        run(["fullrun", "aspirin", "-n=1", f"--country={country}"])
 
-    country = "CH"
-    # Start the pipeline command
-    run(["fullrun", "aspirin", "-n=1", f"--country={country}"])
-
-    # Combine stdout and stderr for log checking
-    combined_output = stream.getvalue()
+    # Combine log records from caplog for assertions
+    combined_output = "\n".join(record.message for record in caplog.records)
 
     # print the stdout
     logger.info("\nStdout generated during smoke tests:")
