@@ -8,6 +8,7 @@ ROOT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 LOGGER_NAME = "nightcrawler_logger"
 logger = logging.getLogger(LOGGER_NAME)
+logger.propagate = False  # prevent propagation to root logging handler witch caused that the logs were doubles on level "nightcrawler_logger" and on level "root"
 logger.setLevel(logging.INFO)
 
 # Check if the logger already has handlers to avoid duplicate logs

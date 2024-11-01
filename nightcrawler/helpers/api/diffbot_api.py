@@ -21,7 +21,7 @@ class DiffbotAPI(APICaller):
         data_hash = self._generate_hash((url, str(config)))
 
         if not force_refresh and self._is_cached(data_hash):
-            logger.info("Using cached response")
+            logger.warning("Using cached response")
             return self._read_cache(data_hash)
         else:
             attempts = 0

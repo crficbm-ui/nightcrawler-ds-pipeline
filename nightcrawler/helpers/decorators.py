@@ -98,7 +98,7 @@ def timeit(method):
 
         if class_name == "Namespace" and method_name == "apply":
             # full pipeline run
-            logger.info(f"Run full pipeline in {elapsed_time:.10f} seconds.")
+            logger.warning(f"Run full pipeline in {elapsed_time:.10f} seconds.")
 
         else:
             logger.debug(

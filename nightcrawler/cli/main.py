@@ -181,8 +181,8 @@ def run(args_: List[str]) -> None:
         args_ (List[str]): List of command-line arguments.
     """
     args = parse_args(args_)
-    apply(args)
     config_logs(args)
+    apply(args)
 
 
 def main() -> None:
