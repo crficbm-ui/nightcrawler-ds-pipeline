@@ -91,7 +91,7 @@ def write_json(
 
 
 def create_output_dir(
-    keyword: str, parent_dir: str = "./", username: str = "defaultuser"
+    keyword: str, parent_dir: str = "./", username: str = "defaultuser", skip: bool = False
 ) -> str:
     """
     Creates a directory with a unique name based on the current timestamp, keyword, and username.
@@ -104,6 +104,7 @@ def create_output_dir(
         parent_dir (str, optional): defines the parent directory of where the output file will be stored. Defaults to current dir
         keyword (str): The keyword to include in the directory name.
         username (str, optional): The username to include in the directory name. Defaults to "defaultuser".
+        skip (bool, optional): Skip creation on local file system. Defaults to False
 
     Returns:
         str: The path of the created directory.
@@ -117,6 +118,9 @@ def create_output_dir(
 
     # Construct the directory path
     target_path = f"{parent_dir}/{today_ts}_{keyword}_{username}"
+
+    if skip:
+        return target_path
 
     # Create the directory if it doesn't exist
     if not os.path.exists(target_path):

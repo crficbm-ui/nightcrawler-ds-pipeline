@@ -17,7 +17,6 @@ from nightcrawler.base import BaseStep, PipelineResult, MetaData, ExtractSerpapi
 
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.context import Context
-from nightcrawler.helpers.utils import create_output_dir
 from nightcrawler.helpers.decorators import timeit
 
 import libnightcrawler.objects as lo
@@ -87,9 +86,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
     keyword_type = request.keyword_type.lower()
     if keyword_type in ["text", "url"]:
         # Step 0: create the results directory with searchitem = keyword
-        context.output_dir = create_output_dir(
-            request.keyword_value, context.output_path
-        )
+        context.update_output_dir(request.keyword_value)
 
         if keyword_type == "text":
             # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
@@ -131,9 +128,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
 
     elif keyword_type == "image":
         # Step 0: create the results directory with searchitem = url, so just name it 'reverse_image_search'.
-        context.output_dir = create_output_dir(
-            "reverse_image_search", context.output_path
-        )
+        context.update_output_dir("reverse_image_search")
 
         # Make image publicly accessible if necessary
         public_url = (
