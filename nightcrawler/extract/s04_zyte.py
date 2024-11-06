@@ -70,6 +70,10 @@ class ZyteExtractor(Extract):
 
         with tqdm(total=len(urls)) as pbar:
             for url in urls:
+                if len(url) < 3:
+                    logger.error("Skipping invalid url '%s' !", url)
+                    responses.append({"error": True})
+                    continue
                 logger.warning("Zyte processing url %s", url)
                 try:
                     response = client.call_api(url, api_config, callback=callback)
