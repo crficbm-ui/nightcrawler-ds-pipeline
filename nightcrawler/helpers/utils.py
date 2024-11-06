@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Union
 from nightcrawler.helpers import LOGGER_NAME
 
 
-from urllib.parse import urlparse, urlunparse, ParseResult
+from urllib.parse import urlparse, urlunparse, ParseResult, parse_qsl, urlencode, quote
 import re
 import pandas as pd
 
@@ -91,7 +91,10 @@ def write_json(
 
 
 def create_output_dir(
-    keyword: str, parent_dir: str = "./", username: str = "defaultuser", skip: bool = False
+    keyword: str,
+    parent_dir: str = "./",
+    username: str = "defaultuser",
+    skip: bool = False,
 ) -> str:
     """
     Creates a directory with a unique name based on the current timestamp, keyword, and username.
@@ -293,6 +296,42 @@ def clean_url(url):
 
     # Reconstruct the cleaned URL
     return urlunparse(cleaned_url)
+
+
+def remove_tracking_parameters(url):
+    # All query parameters are tracking parameters on ebay
+    remove_all = url.startswith("https://www.ebay")
+
+    # Remove known trackers
+    known_trackers = [
+        "srsltid",
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_term",
+        "utm_content",
+    ]
+
+    parsed = urlparse(url)
+    queries = parse_qsl(parsed.query, keep_blank_values=True)
+    filtered = (
+        list(
+            (k[0], k[1])
+            for k in queries
+            if all([not k[0].startswith(y) for y in known_trackers])
+        )
+        if not remove_all
+        else list()
+    )
+    newurl = ParseResult(
+        scheme=parsed.scheme,
+        netloc=parsed.netloc,
+        path=parsed.path,
+        params=parsed.params,
+        query=urlencode(filtered, quote_via=quote),
+        fragment=parsed.fragment,
+    )
+    return urlunparse(newurl)
 
 
 def filter_dict_keys(original_dict, keys_to_save):
