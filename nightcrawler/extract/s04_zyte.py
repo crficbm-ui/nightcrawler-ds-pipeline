@@ -70,17 +70,20 @@ class ZyteExtractor(Extract):
 
         with tqdm(total=len(urls)) as pbar:
             for url in urls:
+                if len(url) < 3:
+                    logger.error("Skipping invalid url '%s' !", url)
+                    responses.append({"error": True})
+                    continue
                 logger.warning("Zyte processing url %s", url)
                 try:
                     response = client.call_api(url, api_config, callback=callback)
                 except Exception as e:
                     logger.critical("Failed to call zyte for url %s", url)
                     logger.debug(e, exc_info=True)
-                    pbar.update(1)
-                    continue
+                    response = {"error": True}
                 if not response:
                     logger.error(f"Failed to collect product from {url}")
-                    continue
+                    response = {"error": True}
                 responses.append(response)
                 pbar.update(1)
         return responses
@@ -102,6 +105,8 @@ class ZyteExtractor(Extract):
         """
         results = []
         for index, response in enumerate(responses):
+            if response.get("error"):
+                continue
             product = response.get("product", {})
             serpapi_result = serpapi_results.results[index]
             try:

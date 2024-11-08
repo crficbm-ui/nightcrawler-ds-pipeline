@@ -1,4 +1,5 @@
 from typing import Any
+from nightcrawler.helpers.utils import create_output_dir
 from nightcrawler.settings import Settings
 from datetime import datetime
 
@@ -64,3 +65,6 @@ class Context(StorageContext):
             "process_suspiciousness.json"
         )
         self.filename_final_results: str = "final_results.json"
+
+    def update_output_dir(self, path: str):
+        self.output_dir = create_output_dir(path, self.output_path, skip=not self.settings.use_file_storage)

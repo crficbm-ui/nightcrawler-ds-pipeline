@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Callable
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.helpers import LOGGER_NAME
+from nightcrawler.helpers.utils import remove_tracking_parameters
 
 from nightcrawler.base import (
     ExtractSerpapiData,
@@ -127,7 +128,7 @@ class SerpapiExtractor(Extract):
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
         results = [
-            ExtractSerpapiData(offerRoot=offer_root, url=url) for url in filtered_urls
+            ExtractSerpapiData(offerRoot=offer_root, url=remove_tracking_parameters(url)) for url in filtered_urls
         ]
         return results
 

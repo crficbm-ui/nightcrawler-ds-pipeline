@@ -37,7 +37,7 @@ class SerpAPI(APICaller):
             max_retries (int): The maximum number of retries for API calls (default is 3).
             retry_delay (int): The delay in seconds between retry attempts (default is 2).
         """
-        super().__init__(context, cache_name, max_retries, retry_delay, 24 * 60 * 60)
+        super().__init__(context, cache_name, max_retries, retry_delay, 18 * 60 * 60)
 
     def call_serpapi(
         self, params: Dict[str, Any], log_name: str, force_refresh: bool = False, callback: Callable[int, None] | None = None
