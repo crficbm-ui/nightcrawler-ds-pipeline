@@ -26,8 +26,8 @@ DEFAULT_CONFIG = {
 
 class ZyteAPI(APICaller):
     def __init__(self, context, cache_name="zyte", max_retries=3, retry_delay=10):
-        # Cache data for 7 days for zyte
-        super().__init__(context, cache_name, max_retries, retry_delay, 7*24*60*60)
+        # Cache data for 7 days (minus 6h) for zyte
+        super().__init__(context, cache_name, max_retries, retry_delay, (7*24 - 6)*60*60)
         self.endpoint = "https://api.zyte.com/v1/extract"
         self.auth = (os.environ["ZYTE_API_TOKEN"], "")
 
