@@ -11,9 +11,24 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 class APICaller:
+    """
+    A base class to handle caching of remote API calls.
+    """
+
     def __init__(
         self, context: Context, cache_name: str = "default", max_retries: int = 3, retry_delay: int = 2, cache_duration: int = 24*60*60
     ):
+        """
+        Initializes the base class APICaller class.
+
+        Args:
+            context (Context): Context object
+            cache_name (str): The name of the cache (default is "serpapi").
+            max_retries (int): The maximum number of retries for API calls (default is 3).
+            retry_delay (int): The delay in seconds between retry attempts (default is 2).
+            cache_duration (int): The delay in seconds between a cache entry is considered obsolete.
+        """
+
         self.context = context
 
         if self.context.settings.use_file_storage:
