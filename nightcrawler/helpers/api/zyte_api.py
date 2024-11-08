@@ -26,12 +26,12 @@ DEFAULT_CONFIG = {
 
 class ZyteAPI(APICaller):
     def __init__(self, context, cache_name="zyte", max_retries=3, retry_delay=10):
-        # Cache data for 7 days for zyte
-        super().__init__(context, cache_name, max_retries, retry_delay, 7*24*60*60)
+        # Cache data for 7 days (minus 6h) for zyte
+        super().__init__(context, cache_name, max_retries, retry_delay, (7*24 - 6)*60*60)
         self.endpoint = "https://api.zyte.com/v1/extract"
         self.auth = (os.environ["ZYTE_API_TOKEN"], "")
 
-    def call_api(self, prompt, config, force_refresh=False):
+    def call_api(self, prompt, config, force_refresh=False, callback = None):
         data_hash = self._generate_hash((prompt, str(config)))
 
         if not force_refresh and (cached := self._read_cache(data_hash)) is not None:
@@ -63,6 +63,8 @@ class ZyteAPI(APICaller):
                 response["seconds_taken"] = end_time - start_time
 
                 self._write_cache(data_hash, response)
+                if callback is not None:
+                    callback(1)
 
                 return response
             except Exception as e:

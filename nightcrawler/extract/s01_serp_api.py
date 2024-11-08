@@ -1,8 +1,9 @@
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Callable
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.helpers import LOGGER_NAME
+from nightcrawler.helpers.utils import remove_tracking_parameters
 
 from nightcrawler.base import (
     ExtractSerpapiData,
@@ -10,6 +11,7 @@ from nightcrawler.base import (
     PipelineResult,
     Extract,
     GOOGLE_SITE_MARKETPLACES,
+    CounterCallback,
 )
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -72,6 +74,7 @@ class SerpapiExtractor(Extract):
         custom_params: Dict[str, Any] = {},
         offer_root: str = "DEFAULT",
         number_of_results: int = 50,
+        callback: Callable[int, None] | None = None,
     ) -> List[ExtractSerpapiData]:
         """
         Makes the API call to SerpAPI to retrieve search results for the given keyword.
@@ -91,7 +94,7 @@ class SerpapiExtractor(Extract):
             **(custom_params),
         }
         logger.info(f"Extracting URLs from SerpAPI for '{keyword}' from '{offer_root}'")
-        return client.call_serpapi(params, log_name="google_regular")
+        return client.call_serpapi(params, log_name="google_regular", callback=callback)
 
     def structure_results(
         self,
@@ -125,12 +128,12 @@ class SerpapiExtractor(Extract):
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
         results = [
-            ExtractSerpapiData(offerRoot=offer_root, url=url) for url in filtered_urls
+            ExtractSerpapiData(offerRoot=offer_root, url=remove_tracking_parameters(url)) for url in filtered_urls
         ]
         return results
 
     def results_from_marketplaces(
-        self, client: SerpAPI, keyword: str, number_of_results: int
+        self, client: SerpAPI, keyword: str, number_of_results: int, callback: Callable[int, None]
     ) -> List[ExtractSerpapiData]:
         # Define parameters and labels for different sources
         sources = [
@@ -168,6 +171,7 @@ class SerpapiExtractor(Extract):
                 custom_params=source["params"],
                 offer_root=source["label"],
                 number_of_results=number_of_results,
+                callback=callback,
             )
             structured_results = self.structure_results(
                 keyword, response, client, source["label"], number_of_results
@@ -188,9 +192,10 @@ class SerpapiExtractor(Extract):
         Returns:
             PipelineResult: The final structured search results.
         """
+        counter = CounterCallback()
         client = self.initiate_client()
         structured_results_from_marketplaces = self.results_from_marketplaces(
-            client=client, keyword=keyword, number_of_results=number_of_results
+            client=client, keyword=keyword, number_of_results=number_of_results, callback=counter
         )
 
         # Generate the metadata
@@ -202,7 +207,7 @@ class SerpapiExtractor(Extract):
 
         # Combining all structured results
         structured_results_from_marketplaces = PipelineResult(
-            meta=metadata, results=structured_results_from_marketplaces
+            meta=metadata, results=structured_results_from_marketplaces, cost={"serpapi": counter.value}
         )
 
         self.store_results(
