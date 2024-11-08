@@ -58,10 +58,10 @@ class KeywordEnricher(BaseStep):
         suggested_kw: List[Dict[str, Any]] = []
         related_kw: List[Dict[str, Any]] = []
 
-        suggested_kw += DataforSeoAPI().get_keyword_suggestions(
+        suggested_kw += DataforSeoAPI(self.context).get_keyword_suggestions(
             keyword, location, language, number_of_keywords
         )
-        related_kw += DataforSeoAPI().get_related_keywords(
+        related_kw += DataforSeoAPI(self.context).get_related_keywords(
             keyword, location, language, number_of_keywords
         )
 

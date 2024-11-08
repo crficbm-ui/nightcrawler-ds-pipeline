@@ -17,52 +17,56 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 class MistralAPI(APICaller):
-    def __init__(self, cache_name="llms", max_retries=3, retry_delay=2):
+    def __init__(self, context, cache_name="llms", max_retries=3, retry_delay=2):
         super().__init__(
-            cache_name=cache_name, max_retries=max_retries, retry_delay=retry_delay
+            context,
+            cache_name=cache_name,
+            max_retries=max_retries,
+            retry_delay=retry_delay,
+            cache_duration=30 * 24 * 60 * 60,
         )
         self.client = MistralClient(api_key=os.environ["MISTRAL_API_KEY"])
 
     def call_api(self, prompt, config, force_refresh=False):
         data_hash = self._generate_hash((prompt, str(config)))
 
-        if not force_refresh and self._is_cached(data_hash):
-            logger.warning("Using cached response")
-            return self._read_cache(data_hash)
-        else:
-            attempts = 0
-            while attempts < self.max_retries:
-                try:
-                    start_time = time.time()
-                    chat_response = self.client.chat(
-                        messages=[ChatMessage(role="user", content=prompt)],
-                        model=config.get("model", "open-mixtral-8x7b"),
-                        temperature=config.get("temperature", 0.7),
-                        top_p=config.get("top_p", 1),
-                        max_tokens=config.get("max_tokens", None),
-                        response_format=config.get("response_format", None),
-                    )
+        if not force_refresh and (cached := self._read_cache(data_hash)) is not None:
+            logger.warning("Using cached response for mistral (%s)", data_hash)
+            return cached
 
-                    end_time = time.time()
-                    response = {
-                        "content": chat_response.choices[0].message.content,
-                        "prompt_tokens": chat_response.usage.prompt_tokens,
-                        "completion_tokens": chat_response.usage.completion_tokens,
-                        "model": chat_response.model,
-                        "seconds_taken": end_time - start_time,
-                        "created": chat_response.created,
-                    }
-                    if not response["content"]:
-                        raise Exception("Empty response received")
-                    self._write_cache(data_hash, response)
-                    return response
-                except Exception as e:
-                    logger.warning(
-                        f"API call failed with error: {e}. Retrying in {self.retry_delay} seconds..."
-                    )
-                    attempts += 1
-                    time.sleep(self.retry_delay)
-            raise Exception("All API call attempts failed.")
+        attempts = 0
+        while attempts < self.max_retries:
+            try:
+                start_time = time.time()
+                chat_response = self.client.chat(
+                    messages=[ChatMessage(role="user", content=prompt)],
+                    model=config.get("model", "open-mixtral-8x7b"),
+                    temperature=config.get("temperature", 0.7),
+                    top_p=config.get("top_p", 1),
+                    max_tokens=config.get("max_tokens", None),
+                    response_format=config.get("response_format", None),
+                )
+
+                end_time = time.time()
+                response = {
+                    "content": chat_response.choices[0].message.content,
+                    "prompt_tokens": chat_response.usage.prompt_tokens,
+                    "completion_tokens": chat_response.usage.completion_tokens,
+                    "model": chat_response.model,
+                    "seconds_taken": end_time - start_time,
+                    "created": chat_response.created,
+                }
+                if not response["content"]:
+                    raise Exception("Empty response received")
+                self._write_cache(data_hash, response)
+                return response
+            except Exception as e:
+                logger.warning(
+                    f"API call failed with error: {e}. Retrying in {self.retry_delay} seconds..."
+                )
+                attempts += 1
+                time.sleep(self.retry_delay)
+        raise Exception("All API call attempts to MistralAI failed.")
 
 
 @dataclass
@@ -118,51 +122,55 @@ class OpanaiConfig:
 
 
 class OpenaiAPI(APICaller):
-    def __init__(self, cache_name="llms", max_retries=3, retry_delay=2):
+    def __init__(self, context, cache_name="llms", max_retries=3, retry_delay=2):
         super().__init__(
-            cache_name=cache_name, max_retries=max_retries, retry_delay=retry_delay
+            context,
+            cache_name=cache_name,
+            max_retries=max_retries,
+            retry_delay=retry_delay,
+            cache_duration=30 * 24 * 60 * 60,
         )
         self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
     def call_api(self, prompt, config: Dict, force_refresh=False):
         data_hash = self._generate_hash((str(prompt), str(config)))
 
-        if not force_refresh and self._is_cached(data_hash):
-            logger.warning("Using cached response")
-            return self._read_cache(data_hash)
-        else:
-            attempts = 0
-            while attempts < self.max_retries:
-                try:
-                    start_time = time.time()
-                    chat_response = self.client.chat.completions.create(
-                        messages=[
-                            {"role": "user", "content": prompt},
-                        ],
-                        **config,
-                    )
-                    end_time = time.time()
-                    response = {
-                        "content": chat_response.choices[0].message.content,
-                        "finish_reason": chat_response.choices[0].finish_reason,
-                        "prompt_tokens": chat_response.usage.prompt_tokens,
-                        "completion_tokens": chat_response.usage.completion_tokens,
-                        "model": chat_response.model,
-                        "seconds_taken": end_time - start_time,
-                        "created": chat_response.created,
-                        "created_date": time.strftime(
-                            "%Y-%m-%d %H:%M:%S", time.localtime(chat_response.created)
-                        ),
-                    }
-                    self._write_cache(data_hash, response)
-                    return response
-                except Exception as e:
-                    logger.info(
-                        f"API call failed: {e}. Retrying in {self.retry_delay} seconds..."
-                    )
-                    attempts += 1
-                    time.sleep(self.retry_delay)
-            raise Exception("All retries failed")
+        if not force_refresh and (cached := self._read_cache(data_hash)) is not None:
+            logger.warning("Using cached response for OpenAI (%s)", data_hash)
+            return cached
+
+        attempts = 0
+        while attempts < self.max_retries:
+            try:
+                start_time = time.time()
+                chat_response = self.client.chat.completions.create(
+                    messages=[
+                        {"role": "user", "content": prompt},
+                    ],
+                    **config,
+                )
+                end_time = time.time()
+                response = {
+                    "content": chat_response.choices[0].message.content,
+                    "finish_reason": chat_response.choices[0].finish_reason,
+                    "prompt_tokens": chat_response.usage.prompt_tokens,
+                    "completion_tokens": chat_response.usage.completion_tokens,
+                    "model": chat_response.model,
+                    "seconds_taken": end_time - start_time,
+                    "created": chat_response.created,
+                    "created_date": time.strftime(
+                        "%Y-%m-%d %H:%M:%S", time.localtime(chat_response.created)
+                    ),
+                }
+                self._write_cache(data_hash, response)
+                return response
+            except Exception as e:
+                logger.info(
+                    f"API call failed: {e}. Retrying in {self.retry_delay} seconds..."
+                )
+                attempts += 1
+                time.sleep(self.retry_delay)
+        raise Exception("All retries to OpenAI failed")
 
 
 def local_image_to_base64_url(image_path):

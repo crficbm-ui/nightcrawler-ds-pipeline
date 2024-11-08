@@ -1,6 +1,6 @@
 import logging
 import base64
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Tuple, Any, Callable
 from tqdm.auto import tqdm
 
 from nightcrawler.context import Context
@@ -11,6 +11,7 @@ from nightcrawler.base import (
     ExtractZyteData,
     PipelineResult,
     Extract,
+    CounterCallback,
 )
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -43,7 +44,7 @@ class ZyteExtractor(Extract):
         Returns:
             Tuple[ZyteAPI, Dict[str, Any]]: The ZyteAPI client instance and its configuration.
         """
-        client = ZyteAPI()
+        client = ZyteAPI(self.context)
         return client, DEFAULT_CONFIG
 
     def retrieve_response(
@@ -51,6 +52,7 @@ class ZyteExtractor(Extract):
         client: ZyteAPI,
         serpapi_results: PipelineResult,
         api_config: Dict[str, Any],
+        callback: Callable[int, None] | None = None,
     ) -> List[Dict[str, Any]]:
         """
         Makes the API calls to ZyteAPI to retrieve data from the provided URLs.
@@ -65,18 +67,23 @@ class ZyteExtractor(Extract):
         """
         urls = [item.get("url") for item in serpapi_results.results]
         responses = []
+
         with tqdm(total=len(urls)) as pbar:
             for url in urls:
-                try:
-                    response = client.call_api(url, api_config)
-                except Exception as e:
-                    logger.critical("Failed to call api for url %s", url)
-                    logger.debug(e, exc_info=True)
-                    pbar.update(1)
+                if len(url) < 3:
+                    logger.error("Skipping invalid url '%s' !", url)
+                    responses.append({"error": True})
                     continue
+                logger.warning("Zyte processing url %s", url)
+                try:
+                    response = client.call_api(url, api_config, callback=callback)
+                except Exception as e:
+                    logger.critical("Failed to call zyte for url %s", url)
+                    logger.debug(e, exc_info=True)
+                    response = {"error": True}
                 if not response:
                     logger.error(f"Failed to collect product from {url}")
-                    continue
+                    response = {"error": True}
                 responses.append(response)
                 pbar.update(1)
         return responses
@@ -98,6 +105,8 @@ class ZyteExtractor(Extract):
         """
         results = []
         for index, response in enumerate(responses):
+            if response.get("error"):
+                continue
             product = response.get("product", {})
             serpapi_result = serpapi_results.results[index]
             try:
@@ -151,13 +160,18 @@ class ZyteExtractor(Extract):
         Returns:
             PipelineResult: The final structured results.
         """
+        counter = CounterCallback()
         client, api_config = self.initiate_client()
-        responses = self.retrieve_response(client, previous_step_results, api_config)
+        responses = self.retrieve_response(
+            client, previous_step_results, api_config, callback=counter
+        )
         structured_results = self.structure_results(responses, previous_step_results)
 
         # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
         zyte_results = self.add_pipeline_steps_to_results(
-            currentStepResults=structured_results, pipelineResults=previous_step_results
+            currentStepResults=structured_results,
+            pipelineResults=previous_step_results,
+            usage={"zyte": counter.value} if counter.value else None,
         )
 
         self.store_results(

@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Callable
 from serpapi.google_search import GoogleSearch
 
 from nightcrawler.helpers.api.requests_wrapper import (
@@ -10,6 +10,7 @@ from nightcrawler.helpers.api.requests_wrapper import (
 from nightcrawler.helpers.api.api_caller import APICaller
 
 from nightcrawler.helpers import LOGGER_NAME
+from nightcrawler.context import Context
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -25,20 +26,21 @@ class SerpAPI(APICaller):
     """
 
     def __init__(
-        self, cache_name: str = "serpapi", max_retries: int = 3, retry_delay: int = 2
+        self, context: Context, cache_name: str = "serpapi", max_retries: int = 3, retry_delay: int = 2
     ):
         """
         Initializes the SerpAPI class.
 
         Args:
+            context (Context): Context object
             cache_name (str): The name of the cache (default is "serpapi").
             max_retries (int): The maximum number of retries for API calls (default is 3).
             retry_delay (int): The delay in seconds between retry attempts (default is 2).
         """
-        super().__init__(cache_name, max_retries, retry_delay)
+        super().__init__(context, cache_name, max_retries, retry_delay, 18 * 60 * 60)
 
     def call_serpapi(
-        self, params: Dict[str, Any], log_name: str, force_refresh: bool = False
+        self, params: Dict[str, Any], log_name: str, force_refresh: bool = False, callback: Callable[int, None] | None = None
     ) -> Dict[str, Any]:
         """
         Calls the SerpAPI and returns the response, with optional caching.
@@ -56,32 +58,34 @@ class SerpAPI(APICaller):
         """
         data_hash = self._generate_hash(str(params))
 
-        if not force_refresh and self._is_cached(data_hash):
-            logger.warning("Using cached response for serpapi")
-            return self._read_cache(data_hash)
-        else:
-            attempts = 0
-            while attempts < self.max_retries:
-                try:
-                    search = GoogleSearch(params)
-                    response = search.get_response()
-                    logger.debug(
-                        f'{log_name}: req: {convert_request_to_string(response.request, params.get("api_key"))}'
-                    )
-                    logger.debug(
-                        f"{log_name}: response: \n"
-                        + convert_response_to_string(response, params.get("api_key"))
-                    )
-                    response.raise_for_status()
-                    self._write_cache(data_hash, response.json())
-                    return response.json()
-                except Exception as e:
-                    logger.warning(
-                        f"API call failed with error: {e}. Retrying in {self.retry_delay} seconds..."
-                    )
-                    attempts += 1
-                    time.sleep(self.retry_delay)
-            raise Exception("All API call attempts failed.")
+        if not force_refresh and (cached := self._read_cache(data_hash)) is not None:
+            logger.warning("Using cached response for serpapi (%s)", data_hash)
+            return cached
+
+        attempts = 0
+        while attempts < self.max_retries:
+            try:
+                search = GoogleSearch(params)
+                response = search.get_response()
+                logger.debug(
+                    f'{log_name}: req: {convert_request_to_string(response.request, params.get("api_key"))}'
+                )
+                logger.debug(
+                    f"{log_name}: response: \n"
+                    + convert_response_to_string(response, params.get("api_key"))
+                )
+                response.raise_for_status()
+                self._write_cache(data_hash, response.json())
+                if callback is not None:
+                    callback(1)
+                return response.json()
+            except Exception as e:
+                logger.warning(
+                    f"API call failed with error: {e}. Retrying in {self.retry_delay} seconds..."
+                )
+                attempts += 1
+                time.sleep(self.retry_delay)
+        raise Exception("All API call attempts to SerpAPI failed.")
 
     @staticmethod
     def _check_limit(urls: List[str], query: str, limit: int = 200) -> List[str]:

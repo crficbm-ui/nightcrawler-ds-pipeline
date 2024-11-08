@@ -1,3 +1,4 @@
+import copy
 import logging
 import re
 from re import Pattern
@@ -227,6 +228,7 @@ class PipelineResult(ObjectUtilitiesContainer):
 
     meta: MetaData
     results: List[CrawlResultData]
+    usage: dict[str, int] = field(default_factory=dict)
 
 
 # ---------------------------------------------------
@@ -264,25 +266,19 @@ class BaseStep(ABC):
         if not self.context.settings.store_intermediate:
             return
 
-        # TODO try with deep copy
-        structured_results_dict = PipelineResult(meta=MetaData(), results=[])
-        structured_results_dict.meta = structured_results.meta.to_dict()
-        structured_results_dict.results = [
-            result.to_dict() for result in structured_results.results
-        ]
-
+        structured_results_dict = asdict(structured_results)
         path = f"{BaseStep._step_counter}_{filename}"
         if not self.context.settings.use_file_storage:
             blob_path = (output_dir + path).replace("/", "_")
             self.context.blob_client.put_processing(
-                blob_path, structured_results_dict.to_dict()
+                blob_path, structured_results_dict
             )
             return
 
         write_json(
             output_dir,
             path,
-            structured_results_dict.to_dict(),
+            structured_results_dict,
         )
 
     def add_pipeline_steps_to_results(
@@ -290,6 +286,7 @@ class BaseStep(ABC):
         currentStepResults: List[Any],
         pipelineResults: PipelineResult,
         currentStepResultsIsPipelineResultsObject=True,
+        usage: dict[str, int] | None =None,
     ) -> PipelineResult:
         # Depending on the class implementation the currentStepResults is either a List of DataObjects (default) or already a PipelineResult Object.
         if currentStepResultsIsPipelineResultsObject:
@@ -302,7 +299,14 @@ class BaseStep(ABC):
             results = pipelineResults.results + currentStepResults
             pipelineResults.meta.numberOfResultsAfterStage = len(results)
 
-        updatedResults = PipelineResult(meta=pipelineResults.meta, results=results)
+        # Merge usages
+        if usage is None:
+            usage = dict()
+        new_usage = copy.deepcopy(pipelineResults.usage)
+        for k,v in usage.items():
+            new_usage[k] = new_usage.get(k, 0) + v
+
+        updatedResults = PipelineResult(meta=pipelineResults.meta, results=results, usage=new_usage)
         return updatedResults
 
     @abstractmethod
@@ -470,3 +474,14 @@ class PageTypes:
     WEB_ARTICLE = "web_article"
     BLOGPOST = "blogpost"
     OTHER = "other"
+
+
+# ---------------------------------------------------
+# Callback for counting
+# ---------------------------------------------------
+class CounterCallback:
+    def __init__(self) -> None:
+        self.value = 0
+
+    def __call__(self, count):
+        self.value += count
