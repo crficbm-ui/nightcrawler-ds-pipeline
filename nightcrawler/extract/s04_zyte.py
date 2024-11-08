@@ -171,7 +171,7 @@ class ZyteExtractor(Extract):
         zyte_results = self.add_pipeline_steps_to_results(
             currentStepResults=structured_results,
             pipelineResults=previous_step_results,
-            cost={"zyte": counter.value} if counter.value else None,
+            usage={"zyte": counter.value} if counter.value else None,
         )
 
         self.store_results(

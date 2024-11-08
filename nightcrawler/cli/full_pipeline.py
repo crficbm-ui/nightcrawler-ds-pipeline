@@ -209,7 +209,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             for x in final_results.results
         ]
         context.store_results(data, request.case_id, request.keyword_id)
-        context.report_cost(request.case_id, final_results.cost)
+        context.report_usage(request.case_id, final_results.usage)
 
 
 @timeit

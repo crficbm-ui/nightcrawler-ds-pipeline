@@ -228,7 +228,7 @@ class PipelineResult(ObjectUtilitiesContainer):
 
     meta: MetaData
     results: List[CrawlResultData]
-    cost: dict[str, int] = field(default_factory=dict)
+    usage: dict[str, int] = field(default_factory=dict)
 
 
 # ---------------------------------------------------
@@ -286,7 +286,7 @@ class BaseStep(ABC):
         currentStepResults: List[Any],
         pipelineResults: PipelineResult,
         currentStepResultsIsPipelineResultsObject=True,
-        cost: dict[str, int] | None =None,
+        usage: dict[str, int] | None =None,
     ) -> PipelineResult:
         # Depending on the class implementation the currentStepResults is either a List of DataObjects (default) or already a PipelineResult Object.
         if currentStepResultsIsPipelineResultsObject:
@@ -299,14 +299,14 @@ class BaseStep(ABC):
             results = pipelineResults.results + currentStepResults
             pipelineResults.meta.numberOfResultsAfterStage = len(results)
 
-        # Merge costs
-        if cost is None:
-            cost = dict()
-        new_cost = copy.deepcopy(pipelineResults.cost)
-        for k,v in cost.items():
-            new_cost[k] = new_cost.get(k, 0) + v
+        # Merge usages
+        if usage is None:
+            usage = dict()
+        new_usage = copy.deepcopy(pipelineResults.usage)
+        for k,v in usage.items():
+            new_usage[k] = new_usage.get(k, 0) + v
 
-        updatedResults = PipelineResult(meta=pipelineResults.meta, results=results, cost=new_cost)
+        updatedResults = PipelineResult(meta=pipelineResults.meta, results=results, usage=new_usage)
         return updatedResults
 
     @abstractmethod

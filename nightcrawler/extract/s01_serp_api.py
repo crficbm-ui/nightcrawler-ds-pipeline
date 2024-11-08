@@ -207,7 +207,7 @@ class SerpapiExtractor(Extract):
 
         # Combining all structured results
         structured_results_from_marketplaces = PipelineResult(
-            meta=metadata, results=structured_results_from_marketplaces, cost={"serpapi": counter.value}
+            meta=metadata, results=structured_results_from_marketplaces, usage={"serpapi": counter.value}
         )
 
         self.store_results(
