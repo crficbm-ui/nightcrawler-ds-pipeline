@@ -51,9 +51,6 @@ class APICaller:
 
         return os.path.join(self.cache_dir, f"{data_hash}.cache")
 
-    def _is_cached(self, data_hash: str) -> bool:
-        return os.path.exists(self._cache_path(data_hash))
-
     def _write_cache(self, data_hash: str, response: Dict[str, Any]) -> None:
         path = self._cache_path(data_hash)
         logger.warning("Writing to cache: %s", path)
@@ -71,7 +68,7 @@ class APICaller:
         if not self.context.settings.use_file_storage:
             return self.context.blob_client.get_cached(path, self.cache_duration)
 
-        if not self._is_cached(data_hash):
+        if not os.path.exists(self._cache_path(data_hash)):
             return None
 
         with open(path, "r") as cache_file:
