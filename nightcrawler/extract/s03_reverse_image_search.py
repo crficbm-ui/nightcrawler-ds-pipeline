@@ -48,7 +48,9 @@ class GoogleReverseImageApi(BaseStep):
             "image_url": quote_plus(quote_plus(image_url)),
             "start": str((page_number - 1) * 10),
         }
-        response = SerpAPI(self.context).call_serpapi(params, log_name="google_reverse_image")
+        response = SerpAPI(self.context).call_serpapi(
+            params, log_name="google_reverse_image"
+        )
 
         response_urls: List[Tuple[str, str]] = self._extract_urls_from_response(
             response

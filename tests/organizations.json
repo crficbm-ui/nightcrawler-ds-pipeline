@@ -17,7 +17,7 @@
         "unit": "chocolatine",
         "languages": ["de", "en"],
         "currencies": ["EURO"],
-        "countries": ["at"],
+        "countries": ["AT"],
         "blacklist": []
     }
 }

@@ -65,10 +65,16 @@ def add_parser(
     )
 
     parser.add_argument(
-        "--case-id", type=int, default=None, help="DB identifier of the case (%(default)s)"
+        "--case-id",
+        type=int,
+        default=None,
+        help="DB identifier of the case (%(default)s)",
     )
     parser.add_argument(
-        "--keyword-id", type=int, default=None, help="DB identifier of the keyword (%(default)s)"
+        "--keyword-id",
+        type=int,
+        default=None,
+        help="DB identifier of the keyword (%(default)s)",
     )
     return parser
 
@@ -90,7 +96,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
 
         if keyword_type == "text":
             # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
-            serpapi_results = SerpapiExtractor(context).apply(
+            serpapi_results = SerpapiExtractor(context, request.organization).apply(
                 keyword=request.keyword_value,
                 number_of_results=request.number_of_results,
             )
@@ -114,7 +120,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             )
             serpapi_results = KeywordEnricher(context).apply(
                 keyword=request.keyword_value,
-                serpapi=SerpapiExtractor(context),
+                serpapi=SerpapiExtractor(context, request.organization),
                 number_of_keywords=3,
                 location=api_config_for_country.get("location"),
                 language=api_config_for_country.get("language"),

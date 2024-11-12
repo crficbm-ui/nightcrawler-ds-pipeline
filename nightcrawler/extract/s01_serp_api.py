@@ -14,6 +14,8 @@ from nightcrawler.base import (
     CounterCallback,
 )
 
+import libnightcrawler.objects as lo
+
 logger = logging.getLogger(LOGGER_NAME)
 
 
@@ -30,8 +32,7 @@ class SerpapiExtractor(Extract):
     def __init__(
         self,
         context: Context,
-        tld: str = "ch",
-        country: str = "Switzerland",
+        organization: lo.Organization,
         prevent_auto_correct: bool = True,
     ) -> None:
         """
@@ -43,18 +44,22 @@ class SerpapiExtractor(Extract):
         super().__init__(self._entity_name)
         self.context = context
 
+        self.organization = organization
+        self.country = (
+            "Austria" if organization.countries[0].upper() == "AT" else "Switzerland"
+        )
         self._google_params = {
             "engine": "google",
-            "location_requested": country,
-            "location_used": country,
-            "google_domain": f"google.{tld}",
-            "tbs": f"ctr:country{tld.upper()}&cr=country{tld.upper()}",
-            "gl": tld,
+            "location_requested": self.country,
+            "location_used": self.country,
+            "google_domain": f"google.{organization.countries[0].lower()}",
+            "tbs": f"ctr:country{organization.countries[0].lower().upper()}&cr=country{organization.countries[0].lower().upper()}",
+            "gl": organization.countries[0].lower(),
         }
 
         self._ebay_params = {
             "engine": "ebay",
-            "ebay_domain": f"ebay.{tld}",
+            "ebay_domain": f"ebay.{organization.countries[0].lower()}",
             "_blrs": "spell_auto_correct" if prevent_auto_correct else "",
         }
 
@@ -128,12 +133,19 @@ class SerpapiExtractor(Extract):
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
         results = [
-            ExtractSerpapiData(offerRoot=offer_root, url=remove_tracking_parameters(url)) for url in filtered_urls
+            ExtractSerpapiData(
+                offerRoot=offer_root, url=remove_tracking_parameters(url)
+            )
+            for url in filtered_urls
         ]
         return results
 
     def results_from_marketplaces(
-        self, client: SerpAPI, keyword: str, number_of_results: int, callback: Callable[int, None]
+        self,
+        client: SerpAPI,
+        keyword: str,
+        number_of_results: int,
+        callback: Callable[int, None],
     ) -> List[ExtractSerpapiData]:
         # Define parameters and labels for different sources
         sources = [
@@ -147,7 +159,11 @@ class SerpapiExtractor(Extract):
                     **self._google_params,
                     "q": f"{keyword} site:"
                     + " OR site:".join(
-                        [m.root_domain_name for m in GOOGLE_SITE_MARKETPLACES]
+                        [
+                            m.root_domain_name
+                            for m in GOOGLE_SITE_MARKETPLACES
+                            if self.organization.unit in m.affected_unit
+                        ]
                     ),
                 },
                 "label": "GOOGLE_SITE",
@@ -161,6 +177,8 @@ class SerpapiExtractor(Extract):
                 "label": "EBAY",
             },
         ]
+
+        logger.debug(f"SerpAPI configs: {sources}")
 
         # Collecting and structuring all results
         all_results = []
@@ -195,7 +213,10 @@ class SerpapiExtractor(Extract):
         counter = CounterCallback()
         client = self.initiate_client()
         structured_results_from_marketplaces = self.results_from_marketplaces(
-            client=client, keyword=keyword, number_of_results=number_of_results, callback=counter
+            client=client,
+            keyword=keyword,
+            number_of_results=number_of_results,
+            callback=counter,
         )
 
         # Generate the metadata
@@ -207,7 +228,9 @@ class SerpapiExtractor(Extract):
 
         # Combining all structured results
         structured_results_from_marketplaces = PipelineResult(
-            meta=metadata, results=structured_results_from_marketplaces, usage={"serpapi": counter.value}
+            meta=metadata,
+            results=structured_results_from_marketplaces,
+            usage={"serpapi": counter.value},
         )
 
         self.store_results(
