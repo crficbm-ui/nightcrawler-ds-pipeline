@@ -16,7 +16,12 @@ class APICaller:
     """
 
     def __init__(
-        self, context: Context, cache_name: str = "default", max_retries: int = 3, retry_delay: int = 2, cache_duration: int = 24*60*60
+        self,
+        context: Context,
+        cache_name: str = "default",
+        max_retries: int = 3,
+        retry_delay: int = 2,
+        cache_duration: int = 24 * 60 * 60,
     ):
         """
         Initializes the base class APICaller class.

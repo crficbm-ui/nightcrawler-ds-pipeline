@@ -270,9 +270,7 @@ class BaseStep(ABC):
         path = f"{BaseStep._step_counter}_{filename}"
         if not self.context.settings.use_file_storage:
             blob_path = (output_dir + path).replace("/", "_")
-            self.context.blob_client.put_processing(
-                blob_path, structured_results_dict
-            )
+            self.context.blob_client.put_processing(blob_path, structured_results_dict)
             return
 
         write_json(
@@ -286,7 +284,7 @@ class BaseStep(ABC):
         currentStepResults: List[Any],
         pipelineResults: PipelineResult,
         currentStepResultsIsPipelineResultsObject=True,
-        usage: dict[str, int] | None =None,
+        usage: dict[str, int] | None = None,
     ) -> PipelineResult:
         # Depending on the class implementation the currentStepResults is either a List of DataObjects (default) or already a PipelineResult Object.
         if currentStepResultsIsPipelineResultsObject:
@@ -303,10 +301,12 @@ class BaseStep(ABC):
         if usage is None:
             usage = dict()
         new_usage = copy.deepcopy(pipelineResults.usage)
-        for k,v in usage.items():
+        for k, v in usage.items():
             new_usage[k] = new_usage.get(k, 0) + v
 
-        updatedResults = PipelineResult(meta=pipelineResults.meta, results=results, usage=new_usage)
+        updatedResults = PipelineResult(
+            meta=pipelineResults.meta, results=results, usage=new_usage
+        )
         return updatedResults
 
     @abstractmethod
@@ -395,6 +395,7 @@ class Marketplace:
     root_domain_name: str
     search_url_pattern: str
     product_page_url_pattern: str
+    affected_unit: List[str]
 
     @property
     def keyword_pattern(self) -> Pattern:
@@ -420,30 +421,35 @@ DEFAULT_MARKETPLACES = [
         "anibis.ch",
         "https://www.anibis.ch/de/c/alle-kategorien?fts=%s",
         r"^https://www\.anibis\.ch/de/d-",
+        ["mep", "am"],
     ),
     Marketplace(
         "petitesannonces",
         "petitesannonces.ch",
         "https://www.petitesannonces.ch/recherche/?q=%s",
         r"^https://www\.petitesannonces\.ch/a/",
+        ["mep", "am"],
     ),
     Marketplace(
         "visomed",
         "visomed-marketplace.ch",
         "https://visomed-marketplace.ch/?s=%s",
         r"^https://visomed-marketplace\.ch/shop/",
+        ["mep", "am"],
     ),
     Marketplace(
         "locanto",
         "locanto.ch",
         "https://www.locanto.ch/q/?query=%s",
         r"^https://[a-zA-Z\-]*\.locanto\.ch/ID_",
+        ["mep", "am"],
     ),
     Marketplace(
         "gratisinserat",
         "gratisinserat.ch",
         "https://www.gratisinserat.ch/li/?q=%s",
         r"^https://www\.gratisinserat\.ch/[\w\-]*/[\w\-]*/\d*$",
+        ["mep", "am"],
     ),
 ]
 
@@ -453,12 +459,14 @@ GOOGLE_SITE_MARKETPLACES = DEFAULT_MARKETPLACES + [
         "tutti.ch",
         "https://www.tutti.ch/fr/li/toute-la-suisse?q=%s",
         r"^https://www\.tutti\.ch/fr/vi/",
+        ["mep", "am"],
     ),
     Marketplace(
         "ricardo",
         "ricardo.ch",
         "https://www.ricardo.ch/de/s/%s",
         r"^https://www\.ricardo\.ch/de/a/",
+        ["mep", "am"],
     ),
     # TODO this was taken from MediCrawl withouth further testing. this should be tested.
 ]

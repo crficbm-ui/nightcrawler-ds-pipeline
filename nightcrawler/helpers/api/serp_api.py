@@ -26,7 +26,11 @@ class SerpAPI(APICaller):
     """
 
     def __init__(
-        self, context: Context, cache_name: str = "serpapi", max_retries: int = 3, retry_delay: int = 2
+        self,
+        context: Context,
+        cache_name: str = "serpapi",
+        max_retries: int = 3,
+        retry_delay: int = 2,
     ):
         """
         Initializes the SerpAPI class.
@@ -40,7 +44,11 @@ class SerpAPI(APICaller):
         super().__init__(context, cache_name, max_retries, retry_delay, 18 * 60 * 60)
 
     def call_serpapi(
-        self, params: Dict[str, Any], log_name: str, force_refresh: bool = False, callback: Callable[int, None] | None = None
+        self,
+        params: Dict[str, Any],
+        log_name: str,
+        force_refresh: bool = False,
+        callback: Callable[int, None] | None = None,
     ) -> Dict[str, Any]:
         """
         Calls the SerpAPI and returns the response, with optional caching.

@@ -67,4 +67,6 @@ class Context(StorageContext):
         self.filename_final_results: str = "final_results.json"
 
     def update_output_dir(self, path: str):
-        self.output_dir = create_output_dir(path, self.output_path, skip=not self.settings.use_file_storage)
+        self.output_dir = create_output_dir(
+            path, self.output_path, skip=not self.settings.use_file_storage
+        )
