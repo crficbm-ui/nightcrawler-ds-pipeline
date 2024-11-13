@@ -1,12 +1,19 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Callable
 from urllib.parse import quote_plus
 
 import logging
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
+from nightcrawler.helpers.utils import remove_tracking_parameters
 
-from nightcrawler.base import ExtractSerpapiData, MetaData, PipelineResult, BaseStep
+from nightcrawler.base import (
+    ExtractSerpapiData,
+    MetaData,
+    PipelineResult,
+    BaseStep,
+    CounterCallback,
+)
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -23,7 +30,10 @@ class GoogleReverseImageApi(BaseStep):
         self._num_result_pages: int = 4
 
     def _run_reverse_image_search(
-        self, image_url: str, page_number: int
+        self,
+        image_url: str,
+        page_number: int,
+        callback: Callable[int, None] | None = None,
     ) -> List[Tuple[str, str]]:
         """Runs reverse image search to retrieve images and pages containing the image. See
         https://serpapi.com/google-reverse-image for more information.
@@ -48,7 +58,9 @@ class GoogleReverseImageApi(BaseStep):
             "image_url": quote_plus(quote_plus(image_url)),
             "start": str((page_number - 1) * 10),
         }
-        response = SerpAPI(self.context).call_serpapi(params, log_name="google_reverse_image")
+        response = SerpAPI(self.context).call_serpapi(
+            params, log_name="google_reverse_image", callback=callback
+        )
 
         response_urls: List[Tuple[str, str]] = self._extract_urls_from_response(
             response
@@ -132,15 +144,15 @@ class GoogleReverseImageApi(BaseStep):
         Returns:
             PipelineResult: Structured result data including metadata and extracted information.
         """
-        # TODO: where do we get the urls from that are public?
         results: List[ExtractSerpapiData] = []
         logger.info(
             f"Performing reverse image search on the following URL: {image_url}"
         )
         # Run SerpApi multiple times - once for each page of results
+        counter = CounterCallback()
         for page_number in range(self._num_result_pages):
             reverse_image_urls = self._run_reverse_image_search(
-                image_url, page_number + 1
+                image_url, page_number + 1, callback=counter
             )
 
             # No results found - there will be no results on the next page as well
@@ -150,7 +162,7 @@ class GoogleReverseImageApi(BaseStep):
             for image in reverse_image_urls:
                 results.append(
                     ExtractSerpapiData(
-                        url=image[0],
+                        url=remove_tracking_parameters(image[0]),
                         imageUrl=image[1],
                         offerRoot="REVERSE_IMAGE_SEARCH",
                     )
@@ -159,6 +171,12 @@ class GoogleReverseImageApi(BaseStep):
         # TODO: force to only have the number of results specified in the CLI - not "nice" but the reverse_image_api does not provide this parameter
         # either we keep it or we do not control the number of stored results from the pipeline - however this might lead to unintentional high zyte api costs as there can be easily produced a few dozen results by the reverse image search
         # also, if we have a hard cut off, we remove the webpages where the imageUrl is empty
+        skipped = [item for item in results if item.imageUrl is None]
+        if skipped:
+            logger.warning(
+                "Skipping %d results: %s", len(skipped), [x.url for x in skipped]
+            )
+
         results = [item for item in results if item.imageUrl is not None]
         results = results[:number_of_results]
 
@@ -169,7 +187,9 @@ class GoogleReverseImageApi(BaseStep):
         )
 
         # Combining all structured results
-        image_search_results = PipelineResult(meta=metadata, results=results)
+        image_search_results = PipelineResult(
+            meta=metadata, results=results, usage={"serpapi": counter.value}
+        )
 
         self.store_results(
             image_search_results,
