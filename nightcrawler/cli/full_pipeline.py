@@ -114,16 +114,12 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
 
         # Step 2: Enricht query by adding additional keywords if `-e` argument was set
         if request.enrich_keyword:
-            # load dataForSeo configs based on the country information, if none provided, default to CH
-            api_config_for_country = context.settings.data_for_seo.api_params.get(
-                request.organization.countries[0]
-            )
             serpapi_results = KeywordEnricher(context).apply(
                 keyword=request.keyword_value,
                 serpapi=SerpapiExtractor(context, request.organization),
                 number_of_keywords=3,
-                location=api_config_for_country.get("location"),
-                language=api_config_for_country.get("language"),
+                location=context.org.countries[0],
+                language=context.org.languages[0],
                 previous_step_results=serpapi_results,
             )
         else:
@@ -229,12 +225,8 @@ def apply(args: argparse.Namespace) -> None:
     """
     context = Context()
     all_orgs = context.get_organization()
-    org = (
-        all_orgs[args.org]
-        if args.org
-        else next(x for x in all_orgs.values() if args.country in x.countries)
-    )
-    logger.debug("Using org: %s", org)
+    context.org = all_orgs[args.unit]
+    logger.debug("Using org: %s", context.org)
 
     keyword_type = "text"
     if args.searchitem.startswith("http") and not args.reverse_image_search:
@@ -246,7 +238,7 @@ def apply(args: argparse.Namespace) -> None:
         keyword_value=args.searchitem,
         case_id=args.case_id,
         keyword_id=args.keyword_id,
-        organization=org,
+        organization=context.org,
         number_of_results=args.number_of_results,
         page_type_detection_method=args.page_type_detection_method,
         enrich_keyword=args.enrich_keyword,

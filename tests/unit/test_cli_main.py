@@ -15,12 +15,13 @@ def test_log_level_info(tmpdir):
 
 
 def test_parse_args_accepts_extract_keyword_debug():
-    args_list = ["extract", "keyword", "--log-level", "DEBUG"]
+    args_list = ["extract", "keyword", "--log-level", "DEBUG", "--unit", "Ages"]
     with patch("nightcrawler.cli.version.__version__", "1.0.0"):
         args = main_module.parse_args(args_list)
     assert args.module == "extract"
     assert args.searchitem == "keyword"
     assert args.log_level == "DEBUG"
+    assert args.unit == "Ages"
 
 
 def test_run_with_arguments():

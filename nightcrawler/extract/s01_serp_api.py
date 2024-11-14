@@ -45,21 +45,19 @@ class SerpapiExtractor(Extract):
         self.context = context
 
         self.organization = organization
-        self.country = (
-            "Austria" if organization.countries[0].upper() == "AT" else "Switzerland"
-        )
+        self.country = organization.countries[0]
         self._google_params = {
             "engine": "google",
             "location_requested": self.country,
             "location_used": self.country,
-            "google_domain": f"google.{organization.countries[0].lower()}",
-            "tbs": f"ctr:{organization.countries[0].upper()}&cr=country{organization.countries[0].upper()}",
-            "gl": organization.countries[0].lower(),
+            "google_domain": f"google.{organization.country_codes[0].lower()}",
+            "tbs": f"ctr:{organization.country_codes[0].upper()}&cr=country{organization.country_codes[0].upper()}",
+            "gl": organization.country_codes[0].lower(),
         }
 
         self._ebay_params = {
             "engine": "ebay",
-            "ebay_domain": f"ebay.{organization.countries[0].lower()}",
+            "ebay_domain": f"ebay.{organization.country_codes[0].lower()}",
             "_blrs": "spell_auto_correct" if prevent_auto_correct else "",
         }
 
