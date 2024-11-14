@@ -53,7 +53,7 @@ class SerpapiExtractor(Extract):
             "location_requested": self.country,
             "location_used": self.country,
             "google_domain": f"google.{organization.countries[0].lower()}",
-            "tbs": f"ctr:country{organization.countries[0].lower().upper()}&cr=country{organization.countries[0].lower().upper()}",
+            "tbs": f"ctr:{organization.countries[0].upper()}&cr=country{organization.countries[0].upper()}",
             "gl": organization.countries[0].lower(),
         }
 
@@ -129,7 +129,9 @@ class SerpapiExtractor(Extract):
 
         # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
         urls = [item.get("link") for item in items]
+        logger.debug(f"For {offer_root} retrieved {len(urls)}.")
         urls = urls[:number_of_results]
+        logger.debug(f"After manual truncation the length is {len(urls)}.")
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
         results = [
@@ -196,6 +198,7 @@ class SerpapiExtractor(Extract):
             )
             all_results.extend(structured_results)
 
+        logger.debug(f"A total of {len(all_results)} serpapi results were stored.")
         return all_results
 
     def apply_step(self, keyword: str, number_of_results: int) -> PipelineResult:

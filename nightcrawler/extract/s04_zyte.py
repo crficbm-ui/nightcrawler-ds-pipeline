@@ -7,6 +7,9 @@ from nightcrawler.context import Context
 from nightcrawler.helpers.api.zyte_api import ZyteAPI, DEFAULT_CONFIG
 from nightcrawler.helpers import LOGGER_NAME
 
+from charset_normalizer import detect
+
+
 from nightcrawler.base import (
     ExtractZyteData,
     PipelineResult,
@@ -146,7 +149,9 @@ class ZyteExtractor(Extract):
         if "browserHtml" in response:
             return response["browserHtml"]
         elif "httpResponseBody" in response:
-            return base64.b64decode(response["httpResponseBody"]).decode()
+            decoded_data = base64.b64decode(response["httpResponseBody"])
+            detected_encoding = detect(decoded_data).get("encoding", "utf-8")
+            return decoded_data.decode(detected_encoding or "utf-8", errors="replace")
         return ""
 
     def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:
