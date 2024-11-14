@@ -77,7 +77,7 @@ The pipeline contains 9 processing steps:
 | **2** | Enrich keywords | [BaseStep>GoogleReverseImageApi](./nightcrawler/extract/s02_enriched_keywords.py) | (EXERIMENTAL) collect for each keyword additional results by adding related terms i.e. buying to the query. |
 | **3** | Reverse Image Search | [BaseStep>Extract>GoogleReverseImageApi](./nightcrawler/extract/s03_reverse_image_search.py) | Use serpapi to perform a Google reverse image search. |
 | **4** | Structure data with Zyte | [BaseStep>Extract>ZyteExtractor](./nightcrawler/extract/s02_zyte.py)| Use Zyte to retrieve structured information from each URL collected by serpapi |
-| **5** | Processing | [BaseStep>DataProcessor](./nightcrawler/process/s03_dataprocessor.py) | Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --country input of the pipeline call.  |
+| **5** | Processing | [BaseStep>DataProcessor](./nightcrawler/process/s03_dataprocessor.py) | Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --unit input of the pipeline call.  |
 | **6** | Delivery policy filtering |  [BaseStep](./nightcrawler/process/s04_filter_swiss_result.py) | delivery policy filtering based on offline analysis of domains public delivery information |
 | **7** | Page type detection |  [BaseStep>DeliveryPolicyDetector](./nightcrawler/process/s05_delivery_page_detection.py)  | The pipeline uses by default a probability calculated by Zyte indicating, if the page is an ecommerce page or not. You can change this to using a custom BERT modell served on the GPU by setting the argument '--page-type-detection-method=infer'. |
 | **8** | Webpage Blocker Detection |  [BaseStep>PageTypeDetector](./nightcrawler/process/s06_page_type_detection.py) | Blocked / corrupted content detection based the prediction with a BERT model. |
@@ -95,9 +95,9 @@ To perform a full end-to-end pipeline run (this is what will ultimately be deplo
 python -m nightcrawler fullrun viagra -n=3
 ```
 
-To run the pipeline and filter only for a given country run:
+To run the pipeline and filter only for a given unit run:
 ```bash
-python -m nightcrawler fullrun viagra -n=3 --country=CH
+python -m nightcrawler fullrun viagra -n=3 --unit="Swissmedic AM"
 ```
 
 See all CLI options in the below table:
@@ -149,9 +149,9 @@ Process all files within a given results directory:
 python -m nightcrawler process 20240823_210829_triofan_defaultuser
 ```
 
-Process files only for a given country:
+Process files only for a given unit:
 ```bash
-python -m nightcrawler process --country=CH 20240823_210829_triofan_defaultuser
+python -m nightcrawler process --unit="Swissmedic AM" 20240823_210829_triofan_defaultuser
 ```
 
 

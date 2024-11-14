@@ -2,6 +2,7 @@ from typing import Any
 from nightcrawler.helpers.utils import create_output_dir
 from nightcrawler.settings import Settings
 from datetime import datetime
+import json
 
 try:
     from libnightcrawler.context import Context as StorageContext
@@ -32,6 +33,14 @@ class Context(StorageContext):
         self.today = datetime.now()
         self.today_ts = self.today.strftime("%Y-%m-%d_%H-%M-%S")
         self.crawlStatus: str = "processing"
+        with open("./tests/organizations.json", "r") as file:
+            data = json.load(file)
+            from nightcrawler.base import Organization
+
+        self.organizations = [
+            Organization(name=org_name, **org_data)
+            for org_name, org_data in data.items()
+        ]
 
         # ----------------------------------------------------------------------------------------
         # Scraping

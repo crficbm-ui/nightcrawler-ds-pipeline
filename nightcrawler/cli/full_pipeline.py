@@ -159,7 +159,8 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
     # TODO replace the manual filtering logic with Mistral call by Nicolas W.
     # TODO Must support a list of countries, not a single one
     processor_results = DataProcessor(context).apply(
-        previous_step_results=zyte_results, country=request.organization.countries[0]
+        previous_step_results=zyte_results,
+        country=request.organization.country_codes[0],
     )
 
     # Step 6: delivery policy filtering based on offline analysis of domains public delivery information
@@ -223,8 +224,9 @@ def apply(args: argparse.Namespace) -> None:
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
-    all_orgs = context.get_organization()
-    context.org = all_orgs[args.unit]
+    context.org = next(
+        (org for org in context.organizations if org.name == args.unit), None
+    )
     logger.debug("Using org: %s", context.org)
 
     keyword_type = "text"
