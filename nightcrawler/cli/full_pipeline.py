@@ -98,7 +98,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
             serpapi_results = SerpapiExtractor(context, request.organization).apply(
                 keyword=request.keyword_value,
-                number_of_results=request.number_of_results,
+                max_number_of_results=request.max_number_of_results,
             )
         elif keyword_type == "url":
             serpapi_results = PipelineResult(
@@ -142,7 +142,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         # Step 3 Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
         serpapi_results = GoogleReverseImageApi(context).apply(
             image_url=public_url,
-            number_of_results=request.number_of_results,
+            max_number_of_results=request.max_number_of_results,
         )
 
         # Remove image from publicly accessible container if necessary
@@ -240,7 +240,7 @@ def apply(args: argparse.Namespace) -> None:
         case_id=args.case_id,
         keyword_id=args.keyword_id,
         organization=context.org,
-        number_of_results=args.number_of_results,
+        max_number_of_results=args.max_number_of_results,
         page_type_detection_method=args.page_type_detection_method,
         enrich_keyword=args.enrich_keyword,
     )

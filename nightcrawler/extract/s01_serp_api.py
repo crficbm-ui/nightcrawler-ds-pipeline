@@ -85,7 +85,6 @@ class SerpapiExtractor(Extract):
         client: SerpAPI,
         custom_params: Dict[str, Any] = {},
         offer_root: str = "DEFAULT",
-        number_of_results: int = 50,
         callback: Callable[int, None] | None = None,
     ) -> List[ExtractSerpapiData]:
         """
@@ -101,7 +100,6 @@ class SerpapiExtractor(Extract):
         params = {
             "q": keyword,
             "start": 0,
-            "num": number_of_results,
             "api_key": self.context.settings.serp_api.token,
             **(custom_params),
         }
@@ -114,7 +112,7 @@ class SerpapiExtractor(Extract):
         response: Dict[str, Any],
         client: SerpAPI,
         offer_root: str = "DEFAULT",
-        number_of_results: int = 50,
+        max_number_of_results: int = 0,
         check_limit: int = 200,
     ) -> List[ExtractSerpapiData]:
         """
@@ -141,7 +139,7 @@ class SerpapiExtractor(Extract):
             urls = self.filter_product_page_urls(urls, self.google_site_marketplaces)
 
         # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
-        urls = urls[:number_of_results]
+        urls = urls[:max_number_of_results]
         logger.debug(f"After manual truncation the length is {len(urls)}.")
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
@@ -157,12 +155,15 @@ class SerpapiExtractor(Extract):
         self,
         client: SerpAPI,
         keyword: str,
-        number_of_results: int,
+        max_number_of_results: int,
         callback: Callable[int, None],
     ) -> List[ExtractSerpapiData]:
         # Define parameters and labels for different sources
         sources = [
-            {"params": self._google_params, "label": "GOOGLE"},
+            {
+                "params": {**self._google_params, "num": 50},
+                "label": "GOOGLE",
+            },  # set "nume":50 only for the plain google search "label"
             {
                 "params": {**self._google_params, "tbm": "shop"},
                 "label": "GOOGLE_SHOPPING",
@@ -181,11 +182,16 @@ class SerpapiExtractor(Extract):
                 "params": {
                     **self._ebay_params,
                     "_nkw": keyword,
-                    "_ipg": number_of_results,
+                    "_ipg": max_number_of_results,
                 },
                 "label": "EBAY",
             },
         ]
+
+        # Only if number of results is set, define the "num" parameter
+        if max_number_of_results > 0:
+            for elem in sources:
+                elem["params"]["num"] = max_number_of_results
 
         logger.debug(f"SerpAPI configs: {sources}")
 
@@ -197,11 +203,10 @@ class SerpapiExtractor(Extract):
                 client=client,
                 custom_params=source["params"],
                 offer_root=source["label"],
-                number_of_results=number_of_results,
                 callback=callback,
             )
             structured_results = self.structure_results(
-                keyword, response, client, source["label"], number_of_results
+                keyword, response, client, source["label"], max_number_of_results
             )
             all_results.extend(structured_results)
 
@@ -233,7 +238,7 @@ class SerpapiExtractor(Extract):
 
         Args:
             keyword (str): The search keyword.
-            number_of_results (int): The number of search results to retrieve.
+            max_number_of_results (int): The number of search results to retrieve.
 
         Returns:
             PipelineResult: The final structured search results.
@@ -243,14 +248,14 @@ class SerpapiExtractor(Extract):
         structured_results_from_marketplaces = self.results_from_marketplaces(
             client=client,
             keyword=keyword,
-            number_of_results=number_of_results,
+            max_number_of_results=max_number_of_results,
             callback=counter,
         )
 
         # Generate the metadata
         metadata = MetaData(
             keyword=keyword,
-            numberOfResults=number_of_results,
+            numberOfResults=max_number_of_results,
             numberOfResultsAfterStage=len(structured_results_from_marketplaces),
         )
 

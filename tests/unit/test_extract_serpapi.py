@@ -58,10 +58,9 @@ def test_retrieve_response_is_retrieved(
         "aspirin",
         serpapi_extractor.initiate_client(),
         offer_root="DEFAULT",
-        number_of_results=3,
     )
     mock_call_serpapi.assert_called_once_with(
-        {"q": "aspirin", "start": 0, "num": 3, "api_key": "dummy_api_key"},
+        {"q": "aspirin", "start": 0, "api_key": "dummy_api_key"},
         log_name="google_regular",
         callback=ANY,
     )
@@ -93,7 +92,7 @@ def test_structure_results_is_formatted_properly(
         response,
         serpapi_extractor.initiate_client(),
         offer_root="DEFAULT",
-        number_of_results=1,
+        max_number_of_results=1,
     )
     assert result == [ExtractSerpapiData(url="http://example.com", offerRoot="DEFAULT")]
 
@@ -146,14 +145,14 @@ def test_apply_all_functions_called_once(
     mock_results_from_marketplaces.return_value = ["http://example.com"]
 
     # Call the apply method
-    results = serpapi_extractor.apply(keyword="aspirin", number_of_results=1)
+    results = serpapi_extractor.apply(keyword="aspirin", max_number_of_results=1)
 
     # Assert all methods were called once with the correct arguments
     mock_initiate_client.assert_called_once()
     mock_results_from_marketplaces.assert_called_once_with(
         client=mock_initiate_client.return_value,
         keyword="aspirin",
-        number_of_results=1,
+        max_number_of_results=1,
         callback=ANY,
     )
     mock_store_results.assert_called_once()

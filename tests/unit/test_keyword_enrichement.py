@@ -19,7 +19,7 @@ def test_keyword_enricher_apply():
     Input parameters:
     - keyword: 'test keyword'
     - serpapi: a mocked SerpAPI instance
-    - number_of_results: 10
+    - max_number_of_results: 10
     - locations: ['United States']
     - languages: ['English']
 

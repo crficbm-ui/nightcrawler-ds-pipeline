@@ -124,12 +124,12 @@ class GoogleReverseImageApi(BaseStep):
         logger.info(f"{len(urls)} URLs were extracted from inline_images: {urls}\n")
         return urls
 
-    def apply_step(self, image_url: str, number_of_results: int) -> PipelineResult:
+    def apply_step(self, image_url: str, max_number_of_results: int) -> PipelineResult:
         """Perform reverse image search on multiple URLs and return structured results.
 
         Args:
             image_url (str): A URL to search for.
-            number_of_results (int): Maximum number of results to return.
+            max_number_of_results (int): Maximum number of results to return.
 
         Returns:
             PipelineResult: Structured result data including metadata and extracted information.
@@ -158,15 +158,11 @@ class GoogleReverseImageApi(BaseStep):
                     )
                 )
 
-        # TODO: force to only have the number of results specified in the CLI - not "nice" but the reverse_image_api does not provide this parameter
-        # either we keep it or we do not control the number of stored results from the pipeline - however this might lead to unintentional high zyte api costs as there can be easily produced a few dozen results by the reverse image search
-        # also, if we have a hard cut off, we remove the webpages where the imageUrl is empty
         results = [item for item in results if item.imageUrl is not None]
-        results = results[:number_of_results]
 
         metadata = MetaData(
             keyword="Reverse image search, no keyword provided.",
-            numberOfResults=number_of_results,
+            numberOfResults=max_number_of_results,
             numberOfResultsAfterStage=len(results),
         )
 

@@ -83,17 +83,18 @@ def apply(args: argparse.Namespace) -> None:
             serpapi_results = GoogleReverseImageApi(context).apply(
                 image_urls=image_urls,
                 keywords=args.searchitem,
-                number_of_results=args.number_of_results,
+                max_number_of_results=args.max_number_of_results,
             )
         else:
             # Step 1b Extract URLs using Serpapi if no image_urls were provided
             serpapi_results = SerpapiExtractor(context).apply(
-                keyword=args.searchitem, number_of_results=args.number_of_results
+                keyword=args.searchitem,
+                max_number_of_results=args.max_number_of_results,
             )
         ZyteExtractor(context).apply(serpapi_results)
     elif args.step == "serpapi":
         SerpapiExtractor(context).apply(
-            keyword=args.searchitem, number_of_results=args.number_of_results
+            keyword=args.searchitem, max_number_of_results=args.max_number_of_results
         )
     elif args.step == "zyte":
         if args.step == "zyte" and not args.urlpath:

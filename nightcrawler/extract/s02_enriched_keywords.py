@@ -83,7 +83,7 @@ class KeywordEnricher(BaseStep):
                 keyword=kw["keywordEnriched"],
                 client=client,
                 offer_root=kw["offerRoot"],
-                number_of_results=number_of_keywords,
+                max_number_of_results=number_of_keywords,
             )
             items = client.get_organic_results(response)
 

@@ -96,9 +96,9 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
     common_parser = argparse.ArgumentParser(add_help=False)
     common_parser.add_argument(
         "-n",
-        "--number-of-results",
-        help="Set the number of results you want to include from Serpapi.  (3 per google shopping, google site search, google and ebay = 12 URLs total, default: %(default)s)",
-        default=50,
+        "--max-number-of-results",
+        help="Set the maximum number of results you want to include from Serpapi.  (3 per google shopping, google site search, google and ebay = 12 URLs total, default: %(default)s (0 means all results available))",
+        default=0,
         type=int,
     )
 
