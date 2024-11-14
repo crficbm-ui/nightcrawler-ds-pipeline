@@ -26,6 +26,52 @@
             "aids.ch"
         ],
         "settings": {
+            "default_marketplaces": [
+                {
+                    "name": "anibis",
+                    "root_domain_name": "anibis.ch",
+                    "search_url_pattern": "https://www.anibis.ch/de/c/alle-kategorien?fts=%s",
+                    "product_page_url_pattern": "^https://www\\.anibis\\.ch/de/d-"
+                },
+                {
+                    "name": "petitesannonces",
+                    "root_domain_name": "petitesannonces.ch",
+                    "search_url_pattern": "https://www.petitesannonces.ch/recherche/?q=%s",
+                    "product_page_url_pattern": "^https://www\\.petitesannonces\\.ch/a/"
+                },
+                {
+                    "name": "visomed",
+                    "root_domain_name": "visomed-marketplace.ch",
+                    "search_url_pattern": "https://visomed-marketplace.ch/?s=%s",
+                    "product_page_url_pattern": "^https://visomed-marketplace\\.ch/shop/"
+                },
+                {
+                    "name": "locanto",
+                    "root_domain_name": "locanto.ch",
+                    "search_url_pattern": "https://www.locanto.ch/q/?query=%s",
+                    "product_page_url_pattern": "^https://[a-zA-Z\\-]*\\.locanto\\.ch/ID_"
+                },
+                {
+                    "name": "gratisinserat",
+                    "root_domain_name": "gratisinserat.ch",
+                    "search_url_pattern": "https://www.gratisinserat.ch/li/?q=%s",
+                    "product_page_url_pattern": "^https://www\\.gratisinserat\\.ch/[\\w\\-]*/[\\w\\-]*/\\d*$"
+                }
+            ],
+            "google_site_marketplaces": [
+                {
+                    "name": "tutti",
+                    "root_domain_name": "tutti.ch",
+                    "search_url_pattern": "https://www.tutti.ch/fr/li/toute-la-suisse?q=%s",
+                    "product_page_url_pattern": "^https://www\\.tutti\\.ch/fr/vi/"
+                },
+                {
+                    "name": "ricardo",
+                    "root_domain_name": "ricardo.ch",
+                    "search_url_pattern": "https://www.ricardo.ch/de/s/%s",
+                    "product_page_url_pattern": "^https://www\\.ricardo\\.ch/de/a/"
+                }
+            ],
             "country_filtering": {
                 "FILTERER_NAME": "known_domains+url",
                 "COUNTRY": "ch",
@@ -194,6 +240,52 @@
             "aids.ch"
         ],
         "settings": {
+            "default_marketplaces": [
+                {
+                    "name": "anibis",
+                    "root_domain_name": "anibis.ch",
+                    "search_url_pattern": "https://www.anibis.ch/de/c/alle-kategorien?fts=%s",
+                    "product_page_url_pattern": "^https://www\\.anibis\\.ch/de/d-"
+                },
+                {
+                    "name": "petitesannonces",
+                    "root_domain_name": "petitesannonces.ch",
+                    "search_url_pattern": "https://www.petitesannonces.ch/recherche/?q=%s",
+                    "product_page_url_pattern": "^https://www\\.petitesannonces\\.ch/a/"
+                },
+                {
+                    "name": "visomed",
+                    "root_domain_name": "visomed-marketplace.ch",
+                    "search_url_pattern": "https://visomed-marketplace.ch/?s=%s",
+                    "product_page_url_pattern": "^https://visomed-marketplace\\.ch/shop/"
+                },
+                {
+                    "name": "locanto",
+                    "root_domain_name": "locanto.ch",
+                    "search_url_pattern": "https://www.locanto.ch/q/?query=%s",
+                    "product_page_url_pattern": "^https://[a-zA-Z\\-]*\\.locanto\\.ch/ID_"
+                },
+                {
+                    "name": "gratisinserat",
+                    "root_domain_name": "gratisinserat.ch",
+                    "search_url_pattern": "https://www.gratisinserat.ch/li/?q=%s",
+                    "product_page_url_pattern": "^https://www\\.gratisinserat\\.ch/[\\w\\-]*/[\\w\\-]*/\\d*$"
+                }
+            ],
+            "google_site_marketplaces": [
+                {
+                    "name": "tutti",
+                    "root_domain_name": "tutti.ch",
+                    "search_url_pattern": "https://www.tutti.ch/fr/li/toute-la-suisse?q=%s",
+                    "product_page_url_pattern": "^https://www\\.tutti\\.ch/fr/vi/"
+                },
+                {
+                    "name": "ricardo",
+                    "root_domain_name": "ricardo.ch",
+                    "search_url_pattern": "https://www.ricardo.ch/de/s/%s",
+                    "product_page_url_pattern": "^https://www\\.ricardo\\.ch/de/a/"
+                }
+            ],
             "country_filtering": {
                 "FILTERER_NAME": "known_domains+url",
                 "COUNTRY": "ch",
@@ -355,6 +447,8 @@
         ],
         "blacklist": [],
         "settings": {
+            "default_marketplaces": [],
+            "google_site_marketplaces": [],
             "country_filtering": {
                 "FILTERER_NAME": "known_domains+url",
                 "COUNTRY": "at",

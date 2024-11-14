@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any, Dict, List, Callable
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
@@ -10,11 +11,11 @@ from nightcrawler.base import (
     MetaData,
     PipelineResult,
     Extract,
-    GOOGLE_SITE_MARKETPLACES,
     CounterCallback,
+    Organization,
+    Marketplace,
 )
 
-import libnightcrawler.objects as lo
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -32,7 +33,7 @@ class SerpapiExtractor(Extract):
     def __init__(
         self,
         context: Context,
-        organization: lo.Organization,
+        organization: Organization,
         prevent_auto_correct: bool = True,
     ) -> None:
         """
@@ -60,6 +61,14 @@ class SerpapiExtractor(Extract):
             "ebay_domain": f"ebay.{organization.country_codes[0].lower()}",
             "_blrs": "spell_auto_correct" if prevent_auto_correct else "",
         }
+
+        self.google_site_marketplaces = [
+            Marketplace(**data)
+            for data in organization.settings["default_marketplaces"]
+        ] + [
+            Marketplace(**data)
+            for data in organization.settings["google_site_marketplaces"]
+        ]
 
     def initiate_client(self) -> SerpAPI:
         """
@@ -125,9 +134,13 @@ class SerpapiExtractor(Extract):
         else:
             items = client.get_organic_results(response)
 
-        # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
         urls = [item.get("link") for item in items]
         logger.debug(f"For {offer_root} retrieved {len(urls)}.")
+
+        if offer_root == "GOOGLE_SITE":
+            urls = self.filter_product_page_urls(urls, self.google_site_marketplaces)
+
+        # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
         urls = urls[:number_of_results]
         logger.debug(f"After manual truncation the length is {len(urls)}.")
 
@@ -159,11 +172,7 @@ class SerpapiExtractor(Extract):
                     **self._google_params,
                     "q": f"{keyword} site:"
                     + " OR site:".join(
-                        [
-                            m.root_domain_name
-                            for m in GOOGLE_SITE_MARKETPLACES
-                            if self.organization.unit in m.affected_unit
-                        ]
+                        [m.root_domain_name for m in self.google_site_marketplaces]
                     ),
                 },
                 "label": "GOOGLE_SITE",
@@ -198,6 +207,24 @@ class SerpapiExtractor(Extract):
 
         logger.debug(f"A total of {len(all_results)} serpapi results were stored.")
         return all_results
+
+    @staticmethod
+    def filter_product_page_urls(
+        urls: list[str], marketplaces: List[Marketplace]
+    ) -> list[str]:
+        accepted_urls = []
+        for url in urls:
+            # Use a generator expression instead of a list comprehension
+            if any(
+                re.match(marketplace.product_page_url_pattern, url)
+                for marketplace in marketplaces
+            ):
+                accepted_urls.append(url)
+
+        logger.debug(
+            f"Removed {len(urls) - len(accepted_urls)}/{len(urls)} URLs that did not match the Marketplace product pattern."
+        )
+        return accepted_urls
 
     def apply_step(self, keyword: str, number_of_results: int) -> PipelineResult:
         """

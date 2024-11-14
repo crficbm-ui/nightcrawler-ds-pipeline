@@ -3,8 +3,7 @@ import json
 from unittest.mock import MagicMock, patch, ANY
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
-from nightcrawler.base import ExtractSerpapiData, PipelineResult
-import libnightcrawler.objects as lo
+from nightcrawler.base import ExtractSerpapiData, PipelineResult, Organization
 
 
 @pytest.fixture
@@ -20,7 +19,7 @@ def serpapi_extractor() -> SerpapiExtractor:
     context.output_dir = "/tmp"
     with open("./tests/organizations.json", "r") as file:
         data = json.load(file)
-        organization = lo.Organization(
+        organization = Organization(
             name=data["Ages"],
             unit=data["Ages"]["unit"],
             countries=data["Ages"]["countries"],
