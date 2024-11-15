@@ -131,10 +131,11 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         context.update_output_dir("reverse_image_search")
 
         # Make image publicly accessible if necessary
+        image_path = f"{request.case_id}/{request.keyword_value}"
         public_url = (
             request.keyword_value
-            if "http" in request.keyword_value
-            else context.blob_client.make_public(request.keyword_value)
+            if request.keyword_value.startswith("http")
+            else context.blob_client.make_public(image_path)
         )
 
         # Step 3 Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
@@ -144,8 +145,8 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         )
 
         # Remove image from publicly accessible container if necessary
-        if "http" not in request.keyword_value:
-            context.blob_client.remove_from_public(request.keyword_value)
+        if not request.keyword_value.startswith("http"):
+            context.blob_client.remove_from_public(image_path)
 
     else:
         raise ValueError("Unknown keyword type %s", keyword_type)
