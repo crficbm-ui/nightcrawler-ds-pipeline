@@ -231,7 +231,7 @@ class SerpapiExtractor(Extract):
         )
         return accepted_urls
 
-    def apply_step(self, keyword: str, number_of_results: int) -> PipelineResult:
+    def apply_step(self, keyword: str, max_number_of_results: int) -> PipelineResult:
         """
         Orchestrates the entire process of data collection: client initiation,
         response retrieval, structuring results, and storing results.
