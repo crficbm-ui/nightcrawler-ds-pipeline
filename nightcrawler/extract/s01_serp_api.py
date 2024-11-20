@@ -1,6 +1,7 @@
 import logging
 import re
 from typing import Any, Dict, List, Callable
+from collections import Counter
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.helpers import LOGGER_NAME
@@ -54,6 +55,7 @@ class SerpapiExtractor(Extract):
             "google_domain": f"google.{organization.country_codes[0].lower()}",
             "tbs": f"ctr:{organization.country_codes[0].upper()}&cr=country{organization.country_codes[0].upper()}",
             "gl": organization.country_codes[0].lower(),
+            "num": 100,  # this is the maximum allowed size for google, google_marketplaces and google_shopping
         }
 
         self._ebay_params = {
@@ -139,7 +141,8 @@ class SerpapiExtractor(Extract):
             urls = self.filter_product_page_urls(urls, self.google_site_marketplaces)
 
         # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
-        urls = urls[:max_number_of_results]
+        if max_number_of_results != 0:
+            urls = urls[:max_number_of_results]
         logger.debug(f"After manual truncation the length is {len(urls)}.")
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
@@ -163,7 +166,7 @@ class SerpapiExtractor(Extract):
             {
                 "params": {**self._google_params, "num": 50},
                 "label": "GOOGLE",
-            },  # set "nume":50 only for the plain google search "label"
+            },  # set "num":50 only for the plain google search
             {
                 "params": {**self._google_params, "tbm": "shop"},
                 "label": "GOOGLE_SHOPPING",
@@ -182,7 +185,7 @@ class SerpapiExtractor(Extract):
                 "params": {
                     **self._ebay_params,
                     "_nkw": keyword,
-                    "_ipg": max_number_of_results,
+                    "_ipg": 200,  # this is the maximum without pagination for EBAY
                 },
                 "label": "EBAY",
             },
@@ -210,7 +213,13 @@ class SerpapiExtractor(Extract):
             )
             all_results.extend(structured_results)
 
-        logger.debug(f"A total of {len(all_results)} serpapi results were stored.")
+        offer_root_counts = Counter(
+            item["offerRoot"] for item in all_results if "offerRoot" in item
+        )
+        logger.info(
+            f"A total of {len(all_results)} serpapi results were stored. "
+            f"OfferRoot counts: {dict(offer_root_counts)}"
+        )
         return all_results
 
     @staticmethod
