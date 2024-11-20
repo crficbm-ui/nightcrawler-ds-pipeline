@@ -2,6 +2,7 @@ import logging
 import base64
 from typing import List, Dict, Tuple, Any, Callable
 from tqdm.auto import tqdm
+import asyncio
 
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.zyte_api import ZyteAPI, DEFAULT_CONFIG
@@ -50,45 +51,56 @@ class ZyteExtractor(Extract):
         client = ZyteAPI(self.context)
         return client, DEFAULT_CONFIG
 
-    def retrieve_response(
+    async def retrieve_response(
         self,
         client: ZyteAPI,
         serpapi_results: PipelineResult,
         api_config: Dict[str, Any],
-        callback: Callable[int, None] | None = None,
+        callback: Callable[[int], None] | None = None,
     ) -> List[Dict[str, Any]]:
         """
-        Makes the API calls to ZyteAPI to retrieve data from the provided URLs.
+        Asynchronously makes the API calls to ZyteAPI to retrieve data from the provided URLs.
 
         Args:
             client (ZyteAPI): The ZyteAPI client instance.
-            serpapi_results PipelineResult: The list of results from Serpapi containing URLs to process.
+            serpapi_results (PipelineResult): The list of results from Serpapi containing URLs to process.
             api_config (Dict[str, Any]): The configuration settings for the ZyteAPI.
+            callback (Callable[[int], None], optional): A callback function for progress updates.
 
         Returns:
             List[Dict[str, Any]]: The list of responses from ZyteAPI.
         """
         urls = [item.get("url") for item in serpapi_results.results]
-        responses = []
+        responses = (
+            [None] * len(urls)
+        )  # Pre-allocate list for proper ordering as not all Zyte results will be coming back in the same order as they have been send
+
+        sem = asyncio.Semaphore(10)  # Limit concurrent connections
+
+        async def fetch_url(url, index):
+            if len(url) < 3:
+                logger.error("Skipping invalid url '%s' !", url)
+                responses[index] = {"error": True}
+                return
+            try:
+                async with sem:
+                    response = await client.call_api(url, api_config, callback=callback)
+            except Exception as e:
+                logger.critical("Failed to call zyte for url %s", url)
+                logger.debug(e, exc_info=True)
+                response = {"error": True}
+            if not response:
+                logger.error(f"Failed to collect product from {url}")
+                response = {"error": True}
+            responses[index] = response
+
+        tasks = [fetch_url(url, idx) for idx, url in enumerate(urls)]
 
         with tqdm(total=len(urls)) as pbar:
-            for url in urls:
-                if len(url) < 3:
-                    logger.error("Skipping invalid url '%s' !", url)
-                    responses.append({"error": True})
-                    continue
-                logger.warning("Zyte processing url %s", url)
-                try:
-                    response = client.call_api(url, api_config, callback=callback)
-                except Exception as e:
-                    logger.critical("Failed to call zyte for url %s", url)
-                    logger.debug(e, exc_info=True)
-                    response = {"error": True}
-                if not response:
-                    logger.error(f"Failed to collect product from {url}")
-                    response = {"error": True}
-                responses.append(response)
+            for f in asyncio.as_completed(tasks):
+                await f
                 pbar.update(1)
+
         return responses
 
     def structure_results(
@@ -101,7 +113,7 @@ class ZyteExtractor(Extract):
 
         Args:
             responses (List[Dict[str, Any]]): The raw data returned from the Zyte API.
-            serpapi_results (PipelineResult): The initial Serpapi results to be enhanced with Zyte data. It contains data of ExtractSerpapiData within "results"
+            serpapi_results (PipelineResult): The initial Serpapi results to be enhanced with Zyte data.
 
         Returns:
             PipelineResult: The updated Serpapi results with added Zyte data.
@@ -167,12 +179,19 @@ class ZyteExtractor(Extract):
         """
         counter = CounterCallback()
         client, api_config = self.initiate_client()
-        responses = self.retrieve_response(
-            client, previous_step_results, api_config, callback=counter
+
+        loop = asyncio.get_event_loop()
+        responses = loop.run_until_complete(
+            self.retrieve_response(
+                client, previous_step_results, api_config, callback=counter
+            )
         )
+
+        loop.run_until_complete(client.close())
+
         structured_results = self.structure_results(responses, previous_step_results)
 
-        # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
+        # Updating the PipelineResults Object (append the results to the results list and update the number of results after this stage)
         zyte_results = self.add_pipeline_steps_to_results(
             currentStepResults=structured_results,
             pipelineResults=previous_step_results,
