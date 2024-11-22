@@ -21,14 +21,6 @@ from nightcrawler.base import (
 logger = logging.getLogger(LOGGER_NAME)
 
 
-PROXY_COUNTRY_MAPPING = {
-    "CH": "ch",
-    "AT": "at",
-    "CL": "cl",
-    "Austria": "at",
-}
-
-
 class SerpapiExtractor(Extract):
     """
     Implements data collection using SerpAPI for various search engines, including Google and eBay.
@@ -97,43 +89,6 @@ class SerpapiExtractor(Extract):
         """
         return ProxyAPI(self.context)
     
-    def resolve_redirect(self, url: str) -> str:
-        """
-        Resolves the redirect of the given URL.
-
-        Args:
-            url (str): The URL to resolve.
-
-        Returns:
-            str: The resolved URL.
-        """
-        try:
-            proxy_country = PROXY_COUNTRY_MAPPING.get(self.country, None)
-
-            if not proxy_country:
-                raise ValueError(f"Country {self.country} is not supported for proxy.")
-
-            proxy_url = "http://{username}:{password}@{country}.smartproxy.com:{port}" % {
-                "username": self.context.settings.proxy.username,
-                "password": self.context.settings.proxy.password,
-                "port": self.context.settings.proxy.port,
-                "country": PROXY_COUNTRY_MAPPING.get(self.country, "us"),
-            }
-
-            proxies = {
-                "http": proxy_url,
-                "https": proxy_url,
-            }
-            response = self.context.session.head(url, allow_redirects=True, proxies=proxies)
-
-            if response.status_code != 200:
-                raise ValueError(f"Status code ({response.status_code}) is not 200.")
-
-            return response.url 
-        except Exception as e:
-            logger.warning(f"Failed to resolve redirect for {url}: {e}")
-            return url
-
     def retrieve_response(
         self,
         keyword: str,
@@ -205,7 +160,12 @@ class SerpapiExtractor(Extract):
         results = []
         for url in filtered_urls:
             logger.debug(f"Resolving URL: {url}")
-            resolved_url = proxy.call_proxy(url, config={"country": self.country})["resolved_url"]
+            proxy_response = proxy.call_proxy(
+                url=url,
+                config={"country": self.country}
+            )
+            resolved_url = proxy_response["resolved_url"]
+
             cleaned_url = remove_tracking_parameters(resolved_url)
             
             results.append(
