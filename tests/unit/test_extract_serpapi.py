@@ -17,20 +17,7 @@ def serpapi_extractor() -> SerpapiExtractor:
     context.settings.serp_api.token = "dummy_api_key"
     context.serpapi_filename = "dummy_filename.json"
     context.output_dir = "/tmp"
-    with open("./tests/organizations.json", "r") as file:
-        data = json.load(file)
-        organization = Organization(
-            name=data["Ages"],
-            unit=data["Ages"]["unit"],
-            countries=data["Ages"]["countries"],
-            country_codes=data["Ages"]["country_codes"],
-            language_codes=data["Ages"]["language_codes"],
-            settings=data["Ages"]["settings"],
-            languages=data["Ages"]["languages"],
-            currencies=data["Ages"]["currencies"],
-            blacklist=data["Ages"]["blacklist"],
-        )
-        return SerpapiExtractor(context, organization)
+    return SerpapiExtractor(context, Organization.get_all()["Ages"])
 
 
 def test_initiate_client_is_type_SerpAPI(serpapi_extractor: SerpapiExtractor) -> None:

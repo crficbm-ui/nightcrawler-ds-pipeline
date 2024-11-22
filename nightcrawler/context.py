@@ -33,14 +33,9 @@ class Context(StorageContext):
         self.today = datetime.now()
         self.today_ts = self.today.strftime("%Y-%m-%d_%H-%M-%S")
         self.crawlStatus: str = "processing"
-        with open("./tests/organizations.json", "r") as file:
-            data = json.load(file)
-            from nightcrawler.base import Organization
 
-        self.organizations = [
-            Organization(name=org_name, **org_data)
-            for org_name, org_data in data.items()
-        ]
+        from nightcrawler.base import Organization
+        self.organizations = Organization.get_all()
 
         # ----------------------------------------------------------------------------------------
         # Scraping
@@ -79,3 +74,18 @@ class Context(StorageContext):
         self.output_dir = create_output_dir(
             path, self.output_path, skip=not self.settings.use_file_storage
         )
+
+    def get_crawl_requests(self, **kwargs):
+        """
+        Add pipeline organization attributes to database organization attributes
+
+        Attributes:
+            **kwargs (Any): Arguments forwarded to base class.
+        """
+        requests = super().get_crawl_requests(**kwargs)
+        for request in requests:
+            org = self.organizations[request.organization.name]
+            org.blacklist = request.organization.blacklist
+            org.whitelist = request.organization.whitelist
+            request.organization = org
+        return requests

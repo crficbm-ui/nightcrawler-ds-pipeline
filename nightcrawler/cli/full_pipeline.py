@@ -225,9 +225,7 @@ def apply(args: argparse.Namespace) -> None:
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
-    context.org = next(
-        (org for org in context.organizations if org.name == args.unit), None
-    )
+    context.org = context.organizations.get(args.unit)
     logger.debug("Using org: %s", context.org)
 
     keyword_type = "text"

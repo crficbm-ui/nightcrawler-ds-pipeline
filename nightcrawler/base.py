@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 import re
 from re import Pattern
@@ -7,6 +8,7 @@ from typing import Optional, Dict, Any, Iterator, List, Union
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from abc import ABC, abstractmethod
+import importlib.resources
 
 from nightcrawler.helpers.utils import _get_uuid, write_json
 from nightcrawler.context import Context
@@ -118,7 +120,21 @@ class Organization(lo.Organization):
     languages: list[str]
     country_codes: list[str]
     countries: list[str]
+    currencies: list[str]
     settings: dict
+
+    @staticmethod
+    def get_all():
+        with importlib.resources.as_file(
+            importlib.resources.files("nightcrawler").joinpath("organizations.json")
+        ) as path:
+            with open(path, "r") as ifile:
+                data = json.load(ifile)
+                return {
+                    org_name: Organization(name=org_name, **org_data)
+                    for org_name, org_data in data.items()
+                }
+
 
 
 @dataclass

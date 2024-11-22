@@ -19,6 +19,7 @@
         "countries": [
             "Switzerland"
         ],
+        "whitelist": [],
         "blacklist": [
             "20min.ch",
             "aargauerzeitung.ch",
@@ -233,6 +234,7 @@
         "countries": [
             "Switzerland"
         ],
+        "whitelist": [],
         "blacklist": [
             "20min.ch",
             "aargauerzeitung.ch",
@@ -445,6 +447,7 @@
         "countries": [
             "Austria"
         ],
+        "whitelist": [],
         "blacklist": [],
         "settings": {
             "default_marketplaces": [],
