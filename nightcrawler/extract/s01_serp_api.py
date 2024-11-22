@@ -3,6 +3,7 @@ import re
 from typing import Any, Dict, List, Callable
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
+from nightcrawler.helpers.api.proxy_api import ProxyAPI
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.helpers.utils import remove_tracking_parameters
 
@@ -18,6 +19,14 @@ from nightcrawler.base import (
 
 
 logger = logging.getLogger(LOGGER_NAME)
+
+
+PROXY_COUNTRY_MAPPING = {
+    "CH": "ch",
+    "AT": "at",
+    "CL": "cl",
+    "Austria": "at",
+}
 
 
 class SerpapiExtractor(Extract):
@@ -78,6 +87,52 @@ class SerpapiExtractor(Extract):
             SerpAPI: An instance of the SerpAPI client.
         """
         return SerpAPI(self.context)
+    
+    def initiate_proxy_client(self) -> ProxyAPI:
+        """
+        Initializes and returns the ProxyAPI client.
+
+        Returns:
+            ProxyAPI: An instance of the ProxyAPI client.
+        """
+        return ProxyAPI(self.context)
+    
+    def resolve_redirect(self, url: str) -> str:
+        """
+        Resolves the redirect of the given URL.
+
+        Args:
+            url (str): The URL to resolve.
+
+        Returns:
+            str: The resolved URL.
+        """
+        try:
+            proxy_country = PROXY_COUNTRY_MAPPING.get(self.country, None)
+
+            if not proxy_country:
+                raise ValueError(f"Country {self.country} is not supported for proxy.")
+
+            proxy_url = "http://{username}:{password}@{country}.smartproxy.com:{port}" % {
+                "username": self.context.settings.proxy.username,
+                "password": self.context.settings.proxy.password,
+                "port": self.context.settings.proxy.port,
+                "country": PROXY_COUNTRY_MAPPING.get(self.country, "us"),
+            }
+
+            proxies = {
+                "http": proxy_url,
+                "https": proxy_url,
+            }
+            response = self.context.session.head(url, allow_redirects=True, proxies=proxies)
+
+            if response.status_code != 200:
+                raise ValueError(f"Status code ({response.status_code}) is not 200.")
+
+            return response.url 
+        except Exception as e:
+            logger.warning(f"Failed to resolve redirect for {url}: {e}")
+            return url
 
     def retrieve_response(
         self,
@@ -113,6 +168,7 @@ class SerpapiExtractor(Extract):
         keyword: str,
         response: Dict[str, Any],
         client: SerpAPI,
+        proxy: ProxyAPI,
         offer_root: str = "DEFAULT",
         number_of_results: int = 50,
         check_limit: int = 200,
@@ -145,17 +201,28 @@ class SerpapiExtractor(Extract):
         logger.debug(f"After manual truncation the length is {len(urls)}.")
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
-        results = [
-            ExtractSerpapiData(
-                offerRoot=offer_root, url=remove_tracking_parameters(url)
+
+        results = []
+        for url in filtered_urls:
+            logger.debug(f"Resolving URL: {url}")
+            resolved_url = proxy.call_proxy(url, config={"country": self.country})["resolved_url"]
+            cleaned_url = remove_tracking_parameters(resolved_url)
+            
+            results.append(
+                ExtractSerpapiData(
+                    offerRoot=offer_root,
+                    original_url=url,
+                    resolved_url=resolved_url,
+                    url=cleaned_url,
+                )
             )
-            for url in filtered_urls
-        ]
+
         return results
 
     def results_from_marketplaces(
         self,
         client: SerpAPI,
+        proxy: ProxyAPI,
         keyword: str,
         number_of_results: int,
         callback: Callable[int, None],
@@ -201,7 +268,12 @@ class SerpapiExtractor(Extract):
                 callback=callback,
             )
             structured_results = self.structure_results(
-                keyword, response, client, source["label"], number_of_results
+                keyword=keyword,
+                response=response,
+                client=client,
+                proxy=proxy,
+                offer_root=source["label"],
+                number_of_results=number_of_results,
             )
             all_results.extend(structured_results)
 
@@ -240,8 +312,10 @@ class SerpapiExtractor(Extract):
         """
         counter = CounterCallback()
         client = self.initiate_client()
+        proxy = self.initiate_proxy_client()
         structured_results_from_marketplaces = self.results_from_marketplaces(
             client=client,
+            proxy=proxy,
             keyword=keyword,
             number_of_results=number_of_results,
             callback=counter,

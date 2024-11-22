@@ -159,6 +159,8 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
 
     offerRoot: str
     url: str
+    original_url: Optional[str] = None
+    resolved_url: Optional[str] = None
     keywordEnriched: Optional[str] = (
         None  # this is only used for keyword enrichement and holds enriched keyword (i.e. keyword is 'viagra' and enriched is 'viagra kaufen'). This is only used when '-e' is set
     )
