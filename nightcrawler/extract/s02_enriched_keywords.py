@@ -19,8 +19,7 @@ class KeywordEnricher(BaseStep):
         Args:
             context (Context): The execution context for the enrichment pipeline.
         """
-        super().__init__(self._entity_name)
-        self.context = context
+        super().__init__(context)
 
     def apply_step(
         self,

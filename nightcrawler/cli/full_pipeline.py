@@ -118,8 +118,8 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
                 keyword=request.keyword_value,
                 serpapi=SerpapiExtractor(context, request.organization),
                 number_of_keywords=3,
-                location=context.org.countries[0],
-                language=context.org.languages[0],
+                location=request.organization.countries[0],
+                language=request.organization.languages[0],
                 previous_step_results=serpapi_results,
             )
         else:
@@ -225,8 +225,8 @@ def apply(args: argparse.Namespace) -> None:
         args (argparse.Namespace): Parsed arguments as a namespace object.
     """
     context = Context()
-    context.org = context.organizations.get(args.unit)
-    logger.debug("Using org: %s", context.org)
+    org = context.organizations.get(args.unit)
+    logger.debug("Using org: %s", org)
 
     keyword_type = "text"
     if args.searchitem.startswith("http") and not args.reverse_image_search:
@@ -238,7 +238,7 @@ def apply(args: argparse.Namespace) -> None:
         keyword_value=args.searchitem,
         case_id=args.case_id,
         keyword_id=args.keyword_id,
-        organization=context.org,
+        organization=org,
         number_of_results=args.number_of_results,
         page_type_detection_method=args.page_type_detection_method,
         enrich_keyword=args.enrich_keyword,

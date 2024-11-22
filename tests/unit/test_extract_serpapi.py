@@ -1,5 +1,4 @@
 import pytest
-import json
 from unittest.mock import MagicMock, patch, ANY
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor

@@ -2,7 +2,6 @@ from typing import Any
 from nightcrawler.helpers.utils import create_output_dir
 from nightcrawler.settings import Settings
 from datetime import datetime
-import json
 
 try:
     from libnightcrawler.context import Context as StorageContext
