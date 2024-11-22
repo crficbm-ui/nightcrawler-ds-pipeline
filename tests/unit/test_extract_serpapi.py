@@ -2,6 +2,7 @@ import pytest
 import json
 from unittest.mock import MagicMock, patch, ANY
 from nightcrawler.helpers.api.serp_api import SerpAPI
+from nightcrawler.helpers.api.proxy_api import ProxyAPI
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
 from nightcrawler.base import ExtractSerpapiData, PipelineResult, Organization
 
@@ -43,9 +44,12 @@ def test_initiate_client_is_type_SerpAPI(serpapi_extractor: SerpapiExtractor) ->
     assert isinstance(client, SerpAPI)
 
 
+@patch.object(ProxyAPI, "call_proxy")
 @patch.object(SerpAPI, "call_serpapi")
 def test_retrieve_response_is_retrieved(
-    mock_call_serpapi: MagicMock, serpapi_extractor: SerpapiExtractor
+    mock_call_serpapi: MagicMock,
+    mock_call_proxy: MagicMock,
+    serpapi_extractor: SerpapiExtractor
 ) -> None:
     """
     Test that `retrieve_response` calls the `call_serpapi` method and returns the expected result.
@@ -54,6 +58,7 @@ def test_retrieve_response_is_retrieved(
     :param serpapi_extractor: Fixture that provides an instance of SerpapiExtractor.
     """
     mock_call_serpapi.return_value = {"mock_key": "mock_value"}
+    mock_call_proxy.return_value = {"resolved_url": "http://example.com"}
     response = serpapi_extractor.retrieve_response(
         "aspirin",
         serpapi_extractor.initiate_client(),
@@ -67,12 +72,13 @@ def test_retrieve_response_is_retrieved(
     )
     assert response == {"mock_key": "mock_value"}
 
-
+@patch.object(ProxyAPI, "call_proxy")
 @patch.object(SerpAPI, "get_organic_results")
 @patch.object(SerpAPI, "_check_limit")
 def test_structure_results_is_formatted_properly(
     mock_check_limit: MagicMock,
     mock_get_organic_results: MagicMock,
+    mock_call_proxy: MagicMock,
     serpapi_extractor: SerpapiExtractor,
 ) -> None:
     """
@@ -86,16 +92,18 @@ def test_structure_results_is_formatted_properly(
         {"link": "http://example.com", "offerRoot": "DEFAULT"}
     ]
     mock_check_limit.return_value = ["http://example.com"]
+    mock_call_proxy.return_value = {"resolved_url": "http://example.com"}
     response = {"mock_key": "mock_value"}
 
     result = serpapi_extractor.structure_results(
         "aspirin",
         response,
         serpapi_extractor.initiate_client(),
+        serpapi_extractor.initiate_proxy_client(),
         offer_root="DEFAULT",
         number_of_results=1,
     )
-    assert result == [ExtractSerpapiData(url="http://example.com", offerRoot="DEFAULT")]
+    assert result == [ExtractSerpapiData(url="http://example.com", offerRoot="DEFAULT", resolved_url="http://example.com", original_url="http://example.com")]
 
 
 @patch.object(SerpapiExtractor, "store_results")
@@ -124,7 +132,7 @@ def test_store_results_was_called(
         "dummy_filename.json",
     )
 
-
+@patch.object(SerpapiExtractor, "initiate_proxy_client")
 @patch.object(SerpapiExtractor, "store_results")
 @patch.object(SerpapiExtractor, "results_from_marketplaces")
 @patch.object(SerpapiExtractor, "initiate_client")
@@ -132,6 +140,7 @@ def test_apply_all_functions_called_once(
     mock_initiate_client: MagicMock,
     mock_results_from_marketplaces: MagicMock,
     mock_store_results: MagicMock,
+    mock_initiate_proxy_client: MagicMock,
     serpapi_extractor: SerpapiExtractor,
 ) -> None:
     """
@@ -143,6 +152,7 @@ def test_apply_all_functions_called_once(
     :param serpapi_extractor: Fixture that provides an instance of SerpapiExtractor.
     """
     mock_initiate_client.return_value = MagicMock(spec=SerpAPI)
+    mock_initiate_proxy_client.return_value = MagicMock(spec=ProxyAPI)
     mock_results_from_marketplaces.return_value = ["http://example.com"]
 
     # Call the apply method
@@ -152,6 +162,7 @@ def test_apply_all_functions_called_once(
     mock_initiate_client.assert_called_once()
     mock_results_from_marketplaces.assert_called_once_with(
         client=mock_initiate_client.return_value,
+        proxy=mock_initiate_proxy_client.return_value,
         keyword="aspirin",
         number_of_results=1,
         callback=ANY,

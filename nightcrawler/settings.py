@@ -24,6 +24,21 @@ class SerpAPISettings(BaseSettings):
     )
 
 
+class ProxySettings(BaseSettings):
+    """
+    Configuration settings for Proxy integration.
+
+    Attributes:
+        user (str): The username for the proxy service.
+        password (str): The password for the proxy service.
+        port (int): The port number for the proxy service.
+    """
+
+    username: str = os.getenv("SMARTPROXY_USERNAME")
+    password: str = os.getenv("SMARTPROXY_PASSWORD")
+    port: str = os.getenv("SMARTPROXY_PORT")
+
+
 class ZyteSettings(BaseSettings):
     """
     Configuration settings for Zyte integration.
@@ -125,6 +140,7 @@ class Settings(StorageSettings):
     """
 
     serp_api: SerpAPISettings = Field(default_factory=SerpAPISettings)
+    proxy: ProxySettings = Field(default_factory=ProxySettings)
     zyte: ZyteSettings = Field(default_factory=ZyteSettings)
     store_intermediate: bool = True
     model_config: SettingsConfigDict = SettingsConfigDict(env_prefix="nightcrawler_")
