@@ -43,7 +43,7 @@ class ProxyAPI(APICaller):
         data_hash = self._generate_hash((url, str(config)))
 
         if not force_refresh and (cached := self._read_cache(data_hash)) is not None:
-            logger.warning("Using cached response for zyte (%s)", data_hash)
+            logger.warning("Using cached response for proxy (%s)", data_hash)
             return cached
 
         resolved_url = url
