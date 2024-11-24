@@ -13,8 +13,8 @@ logger = logging.getLogger(LOGGER_NAME)
 def test_full_pipeline_end_to_end(caplog):
     logger.propagate = True  # In nightcrawler.helpers.__init__.py we disabled logs propagation to not dublicate LOGS. However, caplog requires propagation therefore we enable it for the test.
     with caplog.at_level(logging.DEBUG, logger=LOGGER_NAME):
-        country = "CH"
-        run(["fullrun", "aspirin", "-n=1", f"--country={country}"])
+        unit = "Ages"
+        run(["fullrun", "aspirin", "-n=1", f"--unit={unit}"])
 
     # Combine log records from caplog for assertions
     combined_output = "\n".join(record.message for record in caplog.records)
@@ -54,7 +54,7 @@ def test_full_pipeline_end_to_end(caplog):
             context.serpapi_filename,
             context.zyte_filename,
             context.processing_filename_raw,
-            context.processing_filename_filtered.replace("country", country),
+            context.processing_filename_filtered.replace("unit", unit),
             context.processing_filename_delivery_policy,
             context.processing_filename_page_type_detection,
             context.processing_filename_blocked_content_detection,

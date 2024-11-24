@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 import re
 from re import Pattern
@@ -7,10 +8,12 @@ from typing import Optional, Dict, Any, Iterator, List, Union
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from abc import ABC, abstractmethod
+import importlib.resources
 
 from nightcrawler.helpers.utils import _get_uuid, write_json
 from nightcrawler.context import Context
 from nightcrawler.helpers import LOGGER_NAME
+import libnightcrawler.objects as lo
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -22,18 +25,33 @@ logger = logging.getLogger(LOGGER_NAME)
 class ObjectUtilitiesContainer(ABC, Mapping):
     """Abstract base class that allows for list-like object handling."""
 
-    def to_dict(self) -> Dict[str, Optional[str]]:
+    def to_dict(self) -> Dict[str, Any]:
         """
-        Converts the dataclass to a dictionary, excluding any fields that are None.
-
+        Recursively converts the dataclass to a dictionary, excluding any fields that are None, -1, or empty strings.
+        Handles nested dataclass instances as well.
         Returns:
             Dict[str, Optional[str]]: A dictionary representation of the instance with None fields removed.
         """
-        return {
-            k: v
-            for k, v in asdict(self).items()
-            if v is not None and v != -1 and v != ""
-        }
+
+        def _filter(value):
+            # Exclude None, -1, and empty strings
+            return value is not None and value != -1 and value != ""
+
+        def _recursive_asdict(obj):
+            if isinstance(obj, list):
+                return [_recursive_asdict(item) for item in obj if _filter(item)]
+            elif isinstance(obj, dict):
+                return {k: _recursive_asdict(v) for k, v in obj.items() if _filter(v)}
+            elif hasattr(obj, "__dataclass_fields__"):
+                return {
+                    k: _recursive_asdict(v)
+                    for k, v in asdict(obj).items()
+                    if _filter(v)
+                }
+            else:
+                return obj
+
+        return _recursive_asdict(self)
 
     def get(self, attr: str, default: Any = None) -> Any:
         """
@@ -92,6 +110,33 @@ class ObjectUtilitiesContainer(ABC, Mapping):
 # ---------------------------------------------------
 # Data Model - Stage Classes
 # ---------------------------------------------------
+
+
+@dataclass
+class Organization(lo.Organization):
+    """Add specific elments to organization only used in pipeline"""
+
+    language_codes: list[str]
+    languages: list[str]
+    country_codes: list[str]
+    countries: list[str]
+    currencies: list[str]
+    settings: dict
+
+    @staticmethod
+    def get_all():
+        with importlib.resources.as_file(
+            importlib.resources.files("nightcrawler").joinpath("organizations.json")
+        ) as path:
+            with open(path, "r") as ifile:
+                data = json.load(ifile)
+                return {
+                    org_name: Organization(name=org_name, **org_data)
+                    for org_name, org_data in data.items()
+                }
+
+
+
 @dataclass
 class MetaData(ObjectUtilitiesContainer):
     """Metadata class for storing information about the full pipeline run valid for all crawlresults"""
@@ -266,13 +311,11 @@ class BaseStep(ABC):
         if not self.context.settings.store_intermediate:
             return
 
-        structured_results_dict = asdict(structured_results)
+        structured_results_dict = structured_results.to_dict()
         path = f"{BaseStep._step_counter}_{filename}"
         if not self.context.settings.use_file_storage:
             blob_path = (output_dir + path).replace("/", "_")
-            self.context.blob_client.put_processing(
-                blob_path, structured_results_dict
-            )
+            self.context.blob_client.put_processing(blob_path, structured_results_dict)
             return
 
         write_json(
@@ -286,7 +329,7 @@ class BaseStep(ABC):
         currentStepResults: List[Any],
         pipelineResults: PipelineResult,
         currentStepResultsIsPipelineResultsObject=True,
-        usage: dict[str, int] | None =None,
+        usage: dict[str, int] | None = None,
     ) -> PipelineResult:
         # Depending on the class implementation the currentStepResults is either a List of DataObjects (default) or already a PipelineResult Object.
         if currentStepResultsIsPipelineResultsObject:
@@ -303,10 +346,12 @@ class BaseStep(ABC):
         if usage is None:
             usage = dict()
         new_usage = copy.deepcopy(pipelineResults.usage)
-        for k,v in usage.items():
+        for k, v in usage.items():
             new_usage[k] = new_usage.get(k, 0) + v
 
-        updatedResults = PipelineResult(meta=pipelineResults.meta, results=results, usage=new_usage)
+        updatedResults = PipelineResult(
+            meta=pipelineResults.meta, results=results, usage=new_usage
+        )
         return updatedResults
 
     @abstractmethod
@@ -399,69 +444,6 @@ class Marketplace:
     @property
     def keyword_pattern(self) -> Pattern:
         return re.compile(self.search_url_pattern % r"(\w+)")
-
-
-def filter_product_page_urls(urls: list[str]) -> list[str]:
-    accepted_urls = []
-    for url in urls:
-        if any(
-            [
-                re.match(marketplace.product_page_url_pattern, url)
-                for marketplace in GOOGLE_SITE_MARKETPLACES
-            ]
-        ):
-            accepted_urls.append(url)
-    return accepted_urls
-
-
-DEFAULT_MARKETPLACES = [
-    Marketplace(
-        "anibis",
-        "anibis.ch",
-        "https://www.anibis.ch/de/c/alle-kategorien?fts=%s",
-        r"^https://www\.anibis\.ch/de/d-",
-    ),
-    Marketplace(
-        "petitesannonces",
-        "petitesannonces.ch",
-        "https://www.petitesannonces.ch/recherche/?q=%s",
-        r"^https://www\.petitesannonces\.ch/a/",
-    ),
-    Marketplace(
-        "visomed",
-        "visomed-marketplace.ch",
-        "https://visomed-marketplace.ch/?s=%s",
-        r"^https://visomed-marketplace\.ch/shop/",
-    ),
-    Marketplace(
-        "locanto",
-        "locanto.ch",
-        "https://www.locanto.ch/q/?query=%s",
-        r"^https://[a-zA-Z\-]*\.locanto\.ch/ID_",
-    ),
-    Marketplace(
-        "gratisinserat",
-        "gratisinserat.ch",
-        "https://www.gratisinserat.ch/li/?q=%s",
-        r"^https://www\.gratisinserat\.ch/[\w\-]*/[\w\-]*/\d*$",
-    ),
-]
-
-GOOGLE_SITE_MARKETPLACES = DEFAULT_MARKETPLACES + [
-    Marketplace(
-        "tutti",
-        "tutti.ch",
-        "https://www.tutti.ch/fr/li/toute-la-suisse?q=%s",
-        r"^https://www\.tutti\.ch/fr/vi/",
-    ),
-    Marketplace(
-        "ricardo",
-        "ricardo.ch",
-        "https://www.ricardo.ch/de/s/%s",
-        r"^https://www\.ricardo\.ch/de/a/",
-    ),
-    # TODO this was taken from MediCrawl withouth further testing. this should be tested.
-]
 
 
 # ---------------------------------------------------

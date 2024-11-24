@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch, ANY
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
-from nightcrawler.base import ExtractSerpapiData, PipelineResult
+from nightcrawler.base import ExtractSerpapiData, PipelineResult, Organization
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def serpapi_extractor() -> SerpapiExtractor:
     context.settings.serp_api.token = "dummy_api_key"
     context.serpapi_filename = "dummy_filename.json"
     context.output_dir = "/tmp"
-    return SerpapiExtractor(context)
+    return SerpapiExtractor(context, Organization.get_all()["Ages"])
 
 
 def test_initiate_client_is_type_SerpAPI(serpapi_extractor: SerpapiExtractor) -> None:
@@ -49,7 +49,7 @@ def test_retrieve_response_is_retrieved(
     mock_call_serpapi.assert_called_once_with(
         {"q": "aspirin", "start": 0, "num": 3, "api_key": "dummy_api_key"},
         log_name="google_regular",
-        callback=ANY
+        callback=ANY,
     )
     assert response == {"mock_key": "mock_value"}
 
@@ -137,7 +137,10 @@ def test_apply_all_functions_called_once(
     # Assert all methods were called once with the correct arguments
     mock_initiate_client.assert_called_once()
     mock_results_from_marketplaces.assert_called_once_with(
-        client=mock_initiate_client.return_value, keyword="aspirin", number_of_results=1, callback=ANY
+        client=mock_initiate_client.return_value,
+        keyword="aspirin",
+        number_of_results=1,
+        callback=ANY,
     )
     mock_store_results.assert_called_once()
     assert results.results == ["http://example.com"]

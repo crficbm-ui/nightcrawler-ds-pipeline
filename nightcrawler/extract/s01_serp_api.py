@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any, Dict, List, Callable
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
@@ -10,9 +11,11 @@ from nightcrawler.base import (
     MetaData,
     PipelineResult,
     Extract,
-    GOOGLE_SITE_MARKETPLACES,
     CounterCallback,
+    Organization,
+    Marketplace,
 )
+
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -30,8 +33,7 @@ class SerpapiExtractor(Extract):
     def __init__(
         self,
         context: Context,
-        tld: str = "ch",
-        country: str = "Switzerland",
+        organization: Organization,
         prevent_auto_correct: bool = True,
     ) -> None:
         """
@@ -43,20 +45,30 @@ class SerpapiExtractor(Extract):
         super().__init__(self._entity_name)
         self.context = context
 
+        self.organization = organization
+        self.country = organization.countries[0]
         self._google_params = {
             "engine": "google",
-            "location_requested": country,
-            "location_used": country,
-            "google_domain": f"google.{tld}",
-            "tbs": f"ctr:country{tld.upper()}&cr=country{tld.upper()}",
-            "gl": tld,
+            "location_requested": self.country,
+            "location_used": self.country,
+            "google_domain": f"google.{organization.country_codes[0].lower()}",
+            "tbs": f"ctr:{organization.country_codes[0].upper()}&cr=country{organization.country_codes[0].upper()}",
+            "gl": organization.country_codes[0].lower(),
         }
 
         self._ebay_params = {
             "engine": "ebay",
-            "ebay_domain": f"ebay.{tld}",
+            "ebay_domain": f"ebay.{organization.country_codes[0].lower()}",
             "_blrs": "spell_auto_correct" if prevent_auto_correct else "",
         }
+
+        self.google_site_marketplaces = [
+            Marketplace(**data)
+            for data in organization.settings["default_marketplaces"]
+        ] + [
+            Marketplace(**data)
+            for data in organization.settings["google_site_marketplaces"]
+        ]
 
     def initiate_client(self) -> SerpAPI:
         """
@@ -122,18 +134,31 @@ class SerpapiExtractor(Extract):
         else:
             items = client.get_organic_results(response)
 
-        # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
         urls = [item.get("link") for item in items]
+        logger.debug(f"For {offer_root} retrieved {len(urls)}.")
+
+        if offer_root == "GOOGLE_SITE":
+            urls = self.filter_product_page_urls(urls, self.google_site_marketplaces)
+
+        # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
         urls = urls[:number_of_results]
+        logger.debug(f"After manual truncation the length is {len(urls)}.")
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
         results = [
-            ExtractSerpapiData(offerRoot=offer_root, url=remove_tracking_parameters(url)) for url in filtered_urls
+            ExtractSerpapiData(
+                offerRoot=offer_root, url=remove_tracking_parameters(url)
+            )
+            for url in filtered_urls
         ]
         return results
 
     def results_from_marketplaces(
-        self, client: SerpAPI, keyword: str, number_of_results: int, callback: Callable[int, None]
+        self,
+        client: SerpAPI,
+        keyword: str,
+        number_of_results: int,
+        callback: Callable[int, None],
     ) -> List[ExtractSerpapiData]:
         # Define parameters and labels for different sources
         sources = [
@@ -147,7 +172,7 @@ class SerpapiExtractor(Extract):
                     **self._google_params,
                     "q": f"{keyword} site:"
                     + " OR site:".join(
-                        [m.root_domain_name for m in GOOGLE_SITE_MARKETPLACES]
+                        [m.root_domain_name for m in self.google_site_marketplaces]
                     ),
                 },
                 "label": "GOOGLE_SITE",
@@ -161,6 +186,8 @@ class SerpapiExtractor(Extract):
                 "label": "EBAY",
             },
         ]
+
+        logger.debug(f"SerpAPI configs: {sources}")
 
         # Collecting and structuring all results
         all_results = []
@@ -178,7 +205,26 @@ class SerpapiExtractor(Extract):
             )
             all_results.extend(structured_results)
 
+        logger.debug(f"A total of {len(all_results)} serpapi results were stored.")
         return all_results
+
+    @staticmethod
+    def filter_product_page_urls(
+        urls: list[str], marketplaces: List[Marketplace]
+    ) -> list[str]:
+        accepted_urls = []
+        for url in urls:
+            # Use a generator expression instead of a list comprehension
+            if any(
+                re.match(marketplace.product_page_url_pattern, url)
+                for marketplace in marketplaces
+            ):
+                accepted_urls.append(url)
+
+        logger.debug(
+            f"Removed {len(urls) - len(accepted_urls)}/{len(urls)} URLs that did not match the Marketplace product pattern."
+        )
+        return accepted_urls
 
     def apply_step(self, keyword: str, number_of_results: int) -> PipelineResult:
         """
@@ -195,7 +241,10 @@ class SerpapiExtractor(Extract):
         counter = CounterCallback()
         client = self.initiate_client()
         structured_results_from_marketplaces = self.results_from_marketplaces(
-            client=client, keyword=keyword, number_of_results=number_of_results, callback=counter
+            client=client,
+            keyword=keyword,
+            number_of_results=number_of_results,
+            callback=counter,
         )
 
         # Generate the metadata
@@ -207,7 +256,9 @@ class SerpapiExtractor(Extract):
 
         # Combining all structured results
         structured_results_from_marketplaces = PipelineResult(
-            meta=metadata, results=structured_results_from_marketplaces, usage={"serpapi": counter.value}
+            meta=metadata,
+            results=structured_results_from_marketplaces,
+            usage={"serpapi": counter.value},
         )
 
         self.store_results(
