@@ -9,14 +9,6 @@ from nightcrawler.helpers.api.api_caller import APICaller
 logger = logging.getLogger(LOGGER_NAME)
 
 
-PROXY_COUNTRY_MAPPING_ISO_3166_1_ALPHA_2 = {
-    "Switzerland": "CH",
-
-    "Austria": "AT",
-
-    "Chile": "CL",
-}
-
 class ProxyAPI(APICaller):
     def __init__(self, context, cache_name="proxy", max_retries=1, retry_delay=10, requests_timeout=10):
         # Cache data for 7 days (minus 6h) for zyte
