@@ -12,6 +12,9 @@ jobs:
       ZYTE_API_TOKEN: ${{ secrets.ZYTE_API_TOKEN }}
       DATAFORSEO_PASSWORD: ${{ secrets.DATAFORSEO_PASSWORD }}
       DATAFORSEO_USERNAME: ${{ secrets.DATAFORSEO_USERNAME }}
+      SMARTPROXY_USERNAME: ${{ secrets.SMARTPROXY_USERNAME }}
+      SMARTPROXY_PASSWORD: ${{ secrets.SMARTPROXY_PASSWORD }}
+      SMARTPROXY_PORT: ${{ secrets.SMARTPROXY_PORT }}
 
     steps:
     - uses: actions/checkout@v4
