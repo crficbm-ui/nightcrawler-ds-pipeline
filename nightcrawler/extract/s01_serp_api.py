@@ -3,6 +3,7 @@ import re
 from typing import Any, Dict, List, Callable
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
+from nightcrawler.helpers.api import proxy_api
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.helpers.utils import remove_tracking_parameters
 
@@ -78,7 +79,16 @@ class SerpapiExtractor(Extract):
             SerpAPI: An instance of the SerpAPI client.
         """
         return SerpAPI(self.context)
+    
+    def initiate_proxy_client(self) -> proxy_api.ProxyAPI:
+        """
+        Initializes and returns the ProxyAPI client.
 
+        Returns:
+            ProxyAPI: An instance of the ProxyAPI client.
+        """
+        return proxy_api.ProxyAPI(self.context)
+    
     def retrieve_response(
         self,
         keyword: str,
@@ -113,6 +123,7 @@ class SerpapiExtractor(Extract):
         keyword: str,
         response: Dict[str, Any],
         client: SerpAPI,
+        proxy: proxy_api.ProxyAPI,
         offer_root: str = "DEFAULT",
         number_of_results: int = 50,
         check_limit: int = 200,
@@ -145,17 +156,37 @@ class SerpapiExtractor(Extract):
         logger.debug(f"After manual truncation the length is {len(urls)}.")
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
-        results = [
-            ExtractSerpapiData(
-                offerRoot=offer_root, url=remove_tracking_parameters(url)
+
+        results = []
+        for url in filtered_urls:
+            logger.debug(f"Resolving URL: {url}")
+            try:
+                proxy_response = proxy.call_proxy(
+                    url=url,
+                    country=self.organization.country_codes[0],
+                )
+                resolved_url = proxy_response["resolved_url"]
+            except Exception as e:
+                logger.error(f"Failed to resolve URL: `{url}` with error: {e}")
+                resolved_url = url
+
+            cleaned_url = remove_tracking_parameters(resolved_url)
+            
+            results.append(
+                ExtractSerpapiData(
+                    offerRoot=offer_root,
+                    original_url=url,
+                    resolved_url=resolved_url,
+                    url=cleaned_url,
+                )
             )
-            for url in filtered_urls
-        ]
+
         return results
 
     def results_from_marketplaces(
         self,
         client: SerpAPI,
+        proxy: proxy_api.ProxyAPI,
         keyword: str,
         number_of_results: int,
         callback: Callable[int, None],
@@ -201,7 +232,12 @@ class SerpapiExtractor(Extract):
                 callback=callback,
             )
             structured_results = self.structure_results(
-                keyword, response, client, source["label"], number_of_results
+                keyword=keyword,
+                response=response,
+                client=client,
+                proxy=proxy,
+                offer_root=source["label"],
+                number_of_results=number_of_results,
             )
             all_results.extend(structured_results)
 
@@ -240,8 +276,10 @@ class SerpapiExtractor(Extract):
         """
         counter = CounterCallback()
         client = self.initiate_client()
+        proxy = self.initiate_proxy_client()
         structured_results_from_marketplaces = self.results_from_marketplaces(
             client=client,
+            proxy=proxy,
             keyword=keyword,
             number_of_results=number_of_results,
             callback=counter,
