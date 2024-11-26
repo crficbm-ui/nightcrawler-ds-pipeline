@@ -3,7 +3,7 @@ import re
 from typing import Any, Dict, List, Callable
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
-from nightcrawler.helpers.api.proxy_api import ProxyAPI
+from nightcrawler.helpers.api import proxy_api
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.helpers.utils import remove_tracking_parameters
 
@@ -80,14 +80,14 @@ class SerpapiExtractor(Extract):
         """
         return SerpAPI(self.context)
     
-    def initiate_proxy_client(self) -> ProxyAPI:
+    def initiate_proxy_client(self) -> proxy_api.ProxyAPI:
         """
         Initializes and returns the ProxyAPI client.
 
         Returns:
             ProxyAPI: An instance of the ProxyAPI client.
         """
-        return ProxyAPI(self.context)
+        return proxy_api.ProxyAPI(self.context)
     
     def retrieve_response(
         self,
@@ -123,7 +123,7 @@ class SerpapiExtractor(Extract):
         keyword: str,
         response: Dict[str, Any],
         client: SerpAPI,
-        proxy: ProxyAPI,
+        proxy: proxy_api.ProxyAPI,
         offer_root: str = "DEFAULT",
         number_of_results: int = 50,
         check_limit: int = 200,
@@ -160,11 +160,16 @@ class SerpapiExtractor(Extract):
         results = []
         for url in filtered_urls:
             logger.debug(f"Resolving URL: {url}")
-            proxy_response = proxy.call_proxy(
-                url=url,
-                config={"country": self.country}
-            )
-            resolved_url = proxy_response["resolved_url"]
+            try:
+                proxy_country = proxy_api.PROXY_COUNTRY_MAPPING_ISO_3166_1_ALPHA_2.get(self.country, None)
+                proxy_response = proxy.call_proxy(
+                    url=url,
+                    country=proxy_country,
+                )
+                resolved_url = proxy_response["resolved_url"]
+            except Exception as e:
+                logger.error(f"Failed to resolve URL: `{url}` with error: {e}")
+                resolved_url = url
 
             cleaned_url = remove_tracking_parameters(resolved_url)
             
@@ -182,7 +187,7 @@ class SerpapiExtractor(Extract):
     def results_from_marketplaces(
         self,
         client: SerpAPI,
-        proxy: ProxyAPI,
+        proxy: proxy_api.ProxyAPI,
         keyword: str,
         number_of_results: int,
         callback: Callable[int, None],

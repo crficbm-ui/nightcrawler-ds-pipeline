@@ -9,15 +9,12 @@ from nightcrawler.helpers.api.api_caller import APICaller
 logger = logging.getLogger(LOGGER_NAME)
 
 
-PROXY_COUNTRY_MAPPING = {
-    "CH": "ch",
-    "Switzerland": "ch",
+PROXY_COUNTRY_MAPPING_ISO_3166_1_ALPHA_2 = {
+    "Switzerland": "CH",
 
-    "AT": "at",
-    "Austria": "at",
+    "Austria": "AT",
 
-    "CL": "cl",
-    "Chile": "cl",
+    "Chile": "CL",
 }
 
 class ProxyAPI(APICaller):
@@ -30,15 +27,13 @@ class ProxyAPI(APICaller):
         self.requests_timeout = requests_timeout
 
     def _build_proxy_url(self, country: str) -> str:
-        proxy_country = PROXY_COUNTRY_MAPPING.get(country, None)
-
-        if not proxy_country:
+        if not country:
             raise ValueError(f"Country '{country}' is not supported for proxy.")
 
         return "http://{username}:{password}@{country}.smartproxy.com:{port}".format(
             username=self.context.settings.proxy.username,
             password=self.context.settings.proxy.password,
-            country=proxy_country,
+            country=country,
             port=self.context.settings.proxy.port,
         )
 
@@ -59,40 +54,40 @@ class ProxyAPI(APICaller):
 
         return response.url
 
-    
-    def call_proxy(self, url: str, config: dict, force_refresh: bool = False, callback: callable = None) -> dict:
+    def call_proxy(self, url: str, country: str, force_refresh: bool = False) -> dict:
         """
-        Resolves the redirect of the given URL.
+        Resolve the redirect of a given URL using a proxy for a specific country.
 
         Args:
             url (str): The URL to resolve.
+            country (str): The country to use for the proxy.
+                Format: ISO 3166-1 alpha-2 (e.g., "CH", "AT", "CL").
+            force_refresh (bool, optional): Whether to force a refresh of the data.
+                Defaults to False.
 
         Returns:
-            str: The resolved URL.
-        """
-        data_hash = self._generate_hash((url, str(config)))
+            dict: A dictionary containing the resolved URL and the time taken to resolve it.
+                Example: {"resolved_url": "https://www.example.com", "seconds_taken": 0.123}
 
-        if not force_refresh and (cached := self._read_cache(data_hash)) is not None:
-            logger.warning("Using cached response for proxy (%s)", data_hash)
+        Raises:
+            ValueError: If the status code is not 200.
+        """
+        result_hash = self._generate_hash((url, country))
+
+        if not force_refresh and (cached := self._read_cache(result_hash)) is not None:
+            logger.warning("Using cached response for proxy (%s)", result_hash)
             return cached
 
-        resolved_url = url
         start_time = time.time()
-        try:
-            country = config["country"]
 
-            proxy_url = self._build_proxy_url(country)
-            resolved_url = self._resolve_redirect(url, proxy_url)
+        proxy_url = self._build_proxy_url(country)
+        resolved_url = self._resolve_redirect(url, proxy_url)
 
-            self._write_cache(data_hash, {
-                "resolved_url": resolved_url,
-                "seconds_taken": time.time() - start_time,
-            })
-            
-        except Exception as e:
-            logger.warning(f"Failed to resolve redirect for {url}: {e}")
-        
-        return {
+        result = {
             "resolved_url": resolved_url,
             "seconds_taken": time.time() - start_time,
         }
+
+        self._write_cache(result_hash, result)
+
+        return result
