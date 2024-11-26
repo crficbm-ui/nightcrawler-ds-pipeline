@@ -161,10 +161,9 @@ class SerpapiExtractor(Extract):
         for url in filtered_urls:
             logger.debug(f"Resolving URL: {url}")
             try:
-                proxy_country = proxy_api.PROXY_COUNTRY_MAPPING_ISO_3166_1_ALPHA_2.get(self.country, None)
                 proxy_response = proxy.call_proxy(
                     url=url,
-                    country=proxy_country,
+                    country=self.organization.country_codes[0],
                 )
                 resolved_url = proxy_response["resolved_url"]
             except Exception as e:
