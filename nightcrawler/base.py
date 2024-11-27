@@ -1,6 +1,9 @@
 import copy
 import json
 import logging
+import enum
+import re
+from re import Pattern
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, Iterator, List, Union
 from collections.abc import Mapping
@@ -235,12 +238,18 @@ class BlockedContentData(PageTypeData):
     pass
 
 
+class DomainLabels(enum.Enum):
+    MEDICAL = "medical"
+    OTHER = "other"
+    UNKNOWN = "unknown"
+
+
 @dataclass
 class ContentDomainData(BlockedContentData):
     """Data class for step 9: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)"""
 
-    # TODO add fields relevant to only this step
-    pass
+    content_domain_label: Optional[DomainLabels] = None
+    content_domain_probability: Optional[float] = None
 
 
 @dataclass

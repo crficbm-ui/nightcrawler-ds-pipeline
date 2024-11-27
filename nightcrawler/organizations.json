@@ -371,7 +371,6 @@
         "countries": [
             "Austria"
         ],
-        "whitelist": [],
         "blacklist": [],
         "settings": {
             "country_filtering": {
