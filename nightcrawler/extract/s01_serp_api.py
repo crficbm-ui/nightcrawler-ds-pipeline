@@ -1,11 +1,10 @@
 import logging
 from typing import Any, Dict, List, Callable
-from urllib.parse import urlparse
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.helpers.api import proxy_api
 from nightcrawler.helpers import LOGGER_NAME
-from nightcrawler.helpers.utils import remove_tracking_parameters
+from nightcrawler.helpers.utils import remove_tracking_parameters, extract_hostname
 
 from nightcrawler.base import (
     ExtractSerpapiData,
@@ -47,6 +46,15 @@ class SerpapiExtractor(Extract):
 
         self.organization = organization
         self.country = organization.countries[0]
+
+        # As we cannot control how the user are storing white- and blacklist urls, we need to enforce the proper format 'hostname.tld'. For example, https://www.20min.ch/de/, https://www.20min.ch/ and www.20min.ch should retourn  20.min
+        self.organization.whitelist = [
+            extract_hostname(url) for url in self.organization.whitelist
+        ]
+        self.organization.blacklist = [
+            extract_hostname(url) for url in self.organization.blacklist
+        ]
+
         self._google_params = {
             "engine": "google",
             "location_requested": self.country,
@@ -150,7 +158,7 @@ class SerpapiExtractor(Extract):
         urls = [
             url
             for url in urls
-            if urlparse(url).netloc.lstrip("www.") not in self.organization.blacklist
+            if extract_hostname(url) not in self.organization.blacklist
         ]
         logger.debug(f"After applying the blacklist filter the length is {len(urls)}.")
 

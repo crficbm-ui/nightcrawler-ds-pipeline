@@ -298,6 +298,40 @@ def clean_url(url):
     return urlunparse(cleaned_url)
 
 
+def extract_hostname(url: str) -> str | None:
+    """
+    Extracts the hostname in the format 'hostname.tld' from a given URL.
+
+    This function ensures the proper URL format by adding a scheme (http://) if missing,
+    parses the URL to extract the hostname, removes common subdomains like 'www.',
+    and validates that the resulting hostname conforms to the 'hostname.tld' format.
+
+    Args:
+        url (str): The input URL or hostname string to be processed.
+
+    Returns:
+        str | None: The extracted hostname in 'hostname.tld' format if valid, or None
+        if the extracted hostname is invalid or doesn't match the required format.
+    """
+    # Add scheme if missing to ensure urlparse works correctly
+    if not url.startswith(("http://", "https://")):
+        url = "http://" + url
+
+    # Parse the URL
+    parsed_url = urlparse(url)
+    hostname = parsed_url.hostname
+
+    # Remove subdomains like 'www'
+    if hostname and hostname.startswith("www."):
+        hostname = hostname[4:]
+
+    # Validate the format 'hostname.tld'
+    if hostname and re.match(r"^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$", hostname):
+        return hostname
+    else:
+        return None
+
+
 def remove_tracking_parameters(url):
     # All query parameters are tracking parameters on ebay
     remove_all = url.startswith("https://www.ebay")
