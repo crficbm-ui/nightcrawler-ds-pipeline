@@ -1,5 +1,6 @@
 import logging
 from typing import Any, Dict, List, Callable
+from urllib.parse import urlparse
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.helpers.api import proxy_api
@@ -119,7 +120,10 @@ class SerpapiExtractor(Extract):
         check_limit: int = 200,
     ) -> List[ExtractSerpapiData]:
         """
-        Processes and structures the raw API response data into the desired format.
+        Processes and structures the raw API response data into the desired format. This entails:
+        1. Get results for differnt OfferRoots: GOOGLE, GOOGLE_SHOPPING, GOOGLE_SITE (=whitelist), EBAY,
+        2. Specific post-processing according to the OfferRoots
+        3. Remove results from the blacklist.
 
         Args:
             response (Dict[str, Any]): The raw data returned from the API.
@@ -141,6 +145,14 @@ class SerpapiExtractor(Extract):
         # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
         urls = urls[:number_of_results]
         logger.debug(f"After manual truncation the length is {len(urls)}.")
+
+        # remove urls from the blacklist
+        urls = [
+            url
+            for url in urls
+            if urlparse(url).netloc.lstrip("www.") not in self.organization.blacklist
+        ]
+        logger.debug(f"After applying the blacklist filter the length is {len(urls)}.")
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
 
