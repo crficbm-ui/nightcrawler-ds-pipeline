@@ -1,8 +1,6 @@
 import copy
 import json
 import logging
-import re
-from re import Pattern
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, Iterator, List, Union
 from collections.abc import Mapping
@@ -134,7 +132,6 @@ class Organization(lo.Organization):
                     org_name: Organization(name=org_name, **org_data)
                     for org_name, org_data in data.items()
                 }
-
 
 
 @dataclass
@@ -429,23 +426,6 @@ class Extract(BaseStep):
             Union[List[str], List[Dict[str, Any]]]: The structured and processed data, either as a list of URLs (strings) or a list of dictionaries.
         """
         pass
-
-
-# ---------------------------------------------------
-# Extract - Martkeplaces
-# ---------------------------------------------------
-
-
-@dataclass
-class Marketplace:
-    name: str
-    root_domain_name: str
-    search_url_pattern: str
-    product_page_url_pattern: str
-
-    @property
-    def keyword_pattern(self) -> Pattern:
-        return re.compile(self.search_url_pattern % r"(\w+)")
 
 
 # ---------------------------------------------------

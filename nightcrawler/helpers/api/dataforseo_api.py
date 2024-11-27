@@ -58,7 +58,9 @@ class DataforSeoAPI(APICaller):
             connection.request(method, path, headers=headers, body=data)
             response = connection.getresponse()
             if response.status >= 400:
-                raise Exception(f"Failed to call dataforseo: {response.status} {response.reason}")
+                raise Exception(
+                    f"Failed to call dataforseo: {response.status} {response.reason}"
+                )
             return loads(response.read().decode())
         finally:
             connection.close()
