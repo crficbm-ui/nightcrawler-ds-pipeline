@@ -33,6 +33,9 @@ class EndpointAPI(APICaller):
             retry_delay (int): The delay in seconds between retry attempts (default is 10).
             endpoint_timeout (int): The timeout in seconds for the API call (default is 10).
             cache_duration (int): The delay in seconds between a cache entry is considered
+
+        Returns:
+            None
         """
         super().__init__(
             context=context,
@@ -50,14 +53,18 @@ class EndpointAPI(APICaller):
         Call a endpoint with the given payload.
 
         Args:
-            playload (dict): The payload to send.
-            force_refresh (bool): Whether to bypass the cache and force a new API call (default is False).
+            playload (dict):
+                The payload to send. It depends on the endpoint.
+            force_refresh (bool):
+                Whether to bypass the cache and force a new API call (default is False).
 
         Returns:
-            dict: The JSON response from the API.
+            dict:
+                The JSON response from the API.
 
         Raises:
-            ValueError: If the status code is not 200.
+            ValueError:
+                If the status code is not 200.
         """
         result_hash = self._generate_hash((
             self.endpoint_url,
