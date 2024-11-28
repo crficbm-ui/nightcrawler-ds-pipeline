@@ -326,7 +326,7 @@ def extract_hostname(url: str) -> str | None:
         hostname = hostname[4:]
 
     # Validate the format 'hostname.tld'
-    if hostname and re.match(r"^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$", hostname):
+    if hostname:
         return hostname
     else:
         return None
