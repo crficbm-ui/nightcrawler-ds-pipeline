@@ -57,7 +57,7 @@ def test_full_pipeline_end_to_end(caplog):
             context.processing_filename_filtered.replace("unit", unit),
             context.processing_filename_delivery_policy,
             context.processing_filename_page_type_detection,
-            context.processing_filename_blocked_content_detection,
+            context.processing_filename_corrupted_content_detection,
             context.processing_filename_content_domain_detection,
             context.processing_filename_suspiciousness_classifier,
             context.filename_final_results,

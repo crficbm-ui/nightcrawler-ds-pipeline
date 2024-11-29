@@ -59,8 +59,8 @@ class Context(StorageContext):
         )
         self.processing_filename_delivery_policy: str = "process_delivery_policy.json"
         self.processing_filename_page_type_detection: str = "process_page_type.json"
-        self.processing_filename_blocked_content_detection: str = (
-            "process_blocked_content.json"
+        self.processing_filename_corrupted_content_detection: str = (
+            "process_corrupted_content.json"
         )
         self.processing_filename_content_domain_detection: str = (
             "process_content_domain.json"
