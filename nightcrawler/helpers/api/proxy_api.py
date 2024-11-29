@@ -10,7 +10,14 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 class ProxyAPI(APICaller):
-    def __init__(self, context, cache_name="proxy", max_retries=1, retry_delay=10, requests_timeout=10):
+    def __init__(
+        self,
+        context,
+        cache_name="proxy",
+        max_retries=1,
+        retry_delay=10,
+        requests_timeout=10,
+    ):
         # Cache data for 7 days (minus 6h) for zyte
         super().__init__(
             context, cache_name, max_retries, retry_delay, (7 * 24 - 6) * 60 * 60
@@ -38,7 +45,7 @@ class ProxyAPI(APICaller):
             url=url,
             allow_redirects=True,
             proxies=proxies,
-            timeout=self.requests_timeout
+            timeout=self.requests_timeout,
         )
 
         if response.status_code != 200:

@@ -200,7 +200,7 @@ class DataProcessor(BaseStep):
         )
 
         if isinstance(country_filtered_results, PipelineResult):
-            if len(country_filtered_results.results):
+            if len(country_filtered_results.results) == 0:
                 logger.warning(
                     "After filtering per country variable, no results move further in the pipeline."
                 )

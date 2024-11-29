@@ -34,6 +34,7 @@ class Context(StorageContext):
         self.crawlStatus: str = "processing"
 
         from nightcrawler.base import Organization
+
         self.organizations = Organization.get_all()
 
         # ----------------------------------------------------------------------------------------

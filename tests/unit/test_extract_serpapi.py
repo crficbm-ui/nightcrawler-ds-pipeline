@@ -35,7 +35,7 @@ def test_initiate_client_is_type_SerpAPI(serpapi_extractor: SerpapiExtractor) ->
 def test_retrieve_response_is_retrieved(
     mock_call_serpapi: MagicMock,
     mock_call_proxy: MagicMock,
-    serpapi_extractor: SerpapiExtractor
+    serpapi_extractor: SerpapiExtractor,
 ) -> None:
     """
     Test that `retrieve_response` calls the `call_serpapi` method and returns the expected result.
@@ -57,6 +57,7 @@ def test_retrieve_response_is_retrieved(
         callback=ANY,
     )
     assert response == {"mock_key": "mock_value"}
+
 
 @patch.object(ProxyAPI, "call_proxy")
 @patch.object(SerpAPI, "get_organic_results")
@@ -89,7 +90,14 @@ def test_structure_results_is_formatted_properly(
         offer_root="DEFAULT",
         number_of_results=1,
     )
-    assert result == [ExtractSerpapiData(url="http://example.com", offerRoot="DEFAULT", resolved_url="http://example.com", original_url="http://example.com")]
+    assert result == [
+        ExtractSerpapiData(
+            url="http://example.com",
+            offerRoot="DEFAULT",
+            resolved_url="http://example.com",
+            original_url="http://example.com",
+        )
+    ]
 
 
 @patch.object(SerpapiExtractor, "store_results")
@@ -118,13 +126,14 @@ def test_store_results_was_called(
         "dummy_filename.json",
     )
 
+
 @patch.object(SerpapiExtractor, "initiate_proxy_client")
 @patch.object(SerpapiExtractor, "store_results")
-@patch.object(SerpapiExtractor, "results_from_marketplaces")
+@patch.object(SerpapiExtractor, "results_from_whitelist")
 @patch.object(SerpapiExtractor, "initiate_client")
 def test_apply_all_functions_called_once(
     mock_initiate_client: MagicMock,
-    mock_results_from_marketplaces: MagicMock,
+    mock_results_from_whitelist: MagicMock,
     mock_store_results: MagicMock,
     mock_initiate_proxy_client: MagicMock,
     serpapi_extractor: SerpapiExtractor,
@@ -133,20 +142,20 @@ def test_apply_all_functions_called_once(
     Test that all methods in the `apply` workflow are called exactly once and return the correct result.
 
     :param mock_initiate_client: Mock for the `initiate_client` method.
-    :param mock_results_from_marketplaces: Mock for the `results_from_marketplaces` method.
+    :param mock_results_from_whitelist: Mock for the `results_from_whitelist` method.
     :param mock_store_results: Mock for the `store_results` method.
     :param serpapi_extractor: Fixture that provides an instance of SerpapiExtractor.
     """
     mock_initiate_client.return_value = MagicMock(spec=SerpAPI)
     mock_initiate_proxy_client.return_value = MagicMock(spec=ProxyAPI)
-    mock_results_from_marketplaces.return_value = ["http://example.com"]
+    mock_results_from_whitelist.return_value = ["http://example.com"]
 
     # Call the apply method
     results = serpapi_extractor.apply(keyword="aspirin", number_of_results=1)
 
     # Assert all methods were called once with the correct arguments
     mock_initiate_client.assert_called_once()
-    mock_results_from_marketplaces.assert_called_once_with(
+    mock_results_from_whitelist.assert_called_once_with(
         client=mock_initiate_client.return_value,
         proxy=mock_initiate_proxy_client.return_value,
         keyword="aspirin",

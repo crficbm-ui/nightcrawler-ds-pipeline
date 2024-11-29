@@ -1,11 +1,10 @@
 import logging
-import re
 from typing import Any, Dict, List, Callable
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.helpers.api import proxy_api
 from nightcrawler.helpers import LOGGER_NAME
-from nightcrawler.helpers.utils import remove_tracking_parameters
+from nightcrawler.helpers.utils import remove_tracking_parameters, extract_hostname
 
 from nightcrawler.base import (
     ExtractSerpapiData,
@@ -14,7 +13,6 @@ from nightcrawler.base import (
     Extract,
     CounterCallback,
     Organization,
-    Marketplace,
 )
 
 
@@ -48,6 +46,15 @@ class SerpapiExtractor(Extract):
 
         self.organization = organization
         self.country = organization.countries[0]
+
+        # As we cannot control how the user are storing white- and blacklist urls, we need to enforce the proper format 'hostname.tld'. For example, https://www.20min.ch/de/, https://www.20min.ch/ and www.20min.ch should retourn  20.min
+        self.organization.whitelist = [
+            extract_hostname(url) for url in self.organization.whitelist
+        ]
+        self.organization.blacklist = [
+            extract_hostname(url) for url in self.organization.blacklist
+        ]
+
         self._google_params = {
             "engine": "google",
             "location_requested": self.country,
@@ -63,14 +70,6 @@ class SerpapiExtractor(Extract):
             "_blrs": "spell_auto_correct" if prevent_auto_correct else "",
         }
 
-        self.google_site_marketplaces = [
-            Marketplace(**data)
-            for data in organization.settings["default_marketplaces"]
-        ] + [
-            Marketplace(**data)
-            for data in organization.settings["google_site_marketplaces"]
-        ]
-
     def initiate_client(self) -> SerpAPI:
         """
         Initializes and returns the SerpAPI client.
@@ -79,7 +78,7 @@ class SerpapiExtractor(Extract):
             SerpAPI: An instance of the SerpAPI client.
         """
         return SerpAPI(self.context)
-    
+
     def initiate_proxy_client(self) -> proxy_api.ProxyAPI:
         """
         Initializes and returns the ProxyAPI client.
@@ -88,7 +87,7 @@ class SerpapiExtractor(Extract):
             ProxyAPI: An instance of the ProxyAPI client.
         """
         return proxy_api.ProxyAPI(self.context)
-    
+
     def retrieve_response(
         self,
         keyword: str,
@@ -129,7 +128,10 @@ class SerpapiExtractor(Extract):
         check_limit: int = 200,
     ) -> List[ExtractSerpapiData]:
         """
-        Processes and structures the raw API response data into the desired format.
+        Processes and structures the raw API response data into the desired format. This entails:
+        1. Get results for differnt OfferRoots: GOOGLE, GOOGLE_SHOPPING, GOOGLE_SITE (=whitelist), EBAY,
+        2. Specific post-processing according to the OfferRoots
+        3. Remove results from the blacklist.
 
         Args:
             response (Dict[str, Any]): The raw data returned from the API.
@@ -148,12 +150,17 @@ class SerpapiExtractor(Extract):
         urls = [item.get("link") for item in items]
         logger.debug(f"For {offer_root} retrieved {len(urls)}.")
 
-        if offer_root == "GOOGLE_SITE":
-            urls = self.filter_product_page_urls(urls, self.google_site_marketplaces)
-
         # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
         urls = urls[:number_of_results]
         logger.debug(f"After manual truncation the length is {len(urls)}.")
+
+        # remove urls from the blacklist
+        urls = [
+            url
+            for url in urls
+            if extract_hostname(url) not in self.organization.blacklist
+        ]
+        logger.debug(f"After applying the blacklist filter the length is {len(urls)}.")
 
         filtered_urls = client._check_limit(urls, keyword, check_limit)
 
@@ -171,7 +178,7 @@ class SerpapiExtractor(Extract):
                 resolved_url = url
 
             cleaned_url = remove_tracking_parameters(resolved_url)
-            
+
             results.append(
                 ExtractSerpapiData(
                     offerRoot=offer_root,
@@ -183,7 +190,7 @@ class SerpapiExtractor(Extract):
 
         return results
 
-    def results_from_marketplaces(
+    def results_from_whitelist(
         self,
         client: SerpAPI,
         proxy: proxy_api.ProxyAPI,
@@ -203,7 +210,7 @@ class SerpapiExtractor(Extract):
                     **self._google_params,
                     "q": f"{keyword} site:"
                     + " OR site:".join(
-                        [m.root_domain_name for m in self.google_site_marketplaces]
+                        [entry for entry in self.organization.whitelist]
                     ),
                 },
                 "label": "GOOGLE_SITE",
@@ -244,24 +251,6 @@ class SerpapiExtractor(Extract):
         logger.debug(f"A total of {len(all_results)} serpapi results were stored.")
         return all_results
 
-    @staticmethod
-    def filter_product_page_urls(
-        urls: list[str], marketplaces: List[Marketplace]
-    ) -> list[str]:
-        accepted_urls = []
-        for url in urls:
-            # Use a generator expression instead of a list comprehension
-            if any(
-                re.match(marketplace.product_page_url_pattern, url)
-                for marketplace in marketplaces
-            ):
-                accepted_urls.append(url)
-
-        logger.debug(
-            f"Removed {len(urls) - len(accepted_urls)}/{len(urls)} URLs that did not match the Marketplace product pattern."
-        )
-        return accepted_urls
-
     def apply_step(self, keyword: str, number_of_results: int) -> PipelineResult:
         """
         Orchestrates the entire process of data collection: client initiation,
@@ -277,7 +266,7 @@ class SerpapiExtractor(Extract):
         counter = CounterCallback()
         client = self.initiate_client()
         proxy = self.initiate_proxy_client()
-        structured_results_from_marketplaces = self.results_from_marketplaces(
+        structured_results_from_whitelist = self.results_from_whitelist(
             client=client,
             proxy=proxy,
             keyword=keyword,
@@ -289,20 +278,20 @@ class SerpapiExtractor(Extract):
         metadata = MetaData(
             keyword=keyword,
             numberOfResults=number_of_results,
-            numberOfResultsAfterStage=len(structured_results_from_marketplaces),
+            numberOfResultsAfterStage=len(structured_results_from_whitelist),
         )
 
         # Combining all structured results
-        structured_results_from_marketplaces = PipelineResult(
+        structured_results_from_whitelist = PipelineResult(
             meta=metadata,
-            results=structured_results_from_marketplaces,
+            results=structured_results_from_whitelist,
             usage={"serpapi": counter.value},
         )
 
         self.store_results(
-            structured_results_from_marketplaces,
+            structured_results_from_whitelist,
             self.context.output_dir,
             self.context.serpapi_filename,
         )
 
-        return structured_results_from_marketplaces
+        return structured_results_from_whitelist
