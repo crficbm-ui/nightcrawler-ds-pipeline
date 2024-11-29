@@ -2,8 +2,6 @@ import copy
 import json
 import logging
 import enum
-import re
-from re import Pattern
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, Iterator, List, Union
 from collections.abc import Mapping
