@@ -130,6 +130,12 @@ class DeliveryPolicyExtractionSettings(BaseSettings):
     """
 
 
+class ContentDomainModelSettings(BaseSettings):
+    endpoint: str = os.getenv("CONTENT_DOMAIN_ENDPOINT")
+    username: str = os.getenv("CONTENT_DOMAIN_USERNAME")
+    password: str = os.getenv("CONTENT_DOMAIN_PASSWORD")
+
+
 class Settings(StorageSettings):
     """
     Centralized application settings combining multiple service configurations.
@@ -147,4 +153,7 @@ class Settings(StorageSettings):
     data_for_seo: DataForSeoAPISettings = Field(default_factory=DataForSeoAPISettings)
     delivery_policy: DeliveryPolicyExtractionSettings = Field(
         default_factory=DeliveryPolicyExtractionSettings
+    )
+    content_domain: ContentDomainModelSettings = Field(
+        default_factory=ContentDomainModelSettings
     )
