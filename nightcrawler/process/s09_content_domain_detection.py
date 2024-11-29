@@ -7,7 +7,7 @@ from nightcrawler.base import (
     PipelineResult,
     ExtractZyteData,
     BaseStep,
-    Organization
+    Organization,
 )
 from nightcrawler.helpers.api import endpoint_api
 from nightcrawler.helpers import LOGGER_NAME
@@ -18,6 +18,7 @@ logger = logging.getLogger(LOGGER_NAME)
 
 class ContentDomainDetector(BaseStep):
     """Implementation of the content domain detection (step 8)"""
+
     def __init__(
         self,
         context: Context,
@@ -45,7 +46,10 @@ class ContentDomainDetector(BaseStep):
         return endpoint_api.EndpointAPI(
             context=self.context,
             endpoint_url=self.context.settings.content_domain.endpoint,
-            endpoint_auth_creds=(self.context.settings.content_domain.username, self.context.settings.content_domain.password),
+            endpoint_auth_creds=(
+                self.context.settings.content_domain.username,
+                self.context.settings.content_domain.password,
+            ),
             cache_name="content_domain_detection",
         )
 
@@ -74,25 +78,32 @@ class ContentDomainDetector(BaseStep):
             }
 
         api_response = self.api.call_api(
-            playload={
-                "text": title + ' ' + full_description
-            })
+            playload={"text": title + " " + full_description}
+        )
 
         prediction = api_response["response"]["prediction"]
 
         # TODO: this logic should be moved into corresponding API service
-        probability = prediction["score"] if prediction["label"] == "LABEL_1" else 1 - prediction["score"]
+        probability = (
+            prediction["score"]
+            if prediction["label"] == "LABEL_1"
+            else 1 - prediction["score"]
+        )
 
         domain = DomainLabels.MEDICAL if probability > 0.5 else DomainLabels.OTHER
 
-        logger.debug(f"Predicted domain: `{domain}` with probability: `{probability:.2f}`")
+        logger.debug(
+            f"Predicted domain: `{domain}` with probability: `{probability:.2f}`"
+        )
 
         return {
             "content_domain_label": domain.value,
             "content_domain_probability": probability,
         }
 
-    def _process_prev_results(self, previous_step_result: PipelineResult) -> List[Dict[str, Any]]:
+    def _process_prev_results(
+        self, previous_step_result: PipelineResult
+    ) -> List[Dict[str, Any]]:
         """
         Process data using Method 1.
 
@@ -114,12 +125,13 @@ class ContentDomainDetector(BaseStep):
                 **item.to_dict(),
                 **result,
             }
-            results.append(processed_data) # TODO: Wrap into ContentDomainData
+            results.append(processed_data)  # TODO: Wrap into ContentDomainData
 
         return results
 
     def apply_step(
-        self, previous_step_results: PipelineResult,
+        self,
+        previous_step_results: PipelineResult,
     ) -> PipelineResult:
         """
         Apply the processing step to the previous results.

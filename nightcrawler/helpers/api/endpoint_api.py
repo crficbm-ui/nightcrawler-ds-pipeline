@@ -12,15 +12,17 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 class EndpointAPI(APICaller):
-    def __init__(self,
-                 context: Context,
-                 endpoint_url: str,
-                 endpoint_auth_creds: tuple = None,
-                 endpoint_timeout: int = 10,
-                 cache_name: str = "endpoint",
-                 max_retries: int = 1,
-                 retry_delay: int = 10,
-                 cache_duration: int = 24 * 60 * 60):
+    def __init__(
+        self,
+        context: Context,
+        endpoint_url: str,
+        endpoint_auth_creds: tuple = None,
+        endpoint_timeout: int = 10,
+        cache_name: str = "endpoint",
+        max_retries: int = 1,
+        retry_delay: int = 10,
+        cache_duration: int = 24 * 60 * 60,
+    ):
         """
         Initializes the EndpointAPI class.
 
@@ -42,10 +44,12 @@ class EndpointAPI(APICaller):
             cache_name=cache_name,
             max_retries=max_retries,
             retry_delay=retry_delay,
-            cache_duration=cache_duration
+            cache_duration=cache_duration,
         )
         self.endpoint_url = endpoint_url
-        self.endpoint_auth = HTTPBasicAuth(*endpoint_auth_creds) if endpoint_auth_creds else None
+        self.endpoint_auth = (
+            HTTPBasicAuth(*endpoint_auth_creds) if endpoint_auth_creds else None
+        )
         self.endpoint_timeout = endpoint_timeout
 
     def call_api(self, playload: dict, force_refresh: bool = False) -> dict:
@@ -66,10 +70,12 @@ class EndpointAPI(APICaller):
             ValueError:
                 If the status code is not 200.
         """
-        result_hash = self._generate_hash((
-            self.endpoint_url,
-            playload,
-        ))
+        result_hash = self._generate_hash(
+            (
+                self.endpoint_url,
+                playload,
+            )
+        )
 
         if not force_refresh and (cached := self._read_cache(result_hash)) is not None:
             logger.warning("Using cached response for proxy (%s)", result_hash)
@@ -81,11 +87,13 @@ class EndpointAPI(APICaller):
             url=self.endpoint_url,
             json=playload,
             auth=self.endpoint_auth,
-            timeout=self.endpoint_timeout
+            timeout=self.endpoint_timeout,
         )
 
         if response.status_code != 200:
-            raise ValueError(f"Request failed with status code {response.status_code} and response: {response.text}")
+            raise ValueError(
+                f"Request failed with status code {response.status_code} and response: {response.text}"
+            )
 
         result = {
             "response": response.json(),

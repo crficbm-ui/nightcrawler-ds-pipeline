@@ -181,7 +181,9 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
     )
 
     # Step 9: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)
-    content_domain_results = ContentDomainDetector(context, organization=request.organization).apply(
+    content_domain_results = ContentDomainDetector(
+        context, organization=request.organization
+    ).apply(
         previous_step_results=blocked_content_results,
     )
 
