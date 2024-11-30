@@ -15,7 +15,7 @@ class DeliveryPolicyDetector(BaseStep):
     def dummy_results(
         self, previous_steps_results: PipelineResult
     ) -> List[DeliveryPolicyData]:
-        return previous_steps_results.results
+        return previous_steps_results.relevant_results
 
     def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:
         # TODO implement logic
@@ -24,12 +24,9 @@ class DeliveryPolicyDetector(BaseStep):
 
         # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
         pipeline_results = self.add_pipeline_steps_to_results(
-            currentStepResults=results, pipelineResults=previous_step_results
+            currentStepResults=results,
+            pipelineResults=previous_step_results,
+            currentStepIrrelevantResults=[],  # TODO, add irrelevant results
         )
 
-        self.store_results(
-            pipeline_results,
-            self.context.output_dir,
-            self.context.processing_filename_delivery_policy,
-        )
         return pipeline_results

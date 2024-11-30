@@ -48,8 +48,8 @@ def test_apply_content_domain_detection(content_domain_detector):
     """Test the apply_content_domain_detection method."""
 
     input_pipeline_result = PipelineResult(
-        meta=MetaData(keyword="test_keyword", numberOfResults=1),
-        results=[
+        meta=MetaData(keyword="test_keyword", numberOfResultsManuallySet=1),
+        relevant_results=[
             ExtractZyteData(
                 url="http://example.com/product1",
                 price="100USD",
@@ -67,12 +67,10 @@ def test_apply_content_domain_detection(content_domain_detector):
     # Apply the content domain detection
     step_output = content_domain_detector.apply_step(input_pipeline_result)
 
-    result = step_output.results[0]
+    result = step_output.relevant_results[0]
 
     print(step_output)
 
-    # Check that results are added and stored correctly
-    content_domain_detector.store_results.assert_called_once()
     print(result)
     # Ensure that the returned result is a PipelineResult
     assert result["content_domain_label"] == DomainLabels.MEDICAL.value

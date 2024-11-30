@@ -27,8 +27,8 @@ def test_apply_method(
 ):
     # Parameters: Input to the apply method
     input_pipeline_result = PipelineResult(
-        meta=MetaData(keyword="test_keyword", numberOfResults=1),
-        results=[{"url": "http://example.com/product1"}],
+        meta=MetaData(keyword="test_keyword", numberOfResultsManuallySet=1),
+        relevant_results=[{"url": "http://example.com/product1"}],
     )
 
     # Expected results from the internal methods
@@ -54,12 +54,14 @@ def test_apply_method(
     mock_structure_results.return_value = expected_structured_results
 
     # Expected final result from the apply method
-    # Copy meta and update numberOfResultsAfterStage
+    # Copy meta and update numberOfResultsManuallySetAfterStage
     expected_meta = deepcopy(input_pipeline_result.meta)
-    expected_meta.numberOfResultsAfterStage = len(expected_structured_results)
+    expected_meta.resultDate = ANY
+    expected_meta.uuid = ANY
+    expected_meta.resultStatistics = ANY
 
     expected_result = PipelineResult(
-        meta=expected_meta, results=expected_structured_results
+        meta=expected_meta, relevant_results=expected_structured_results
     )
 
     # Call the method under test
@@ -72,11 +74,6 @@ def test_apply_method(
     )
     mock_structure_results.assert_called_once_with(
         expected_retrieve_response, input_pipeline_result
-    )
-    mock_store_results.assert_called_once_with(
-        expected_result,
-        zyte_extractor.context.output_dir,
-        zyte_extractor.context.zyte_filename,
     )
 
     # Assert that the actual result matches the expected result

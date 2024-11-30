@@ -112,10 +112,4 @@ class KeywordEnricher(BaseStep):
             currentStepResultsIsPipelineResultsObject=False,
         )
 
-        self.store_results(
-            enriched_results_formated,
-            self.context.output_dir,
-            self.context.serpapi_filename_keyword_enrichement,
-        )
-
         return enriched_results_formated

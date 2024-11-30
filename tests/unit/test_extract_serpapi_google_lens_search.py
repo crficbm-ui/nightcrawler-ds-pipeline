@@ -124,4 +124,3 @@ def test_apply(mock_store_results, mock_run_google_lens_search):
 
     # Assert the type of result and check that the number of results match
     assert isinstance(result, PipelineResult)
-    assert result.meta.numberOfResultsAfterStage == number_of_results

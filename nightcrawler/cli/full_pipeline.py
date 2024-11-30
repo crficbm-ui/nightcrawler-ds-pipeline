@@ -93,9 +93,6 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
 
     keyword_type = request.keyword_type.lower()
     if keyword_type in ["text", "url"]:
-        # Step 0: create the results directory with searchitem = keyword
-        context.update_output_dir(request.keyword_value)
-
         if keyword_type == "text":
             # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
             serpapi_results = SerpapiExtractor(context, request.organization).apply(
@@ -106,10 +103,9 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             serpapi_results = PipelineResult(
                 meta=MetaData(
                     keyword=request.keyword_value,
-                    numberOfResults=1,
-                    numberOfResultsAfterStage=1,
+                    numberOfResultsManuallySet=1,
                 ),
-                results=[
+                relevant_results=[
                     ExtractSerpapiData(offerRoot="manual", url=request.keyword_value)
                 ],
             )
@@ -131,9 +127,6 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             BaseStep._step_counter += 1  # doing this, so that the the output files still match the step count specified in the README.md. However, this will lead to gaps in the numbering of the output files (3 will be missing).
 
     elif keyword_type == "image":
-        # Step 0: create the results directory with searchitem = url, so just name it 'google_lens_search'.
-        context.update_output_dir("google_lens_search")
-
         # Make image publicly accessible if necessary
         image_path = f"{request.case_id}/{request.keyword_value}"
         public_url = (
@@ -248,4 +241,13 @@ def apply(args: argparse.Namespace) -> None:
         page_type_detection_method=args.page_type_detection_method,
         enrich_keyword=args.enrich_keyword,
     )
+
+    # create the output directory before the pipeline starts so that if a backoff occurs, the output directory is not recreated
+    if keyword_type in ["text", "url"]:
+        # create the results directory with searchitem = keyword
+        context.update_output_dir(request.keyword_value)
+    elif keyword_type == "image":
+        # create the results directory 'google_lens_search'
+        context.update_output_dir("google_lens_search")
+
     handle_request(context, request)

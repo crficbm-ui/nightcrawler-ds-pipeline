@@ -6,7 +6,12 @@ from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.helpers.utils import evaluate_not_na
 from nightcrawler.context import Context
 
-from nightcrawler.base import ProcessData, PipelineResult, ExtractZyteData, BaseStep
+from nightcrawler.base import (
+    ProcessData,
+    PipelineResult,
+    ExtractZyteData,
+    BaseStep,
+)
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -32,7 +37,6 @@ class DataProcessor(BaseStep):
         Args:
             context (Context): The context object containing paths for input and output processing.
             country (str): The country code to filter results by.
-            input_dir_name (str): The dynamically constructed name of the directory containing the raw JSON files with the URLs to be processed.
 
         Returns:
             PipelineResult: Filtered results based on the chosen country.
@@ -42,7 +46,7 @@ class DataProcessor(BaseStep):
         # TODO: ask Nico why we are reading in the previous step file and if it is okay, that I removed it.
 
         # Process the list of URLs
-        zyte_results = pipeline_result.results
+        zyte_results = pipeline_result.relevant_results
         raw_results = self._add_individual_features_swiss_url(zyte_results)
 
         # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
@@ -56,10 +60,16 @@ class DataProcessor(BaseStep):
 
         # Filter results based on country
         if country == "CH":
-            filtered_results = [item for item in raw_results if item["result_sold_CH"]]
+            relevant_results = [item for item in raw_results if item["result_sold_CH"]]
+            irrelevant_results = [
+                item for item in raw_results if not item["result_sold_CH"]
+            ]
+
             # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
             country_results_object = self.add_pipeline_steps_to_results(
-                currentStepResults=filtered_results, pipelineResults=pipeline_result
+                currentStepResults=relevant_results,
+                pipelineResults=pipeline_result,
+                currentStepIrrelevantResults=irrelevant_results,
             )
 
             return raw_results_object, country_results_object
@@ -193,21 +203,11 @@ class DataProcessor(BaseStep):
         all_results, country_filtered_results = self.filter_per_country_results(
             self.context, country, previous_step_results
         )
-        self.store_results(
-            all_results,
-            self.context.output_dir,
-            self.context.processing_filename_raw,
-        )
 
         if isinstance(country_filtered_results, PipelineResult):
-            if len(country_filtered_results.results) == 0:
+            if len(country_filtered_results.relevant_results) == 0:
                 logger.warning(
                     "After filtering per country variable, no results move further in the pipeline."
                 )
-            self.store_results(
-                country_filtered_results,
-                self.context.output_dir,
-                self.context.processing_filename_filtered.replace("country", country),
-            )
             return country_filtered_results
         return all_results

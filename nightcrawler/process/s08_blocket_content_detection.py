@@ -1,19 +1,19 @@
 import logging
 from typing import List
 
-from nightcrawler.base import ProcessSuspiciousnessData, PipelineResult, BaseStep
+from nightcrawler.base import BlockedContentData, PipelineResult, BaseStep
 
 from nightcrawler.helpers import LOGGER_NAME
 
 logger = logging.getLogger(LOGGER_NAME)
 
 
-class SuspiciousnessClassifier(BaseStep):
-    """Implementation of the classifier for suspiciousness(step 9)"""
+class BlockedContentDetector(BaseStep):
+    """Implementation of the blocked content detection (step 7)"""
 
     def dummy_results(
         self, previous_steps_results: PipelineResult
-    ) -> List[ProcessSuspiciousnessData]:
+    ) -> List[BlockedContentData]:
         return previous_steps_results.relevant_results
 
     def apply_step(self, previous_step_results: PipelineResult) -> PipelineResult:

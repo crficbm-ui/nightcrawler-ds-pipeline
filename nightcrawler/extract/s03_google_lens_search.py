@@ -173,20 +173,13 @@ class GoogleLensApi(BaseStep):
         results = results[:number_of_results]
 
         metadata = MetaData(
-            keyword="google lens search, no keyword provided.",
-            numberOfResults=number_of_results,
-            numberOfResultsAfterStage=len(results),
+            keyword="Google lense search, no keyword provided.",
+            numberOfResultsManuallySet=number_of_results,
         )
 
         # Combining all structured results
         image_search_results = PipelineResult(
-            meta=metadata, results=results, usage={"serpapi": counter.value}
-        )
-
-        self.store_results(
-            image_search_results,
-            self.context.output_dir,
-            self.context.serpapi_filename_google_lens_search,
+            meta=metadata, relevant_results=results, usage={"serpapi": counter.value}
         )
 
         return image_search_results

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch, ANY
 from nightcrawler.helpers.api.serp_api import SerpAPI
 from nightcrawler.helpers.api.proxy_api import ProxyAPI
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
-from nightcrawler.base import ExtractSerpapiData, PipelineResult, Organization
+from nightcrawler.base import ExtractSerpapiData, Organization
 
 
 @pytest.fixture
@@ -100,41 +100,12 @@ def test_structure_results_is_formatted_properly(
     ]
 
 
-@patch.object(SerpapiExtractor, "store_results")
-def test_store_results_was_called(
-    mock_store_results: MagicMock, serpapi_extractor: SerpapiExtractor
-) -> None:
-    """
-    Test that `store_results` calls `write_json` with the correct arguments.
-
-    :param serpapi_extractor: Fixture that provides an instance of SerpapiExtractor.
-    :param mock_write_json: Mock object for the `write_json` method.
-    """
-    # Create mock structured results
-    mock_results = PipelineResult(
-        meta={"some_meta_key": "some_meta_value"},
-        results=[ExtractSerpapiData(url="http://example.com", offerRoot="DEFAULT")],
-    )
-
-    # Call the store_results method
-    serpapi_extractor.store_results(mock_results, "/tmp", "dummy_filename.json")
-
-    # Ensure the mock was called with the correct arguments
-    mock_store_results.assert_called_once_with(
-        mock_results,
-        "/tmp",
-        "dummy_filename.json",
-    )
-
-
 @patch.object(SerpapiExtractor, "initiate_proxy_client")
-@patch.object(SerpapiExtractor, "store_results")
 @patch.object(SerpapiExtractor, "results_from_whitelist")
 @patch.object(SerpapiExtractor, "initiate_client")
 def test_apply_all_functions_called_once(
     mock_initiate_client: MagicMock,
     mock_results_from_whitelist: MagicMock,
-    mock_store_results: MagicMock,
     mock_initiate_proxy_client: MagicMock,
     serpapi_extractor: SerpapiExtractor,
 ) -> None:
@@ -143,7 +114,6 @@ def test_apply_all_functions_called_once(
 
     :param mock_initiate_client: Mock for the `initiate_client` method.
     :param mock_results_from_whitelist: Mock for the `results_from_whitelist` method.
-    :param mock_store_results: Mock for the `store_results` method.
     :param serpapi_extractor: Fixture that provides an instance of SerpapiExtractor.
     """
     mock_initiate_client.return_value = MagicMock(spec=SerpAPI)
@@ -162,5 +132,4 @@ def test_apply_all_functions_called_once(
         number_of_results=1,
         callback=ANY,
     )
-    mock_store_results.assert_called_once()
-    assert results.results == ["http://example.com"]
+    assert results.relevant_results == ["http://example.com"]

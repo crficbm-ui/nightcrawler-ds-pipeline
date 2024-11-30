@@ -25,7 +25,7 @@ def test_keyword_enricher_apply():
 
     Expected results:
     - The result should be a PipelineResult instance.
-    - result.meta should have keyword='test keyword', numberOfResults=10, numberOfResultsAfterStage matching the number of results.
+    - result.meta should have keyword='test keyword', numberOfResultsManuallySet=10, numberOfResultsManuallySetAfterStage matching the number of results.
     - result.results should be a list of ExtractSerpapiData instances with correct attributes.
     """
 
@@ -142,7 +142,7 @@ def test_keyword_enricher_apply():
                         language=language,
                         previous_step_results=PipelineResult(
                             meta=MetaData(keyword=keyword),
-                            results=[
+                            relevant_results=[
                                 CrawlResultData(offerRoot="", url="https://example.com")
                             ],
                         ),
@@ -158,12 +158,13 @@ def test_keyword_enricher_apply():
                     assert (
                         result.meta.keyword == keyword
                     ), f"Expected keyword '{keyword}', got '{result.meta.keyword}'."
-                    assert result.meta.numberOfResultsAfterStage == len(
-                        result.results
-                    ), "numberOfResultsAfterStage does not match the number of results."
+                    assert (
+                        result.meta.resultStatistics["total_final_results"]
+                        == len(result.relevant_results)
+                    ), "numberOfResultsManuallySet does not match the number of results."
 
                     # Check results
-                    extract_data = result.results[-1]
+                    extract_data = result.relevant_results[-1]
                     assert isinstance(
                         extract_data, ExtractSerpapiData
                     ), "Result item is not an ExtractSerpapiData instance."

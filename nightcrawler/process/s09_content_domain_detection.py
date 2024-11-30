@@ -117,18 +117,22 @@ class ContentDomainDetector(BaseStep):
                 A list of processed results.
         """
         results: List[Dict[str, Any]] = []
+        irrelevant_results: List[Dict[str, Any]] = []
 
-        prev_results: List[ExtractZyteData] = previous_step_result.results
+        prev_results: List[ExtractZyteData] = previous_step_result.relevant_results
         for item in prev_results:
             result = self._process_one(item)
 
-            processed_data = {
-                **item.to_dict(),
-                **result,
-            }
-            results.append(ContentDomainData(**processed_data))
+            processed_data = ContentDomainData(**item.to_dict(), **result)
 
-        return results
+            if result["content_domain_label"] == DomainLabels.MEDICAL.value:
+                results.append(processed_data)  # TODO: Wrap into ContentDomainData
+            else:
+                irrelevant_results.append(
+                    processed_data
+                )  # TODO: Wrap into ContentDomainData
+
+        return results, irrelevant_results
 
     def apply_step(
         self,
@@ -145,16 +149,13 @@ class ContentDomainDetector(BaseStep):
             PipelineResult:
                 Updated PipelineResult after processing.
         """
-        results = self._process_prev_results(previous_step_results)
+        results, irrelevant_results = self._process_prev_results(previous_step_results)
 
         # Update the PipelineResults Object
         pipeline_results = self.add_pipeline_steps_to_results(
-            currentStepResults=results, pipelineResults=previous_step_results
+            currentStepResults=results,
+            pipelineResults=previous_step_results,
+            currentStepIrrelevantResults=irrelevant_results,
         )
 
-        self.store_results(
-            pipeline_results,
-            self.context.output_dir,
-            self.context.processing_filename_content_domain_detection,
-        )
         return pipeline_results

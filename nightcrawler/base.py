@@ -33,8 +33,8 @@ class ObjectUtilitiesContainer(ABC, Mapping):
         """
 
         def _filter(value):
-            # Exclude None, -1, and empty strings
-            return value is not None and value != -1 and value != ""
+            # Exclude None, -1, empty string, and empty lists
+            return value not in (None, -1, "", [])
 
         def _recursive_asdict(obj):
             if isinstance(obj, list):
@@ -140,12 +140,14 @@ class MetaData(ObjectUtilitiesContainer):
     """Metadata class for storing information about the full pipeline run valid for all crawlresults"""
 
     keyword: str = field(default_factory=str)
-    numberOfResults: int = field(default_factory=int)
-    numberOfResultsAfterStage: int = field(default_factory=int)
+    numberOfResultsManuallySet: int = field(
+        default_factory=int
+    )  # asked number by the user
     resultDate: str = field(
         default_factory=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
     )
     uuid: str = field(init=False)
+    resultStatistics: Optional[dict] = None
 
     def __post_init__(self):
         self.uuid = _get_uuid(self.keyword, self.resultDate)
@@ -173,6 +175,12 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
     )
     imageUrl: Optional[str] = (
         None  # this is only used for the google lens search and indicates the direct url to the image
+    )
+    error_messages: Optional[List[str]] = field(
+        default_factory=list
+    )  # while stepping through the pipeline, there can be multiple errors, all of them are stored in a list
+    irrelevant_at_stage: Optional[str] = (
+        None  # specifies at what pipeline step this url was lost either due to the pipeline filtering it away or because an error occured.
     )
 
 
@@ -278,7 +286,8 @@ class PipelineResult(ObjectUtilitiesContainer):
     """Class for storing a comprehensive report, including Zyte data."""
 
     meta: MetaData
-    results: List[CrawlResultData]
+    relevant_results: List[CrawlResultData] = field(default_factory=list)
+    irrelevant_results: List[CrawlResultData] = field(default_factory=list)
     usage: dict[str, int] = field(default_factory=dict)
 
 
@@ -303,6 +312,9 @@ class BaseStep(ABC):
         )  # Automatically set name for children
         self.context = context
         BaseStep._step_counter += 1
+        self.current_step_name = ProcessingSteps.__dict__.get(
+            f"STEP_{BaseStep._step_counter}", "Unknown step"
+        )
 
     def store_results(
         self, structured_results: PipelineResult, output_dir: str, filename: str
@@ -318,7 +330,7 @@ class BaseStep(ABC):
             return
 
         structured_results_dict = structured_results.to_dict()
-        path = f"{BaseStep._step_counter}_{filename}"
+        path = f"{filename}"
         if not self.context.settings.use_file_storage:
             blob_path = (output_dir + path).replace("/", "_")
             self.context.blob_client.put_processing(blob_path, structured_results_dict)
@@ -334,19 +346,29 @@ class BaseStep(ABC):
         self,
         currentStepResults: List[Any],
         pipelineResults: PipelineResult,
+        currentStepIrrelevantResults: List[Any] = [],
         currentStepResultsIsPipelineResultsObject=True,
         usage: dict[str, int] | None = None,
     ) -> PipelineResult:
+        # Mark irrelevant results with the current processing step
+        current_step_name = ProcessingSteps.__dict__.get(
+            f"STEP_{BaseStep._step_counter + 1}", "Unknown step"
+        )
+        for elem in currentStepIrrelevantResults:
+            if elem.irrelevant_at_stage is None:
+                elem.irrelevant_at_stage = current_step_name
+
+        irrelevant_results = (
+            pipelineResults.irrelevant_results + currentStepIrrelevantResults
+        )
+
         # Depending on the class implementation the currentStepResults is either a List of DataObjects (default) or already a PipelineResult Object.
         if currentStepResultsIsPipelineResultsObject:
             # If it is a PipelineResult object, it does contain the results of all previous steps and the current results.
             results = currentStepResults
-            # Update the number of results after stage
-            pipelineResults.meta.numberOfResultsAfterStage = len(currentStepResults)
         else:
             # If not, we have to append the list of DataObjects generated during the current step to the results of the last step.
-            results = pipelineResults.results + currentStepResults
-            pipelineResults.meta.numberOfResultsAfterStage = len(results)
+            results = pipelineResults.relevant_results + currentStepResults
 
         # Merge usages
         if usage is None:
@@ -355,8 +377,39 @@ class BaseStep(ABC):
         for k, v in usage.items():
             new_usage[k] = new_usage.get(k, 0) + v
 
+        pipelineResults.meta.resultStatistics = {
+            "total_final_results": len(results),
+            "total_final_results_with_error": sum(
+                len(result.error_messages) if result.error_messages else 0
+                for result in results
+            ),
+            "offer_root_counts": {
+                offer_root: sum(
+                    1 for result in results if result["offerRoot"] == offer_root
+                )
+                for offer_root in set(result["offerRoot"] for result in results)
+            },
+            "total_irrelevant_results": len(irrelevant_results),
+            "total_irrelevant_results_with_error": sum(
+                len(result.error_messages) for result in irrelevant_results
+            ),
+            "irrelevant_counts_per_stage": {
+                stage: sum(
+                    1
+                    for result in irrelevant_results
+                    if result.irrelevant_at_stage == stage
+                )
+                for stage in set(
+                    result.irrelevant_at_stage for result in irrelevant_results
+                )
+            },
+        }
+
         updatedResults = PipelineResult(
-            meta=pipelineResults.meta, results=results, usage=new_usage
+            meta=pipelineResults.meta,
+            relevant_results=results,
+            usage=new_usage,
+            irrelevant_results=irrelevant_results,
         )
         return updatedResults
 
@@ -445,6 +498,23 @@ class PageTypes:
     WEB_ARTICLE = "web_article"
     BLOGPOST = "blogpost"
     OTHER = "other"
+
+
+# ---------------------------------------------------
+# Processing steps used in the pipeline
+# ---------------------------------------------------
+class ProcessingSteps:
+    STEP_1 = "Step 1: Extract URLs using Serpapi"
+    STEP_2 = "Step 2: Enrich keywords"
+    STEP_3 = "Step 3: Reverse Image Search"
+    STEP_4 = "Step 4: Structure data with Zyte"
+    STEP_5 = "Step 5: Processing"
+    STEP_6 = "Step 6: Delivery policy filtering"
+    STEP_7 = "Step 7: Page type detection"
+    STEP_8 = "Step 8: Webpage Blocker Detection"
+    STEP_9 = "Step 9: Product Type Relevance"
+    STEP_10 = "Step 10: Relevance Classifier"
+    STEP_11 = "Step 11: Ranking and Filtering"
 
 
 # ---------------------------------------------------

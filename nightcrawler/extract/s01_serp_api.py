@@ -167,6 +167,7 @@ class SerpapiExtractor(Extract):
         results = []
         for url in filtered_urls:
             logger.debug(f"Resolving URL: {url}")
+            error_messages = list()
             try:
                 proxy_response = proxy.call_proxy(
                     url=url,
@@ -175,6 +176,7 @@ class SerpapiExtractor(Extract):
                 resolved_url = proxy_response["resolved_url"]
             except Exception as e:
                 logger.error(f"Failed to resolve URL: `{url}` with error: {e}")
+                error_messages.append(f"Error during {self.current_step_name}: {e}")
                 resolved_url = url
 
             cleaned_url = remove_tracking_parameters(resolved_url)
@@ -185,6 +187,7 @@ class SerpapiExtractor(Extract):
                     original_url=url,
                     resolved_url=resolved_url,
                     url=cleaned_url,
+                    error_messages=error_messages,
                 )
             )
 
@@ -277,21 +280,14 @@ class SerpapiExtractor(Extract):
         # Generate the metadata
         metadata = MetaData(
             keyword=keyword,
-            numberOfResults=number_of_results,
-            numberOfResultsAfterStage=len(structured_results_from_whitelist),
+            numberOfResultsManuallySet=number_of_results,
         )
 
         # Combining all structured results
         structured_results_from_whitelist = PipelineResult(
             meta=metadata,
-            results=structured_results_from_whitelist,
+            relevant_results=structured_results_from_whitelist,
             usage={"serpapi": counter.value},
-        )
-
-        self.store_results(
-            structured_results_from_whitelist,
-            self.context.output_dir,
-            self.context.serpapi_filename,
         )
 
         return structured_results_from_whitelist
