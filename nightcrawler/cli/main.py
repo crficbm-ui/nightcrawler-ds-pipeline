@@ -97,7 +97,22 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
     common_parser.add_argument(
         "-n",
         "--number-of-results",
-        help="Set the number of results you want to include from Serpapi.  (3 per google shopping, google site search, google and ebay = 12 URLs total, default: %(default)s)",
+        help="""
+        Set the maximum number of results to include per Serpapi call. The pipeline makes 4 Serpapi calls: 
+        1. Google Shopping 
+        2. Google Site Search 
+        3. Plain Google Search 
+        4. eBay.
+
+        The number you set (`n`) will limit the results for each call, meaning the total maximum results will be `n x 4`. 
+        For example:
+        - If `-n=5`, the pipeline will include up to 20 results in total (5 from each source). 
+        - If `-n=0`, the pipeline will process all available results.
+
+        Note: For the Google (plain Google search) source, only the first 50 results will be included regardless of `n`. 
+
+        Default: %(default)s
+        """,
         default=50,
         type=int,
     )

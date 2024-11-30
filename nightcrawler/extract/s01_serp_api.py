@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import Any, Dict, List, Callable
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
@@ -62,6 +63,7 @@ class SerpapiExtractor(Extract):
             "google_domain": f"google.{organization.country_codes[0].lower()}",
             "tbs": f"ctr:{organization.country_codes[0].upper()}&cr=country{organization.country_codes[0].upper()}",
             "gl": organization.country_codes[0].lower(),
+            "num": 100,  # this is the maximum allowed size for google, google_marketplaces and google_shopping
         }
 
         self._ebay_params = {
@@ -94,7 +96,6 @@ class SerpapiExtractor(Extract):
         client: SerpAPI,
         custom_params: Dict[str, Any] = {},
         offer_root: str = "DEFAULT",
-        number_of_results: int = 50,
         callback: Callable[int, None] | None = None,
     ) -> List[ExtractSerpapiData]:
         """
@@ -110,7 +111,6 @@ class SerpapiExtractor(Extract):
         params = {
             "q": keyword,
             "start": 0,
-            "num": number_of_results,
             "api_key": self.context.settings.serp_api.token,
             **(custom_params),
         }
@@ -124,7 +124,7 @@ class SerpapiExtractor(Extract):
         client: SerpAPI,
         proxy: proxy_api.ProxyAPI,
         offer_root: str = "DEFAULT",
-        number_of_results: int = 50,
+        number_of_results: int = 0,
         check_limit: int = 200,
     ) -> List[ExtractSerpapiData]:
         """
@@ -151,7 +151,8 @@ class SerpapiExtractor(Extract):
         logger.debug(f"For {offer_root} retrieved {len(urls)}.")
 
         # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
-        urls = urls[:number_of_results]
+        if number_of_results != 0:
+            urls = urls[:number_of_results]
         logger.debug(f"After manual truncation the length is {len(urls)}.")
 
         # remove urls from the blacklist
@@ -203,7 +204,10 @@ class SerpapiExtractor(Extract):
     ) -> List[ExtractSerpapiData]:
         # Define parameters and labels for different sources
         sources = [
-            {"params": self._google_params, "label": "GOOGLE"},
+            {
+                "params": {**self._google_params, "num": 50},
+                "label": "GOOGLE",
+            },  # set "num":50 only for the plain google search
             {
                 "params": {**self._google_params, "tbm": "shop"},
                 "label": "GOOGLE_SHOPPING",
@@ -222,13 +226,20 @@ class SerpapiExtractor(Extract):
                 "params": {
                     **self._ebay_params,
                     "_nkw": keyword,
-                    "_ipg": number_of_results,
+                    "_ipg": 200,  # this is the maximum without pagination for EBAY
                 },
                 "label": "EBAY",
             },
         ]
 
-        logger.debug(f"SerpAPI configs: {sources}")
+        # Only if number of results is set, define the "num" parameter
+        if number_of_results > 0:
+            for elem in sources:
+                elem["params"]["num"] = number_of_results
+
+        # Log the pretty-printed JSON
+        pretty_sources = json.dumps(sources, indent=4)
+        logger.debug(f"SerpAPI configs:\n{pretty_sources}")
 
         # Collecting and structuring all results
         all_results = []
@@ -238,7 +249,6 @@ class SerpapiExtractor(Extract):
                 client=client,
                 custom_params=source["params"],
                 offer_root=source["label"],
-                number_of_results=number_of_results,
                 callback=callback,
             )
             structured_results = self.structure_results(

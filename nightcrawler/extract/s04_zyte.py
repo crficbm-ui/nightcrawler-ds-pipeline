@@ -147,28 +147,27 @@ class ZyteExtractor(Extract):
                 uniques.remove(images[0])
                 images = ([images[0]] + list(uniques))[:10]
 
-            # Update serpapi_result to include the concatenated error_message
+            # Update serpapi_result to include the error_messages
             error_message = response.get("error_message")
             if error_message:
                 if not hasattr(serpapi_result, "error_messages"):
                     serpapi_result.error_messages = []
                 serpapi_result.error_messages.append(error_message)
 
-            # Extract Zyte data
-            zyte_result = ExtractZyteData(
-                **serpapi_result,
-                price=price,
-                title=product.get("name", ""),
-                fullDescription=product.get("description", ""),
-                zyteExecutionTime=response.get("seconds_taken", 0),
-                zyteProbability=metadata.get("probability", None),
-                html=html,
-                images=images,
-            )
+            if serpapi_result.url:
+                # Extract Zyte data
+                zyte_result = ExtractZyteData(
+                    **serpapi_result,
+                    price=price,
+                    title=product.get("name", ""),
+                    fullDescription=product.get("description", ""),
+                    zyteExecutionTime=response.get("seconds_taken", 0),
+                    zyteProbability=metadata.get("probability", None),
+                    html=html,
+                    images=list(images),
+                )
 
-            if response.get("error"):
-                zyte_result.irrelevant_at_stage = "03_zyte"
-            results.append(zyte_result)
+                results.append(zyte_result)
 
         return results
 

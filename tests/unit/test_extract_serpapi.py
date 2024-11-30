@@ -49,10 +49,9 @@ def test_retrieve_response_is_retrieved(
         "aspirin",
         serpapi_extractor.initiate_client(),
         offer_root="DEFAULT",
-        number_of_results=3,
     )
     mock_call_serpapi.assert_called_once_with(
-        {"q": "aspirin", "start": 0, "num": 3, "api_key": "dummy_api_key"},
+        {"q": "aspirin", "start": 0, "api_key": "dummy_api_key"},
         log_name="google_regular",
         callback=ANY,
     )
