@@ -3,12 +3,11 @@ from typing import List, Dict, Any
 
 from nightcrawler.context import Context
 from nightcrawler.base import (
-    DomainLabels,
     PipelineResult,
     ExtractZyteData,
     BaseStep,
     Organization,
-    ContentDomainData,
+    CorruptedContentData,
 )
 from nightcrawler.helpers.api import endpoint_api
 from nightcrawler.helpers import LOGGER_NAME
@@ -17,8 +16,10 @@ from nightcrawler.helpers import LOGGER_NAME
 logger = logging.getLogger(LOGGER_NAME)
 
 
-class ContentDomainDetector(BaseStep):
+class CorruptedContentDetector(BaseStep):
     """Implementation of the content domain detection (step 8)"""
+
+    DEFAULT_THRESHOLD = 0.3
 
     def __init__(
         self,
@@ -26,7 +27,7 @@ class ContentDomainDetector(BaseStep):
         organization: Organization,
     ) -> None:
         """
-        Initialize the ContentDomainDetector class.
+        Initialize the CorruptedContentDetector class.
 
         Args:
             context (Context):
@@ -46,12 +47,12 @@ class ContentDomainDetector(BaseStep):
     def _api_initialization(self):
         return endpoint_api.EndpointAPI(
             context=self.context,
-            endpoint_url=self.context.settings.content_domain.endpoint,
+            endpoint_url=self.context.settings.corrupted_content.endpoint,
             endpoint_auth_creds=(
-                self.context.settings.content_domain.username,
-                self.context.settings.content_domain.password,
+                self.context.settings.corrupted_content.username,
+                self.context.settings.corrupted_content.password,
             ),
-            cache_name="content_domain_detection",
+            cache_name="corrupted_content_detection",
         )
 
     def _process_one(self, item: ExtractZyteData) -> Dict[str, Any]:
@@ -68,19 +69,16 @@ class ContentDomainDetector(BaseStep):
                 Check ContentDomainData class for more details.
         """
         logger.debug(f"Calling domain detection API for url: `{item.url}`")
-        title = item.title if item.title else ""
         full_description = item.fullDescription if item.fullDescription else ""
 
-        if not title and not full_description:
+        if not full_description:
             logger.warning(f"Item does not contain any text content. url: `{item.url}`")
             return {
-                "content_domain_label": DomainLabels.UNKNOWN.value,
-                "content_domain_probability": 1.0,
+                "is_corrupted_content": True,
+                "corrupted_content_probability": 1.0,
             }
 
-        api_response = self.api.call_api(
-            playload={"text": title + " " + full_description}
-        )
+        api_response = self.api.call_api(playload={"text": full_description})
 
         prediction = api_response["response"]["prediction"]
 
@@ -91,15 +89,15 @@ class ContentDomainDetector(BaseStep):
             else 1 - prediction["score"]
         )
 
-        domain = DomainLabels.MEDICAL if probability > 0.5 else DomainLabels.OTHER
+        is_corrupted_content = True if probability > self.DEFAULT_THRESHOLD else False
 
         logger.debug(
-            f"Predicted domain: `{domain}` with probability: `{probability:.2f}`"
+            f"Predicted: `{is_corrupted_content=}` with probability: `{probability:.2f}`"
         )
 
         return {
-            "content_domain_label": domain.value,
-            "content_domain_probability": probability,
+            "is_corrupted_content": is_corrupted_content,
+            "corrupted_content_probability": probability,
         }
 
     def _process_prev_results(
@@ -126,7 +124,7 @@ class ContentDomainDetector(BaseStep):
                 **item.to_dict(),
                 **result,
             }
-            results.append(ContentDomainData(**processed_data))
+            results.append(CorruptedContentData(**processed_data))
 
         return results
 
@@ -155,6 +153,6 @@ class ContentDomainDetector(BaseStep):
         self.store_results(
             pipeline_results,
             self.context.output_dir,
-            self.context.processing_filename_content_domain_detection,
+            self.context.processing_filename_corrupted_content_detection,
         )
         return pipeline_results

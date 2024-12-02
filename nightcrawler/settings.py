@@ -136,6 +136,12 @@ class ContentDomainModelSettings(BaseSettings):
     password: str = os.getenv("CONTENT_DOMAIN_PASSWORD")
 
 
+class CorruptedContentModelSettings(BaseSettings):
+    endpoint: str = os.getenv("CORRUPTED_CONTENT_ENDPOINT")
+    username: str = os.getenv("CORRUPTED_CONTENT_USERNAME")
+    password: str = os.getenv("CORRUPTED_CONTENT_PASSWORD")
+
+
 class Settings(StorageSettings):
     """
     Centralized application settings combining multiple service configurations.
@@ -156,4 +162,7 @@ class Settings(StorageSettings):
     )
     content_domain: ContentDomainModelSettings = Field(
         default_factory=ContentDomainModelSettings
+    )
+    corrupted_content: CorruptedContentModelSettings = Field(
+        default_factory=CorruptedContentModelSettings
     )

@@ -9,7 +9,9 @@ from nightcrawler.extract.s04_zyte import ZyteExtractor
 from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
 from nightcrawler.process.s06_delivery_page_detection import DeliveryPolicyDetector
 from nightcrawler.process.s07_page_type_detection import PageTypeDetector
-from nightcrawler.process.s08_blocket_content_detection import BlockedContentDetector
+from nightcrawler.process.s08_corrupted_content_detection import (
+    CorruptedContentDetector,
+)
 from nightcrawler.process.s09_content_domain_detection import ContentDomainDetector
 from nightcrawler.process.s10_suspiciousness_classifier import SuspiciousnessClassifier
 from nightcrawler.process.s11_result_ranker import ResultRanker
@@ -176,15 +178,15 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
     )
 
     # Step 8: blocked / corrupted content detection based the prediction with a BERT model.
-    blocked_content_results = BlockedContentDetector(context).apply(
-        previous_step_results=page_type_filtering_results
-    )
+    corrupted_content_results = CorruptedContentDetector(
+        context, organization=request.organization
+    ).apply(previous_step_results=page_type_filtering_results)
 
     # Step 9: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)
     content_domain_results = ContentDomainDetector(
         context, organization=request.organization
     ).apply(
-        previous_step_results=blocked_content_results,
+        previous_step_results=corrupted_content_results,
     )
 
     # Step 10: Binary classifier per organisation, whether a product is classified as suspicious or not.

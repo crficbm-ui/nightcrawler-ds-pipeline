@@ -229,11 +229,11 @@ class PageTypeData(DeliveryPolicyData):
 
 
 @dataclass
-class BlockedContentData(PageTypeData):
+class CorruptedContentData(PageTypeData):
     """Data class for step 8: blocked / corrupted content detection based the prediction with a BERT model."""
 
-    # TODO add fields relevant to only this step
-    pass
+    is_corrupted_content: Optional[bool] = None
+    corrupted_content_probability: Optional[float] = None
 
 
 class DomainLabels(enum.Enum):
@@ -243,7 +243,7 @@ class DomainLabels(enum.Enum):
 
 
 @dataclass
-class ContentDomainData(BlockedContentData):
+class ContentDomainData(CorruptedContentData):
     """Data class for step 9: classification of the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD)"""
 
     content_domain_label: Optional[DomainLabels] = None
