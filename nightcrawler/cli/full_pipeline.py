@@ -193,6 +193,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         previous_step_results=suspiscousness_results
     )
 
+    # The user should see the relevant results (seen by full pipeline) and the bypassed results.
     if not context.settings.use_file_storage:
         data = [
             request.new_result(
@@ -208,7 +209,7 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
                 relevant=True,
                 images=x.images,
             )
-            for x in final_results.results
+            for x in final_results.relevant_results + final_results.bypassed_results
         ]
         context.store_results(data, request.case_id, request.keyword_id)
         context.report_usage(request.case_id, final_results.usage)

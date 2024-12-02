@@ -182,6 +182,9 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
     irrelevant_at_stage: Optional[str] = (
         None  # specifies at what pipeline step this url was lost either due to the pipeline filtering it away or because an error occured.
     )
+    bypassed_at_stage: Optional[str] = (
+        None  # specifies at what pipeline step this url was no longer processed but bypassed the remaining pipeline steps.
+    )
 
 
 @dataclass
@@ -286,8 +289,15 @@ class PipelineResult(ObjectUtilitiesContainer):
     """Class for storing a comprehensive report, including Zyte data."""
 
     meta: MetaData
-    relevant_results: List[CrawlResultData] = field(default_factory=list)
-    irrelevant_results: List[CrawlResultData] = field(default_factory=list)
+    relevant_results: List[CrawlResultData] = field(
+        default_factory=list
+    )  # results the user will see in the frontend
+    irrelevant_results: List[CrawlResultData] = field(
+        default_factory=list
+    )  # results filtered out by the pipeline
+    bypassed_results: List[CrawlResultData] = field(
+        default_factory=list
+    )  # results that are bypassing (parts of) the pipeline
     usage: dict[str, int] = field(default_factory=dict)
 
 
@@ -347,6 +357,7 @@ class BaseStep(ABC):
         currentStepResults: List[Any],
         pipelineResults: PipelineResult,
         currentStepIrrelevantResults: List[Any] = [],
+        currentStepBypassedtResults: List[Any] = [],
         currentStepResultsIsPipelineResultsObject=True,
         usage: dict[str, int] | None = None,
     ) -> PipelineResult:
@@ -360,6 +371,14 @@ class BaseStep(ABC):
 
         irrelevant_results = (
             pipelineResults.irrelevant_results + currentStepIrrelevantResults
+        )
+
+        for elem in currentStepBypassedtResults:
+            if elem.bypassed_at_stage is None:
+                elem.bypassed_at_stage = current_step_name
+
+        bypassed_results = (
+            pipelineResults.bypassed_results + currentStepBypassedtResults
         )
 
         # Depending on the class implementation the currentStepResults is either a List of DataObjects (default) or already a PipelineResult Object.
@@ -403,6 +422,20 @@ class BaseStep(ABC):
                     result.irrelevant_at_stage for result in irrelevant_results
                 )
             },
+            "total_bypassed_results": len(bypassed_results),
+            "total_bypassed_results_with_error": sum(
+                len(result.error_messages) for result in bypassed_results
+            ),
+            "bypassed_counts_per_stage": {
+                stage: sum(
+                    1
+                    for result in bypassed_results
+                    if result.bypassed_at_stage == stage
+                )
+                for stage in set(
+                    result.bypassed_at_stage for result in bypassed_results
+                )
+            },
         }
 
         updatedResults = PipelineResult(
@@ -410,6 +443,7 @@ class BaseStep(ABC):
             relevant_results=results,
             usage=new_usage,
             irrelevant_results=irrelevant_results,
+            bypassed_results=bypassed_results,
         )
         return updatedResults
 
