@@ -49,7 +49,8 @@ poetry install --directory ./pyproject.toml
 ## CLI overview
 As of today, the CLI looks as follows:
 
-![image](https://github.com/user-attachments/assets/3b83f20d-7f6e-4306-aa66-22ca0f2de551)
+![nc_pipeline](https://github.com/user-attachments/assets/3ca8b11b-a688-4449-abd3-29d6781917c4)
+
 
 
 ## Basic CLI usage
