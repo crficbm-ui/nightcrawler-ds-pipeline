@@ -14,6 +14,15 @@ app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
 os.environ["NIGHTCRAWLER_USE_FILE_STORAGE"] = "false"
 os.environ["NIGHTCRAWLER_POSTGRES_AUTO_MIGRATE"] = "false"
 
+def try_migrate():
+    try:
+        nc_context = Context()
+        nc_context.db_client.migrate()
+    except Exception as e:
+        logging.critical(e, exc_info)
+
+try_migrate()
+
 # Triggers
 
 ## Scheduled: every day at 10 p.m.
