@@ -22,3 +22,4 @@ COPY docker/requirements.txt /
 RUN pip install -r /requirements.txt
 
 COPY docker/ /home/site/wwwroot
+CMD python -m alembic -c /usr/local/lib/python3.10/site-packages/libnightcrawler/alembic.ini upgrade head || true && /opt/startup/start_nonappservice.sh
