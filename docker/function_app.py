@@ -19,7 +19,7 @@ def try_migrate():
         nc_context = Context()
         nc_context.db_client.migrate()
     except Exception as e:
-        logging.critical(e, exc_info)
+        logging.critical(e, exc_info=True)
 
 try_migrate()
 
