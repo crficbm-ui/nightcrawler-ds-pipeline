@@ -12,6 +12,7 @@ from typing import Generator
 
 app = df.DFApp(http_auth_level=func.AuthLevel.FUNCTION)
 os.environ["NIGHTCRAWLER_USE_FILE_STORAGE"] = "false"
+os.environ["NIGHTCRAWLER_POSTGRES_AUTO_MIGRATE"] = "false"
 
 # Triggers
 
