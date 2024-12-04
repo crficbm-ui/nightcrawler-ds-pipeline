@@ -953,8 +953,8 @@ types-setuptools = "^75.1.0.20240917"
 [package.source]
 type = "git"
 url = "ssh://git@github.com/smc40/nightcrawler-library.git"
-reference = "0.9.0"
-resolved_reference = "62ab410949520fc2fd53af6b46ca942261360efc"
+reference = "0.9.1"
+resolved_reference = "f4a2bf172a1232316190dc0c997747ed867f617e"
 
 [[package]]
 name = "lxml"
@@ -2381,4 +2381,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "dbc9720e2c773873f291b72429ab07339ca650af6fce431b4302ae41c58cbc04"
+content-hash = "f219ddc1e5b986afaab2c835b1e2d045cba56b29b9adaa72ac3139166da8e4d0"
