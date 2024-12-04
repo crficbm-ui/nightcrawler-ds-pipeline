@@ -61,8 +61,7 @@ def test_apply_content_domain_detection(content_domain_detector):
         ],
     )
 
-    # Mock the `add_pipeline_steps_to_results` and `store_results` methods
-    content_domain_detector.store_results = MagicMock()
+    # Mock the `add_pipeline_steps_to_results` method
 
     # Apply the content domain detection
     step_output = content_domain_detector.apply_step(input_pipeline_result)

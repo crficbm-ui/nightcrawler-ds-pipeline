@@ -20,9 +20,11 @@ from nightcrawler.base import BaseStep, PipelineResult, MetaData, ExtractSerpapi
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.context import Context
 from nightcrawler.helpers.decorators import timeit
+from nightcrawler.helpers.utils import create_result
 
 import libnightcrawler.objects as lo
-import libnightcrawler.utils as lu
+import libnightcrawler.db.schema as lds
+
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -195,22 +197,18 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
 
     # The user should see the relevant results (seen by full pipeline) and the bypassed results.
     if not context.settings.use_file_storage:
+        # Add relevant results and those that are bypassed
+        # TODO: should the bypassed results have their own status so that they can be marked as such in the frontend?
         data = [
-            request.new_result(
-                url=x.url,
-                text=x.fullDescription or "",
-                root=x.offerRoot,
-                title=x.title or "",
-                uid=lu.checksum(f"{x.url.split('?')[0]}_{x.title or ''}"),
-                platform="",
-                source="",
-                language="",
-                score=0,
-                relevant=True,
-                images=x.images,
-            )
+            create_result(x)
             for x in final_results.relevant_results + final_results.bypassed_results
         ]
+
+        # Add erroneous results with status ERROR
+        data.extend(
+            create_result(x, offer_status=lds.Offer.OfferStatus.ERROR)
+            for x in final_results.erroreous_results
+        )
         context.store_results(data, request.case_id, request.keyword_id)
         context.report_usage(request.case_id, final_results.usage)
 

@@ -177,7 +177,9 @@ class SerpapiExtractor(Extract):
                 resolved_url = proxy_response["resolved_url"]
             except Exception as e:
                 logger.error(f"Failed to resolve URL: `{url}` with error: {e}")
-                error_messages.append(f"Error during {self.current_step_name}: {e}")
+                error_messages.append(
+                    f"Error during {self.current_step_name}: {e} Falling back to unresolved URL."
+                )
                 resolved_url = url
 
             cleaned_url = remove_tracking_parameters(resolved_url)

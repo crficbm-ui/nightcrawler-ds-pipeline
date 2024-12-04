@@ -185,6 +185,9 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
     bypassed_at_stage: Optional[str] = (
         None  # specifies at what pipeline step this url was no longer processed but bypassed the remaining pipeline steps.
     )
+    error_at_stage: Optional[str] = (
+        None  # specifies at what pipeline step this url was lost due to an critical error (only during zyte processing)
+    )
 
 
 @dataclass
@@ -298,6 +301,9 @@ class PipelineResult(ObjectUtilitiesContainer):
     bypassed_results: List[CrawlResultData] = field(
         default_factory=list
     )  # results that are bypassing (parts of) the pipeline
+    erroreous_results: List[CrawlResultData] = field(
+        default_factory=list
+    )  # results that are not further processed due to a critical error (only during zyte processing)
     usage: dict[str, int] = field(default_factory=dict)
 
 
@@ -358,6 +364,7 @@ class BaseStep(ABC):
         pipelineResults: PipelineResult,
         currentStepIrrelevantResults: List[Any] = [],
         currentStepBypassedtResults: List[Any] = [],
+        currentStepErroreousResults: List[Any] = [],
         currentStepResultsIsPipelineResultsObject=True,
         usage: dict[str, int] | None = None,
     ) -> PipelineResult:
@@ -379,6 +386,14 @@ class BaseStep(ABC):
 
         bypassed_results = (
             pipelineResults.bypassed_results + currentStepBypassedtResults
+        )
+
+        for elem in currentStepErroreousResults:
+            if elem.error_at_stage is None:
+                elem.error_at_stage = current_step_name
+
+        erroreous_results = (
+            pipelineResults.erroreous_results + currentStepErroreousResults
         )
 
         # Depending on the class implementation the currentStepResults is either a List of DataObjects (default) or already a PipelineResult Object.
@@ -436,6 +451,13 @@ class BaseStep(ABC):
                     result.bypassed_at_stage for result in bypassed_results
                 )
             },
+            "total_erroreous_results": len(erroreous_results),
+            "erroreous_counts_per_stage": {
+                stage: sum(
+                    1 for result in erroreous_results if result.error_at_stage == stage
+                )
+                for stage in set(result.error_at_stage for result in erroreous_results)
+            },
         }
 
         updatedResults = PipelineResult(
@@ -444,6 +466,7 @@ class BaseStep(ABC):
             usage=new_usage,
             irrelevant_results=irrelevant_results,
             bypassed_results=bypassed_results,
+            erroreous_results=erroreous_results,
         )
         return updatedResults
 

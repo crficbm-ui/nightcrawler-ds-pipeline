@@ -97,7 +97,7 @@ def test_get_pagetype_from_zyte_invalid(
 
 def test_apply_step_zyte(page_type_detector, sample_pipeline_result):
     """Test the apply_step method for Zyte detection."""
-    # Mock the `add_pipeline_steps_to_results` and `store_results` methods
+    # Mock the `add_pipeline_steps_to_results` method
     page_type_detector.add_pipeline_steps_to_results = MagicMock(
         return_value=sample_pipeline_result
     )
