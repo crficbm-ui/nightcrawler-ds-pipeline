@@ -3,7 +3,7 @@ import logging
 
 from typing import List
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
-from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
+from nightcrawler.extract.s03_google_lens_search import GoogleLensApi
 from nightcrawler.extract.s04_zyte import ZyteExtractor
 from nightcrawler.base import ProcessData
 from nightcrawler.helpers.utils_io import get_object_from_file
@@ -76,11 +76,11 @@ def apply(args: argparse.Namespace) -> None:
 
     # if a full pipeline run is triggered (therefore args.step is empty)
     if not args.step:
-        # Step 1a: Perform reverse image search only if image_urls (List[str]) are provided
-        if args.reverse_image_search:
-            # Handle reverse image search
-            image_urls = args.reverse_image_search
-            serpapi_results = GoogleReverseImageApi(context).apply(
+        # Step 1a: Perform google lens search only if image_urls (List[str]) are provided
+        if args.google_lens_search:
+            # Handle google lens search
+            image_urls = args.google_lens_search
+            serpapi_results = GoogleLensApi(context).apply(
                 image_urls=image_urls,
                 keywords=args.searchitem,
                 number_of_results=args.number_of_results,

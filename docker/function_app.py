@@ -16,11 +16,10 @@ os.environ["NIGHTCRAWLER_POSTGRES_AUTO_MIGRATE"] = "false"
 
 # Triggers
 
+
 ## Scheduled: every day at 10 p.m.
 @app.function_name(name="dailyUpdates")
-@app.timer_trigger(schedule="0 0 22 * * *",
-              arg_name="timer",
-              run_on_startup=False)
+@app.timer_trigger(schedule="0 0 22 * * *", arg_name="timer", run_on_startup=False)
 @app.durable_client_input(client_name="client")
 async def daily_update(timer: func.TimerRequest, client: df.DurableOrchestrationClient):
     """Triggers orchestrator from scheduled call
@@ -33,9 +32,9 @@ async def daily_update(timer: func.TimerRequest, client: df.DurableOrchestration
         Client for starting, querying, terminating and raising events to orchestration instances.
     """
 
-    logging.warning('Daily updates triggered')
+    logging.warning("Daily updates triggered")
     instance_id = await client.start_new("pipeline_orchestrator", None, dict())
-    logging.warning('Created instance %s', instance_id)
+    logging.warning("Created instance %s", instance_id)
 
 
 ## HTTP
@@ -111,7 +110,7 @@ def pipeline_orchestrator(
     """
     params = context.get_input()
     req_data = {x: params.get(x) for x in params.keys()}
-    logging.warning('Pipeline orchestration triggered with data: %s', req_data)
+    logging.warning("Pipeline orchestration triggered with data: %s", req_data)
     if req_data:
         status = yield context.call_activity("pipeline_work", req_data)
         return [status]
@@ -122,9 +121,12 @@ def pipeline_orchestrator(
     nc_context.disable_expired_cases()
     # Call one activity for each active keyword
     keywords = nc_context.get_today_keywords()
-    tasks = [context.call_activity("pipeline_work", {"keyword_id": x}) for x in keywords]
+    tasks = [
+        context.call_activity("pipeline_work", {"keyword_id": x}) for x in keywords
+    ]
     results = yield context.task_all(tasks)
     return results
+
 
 # Activity
 @app.activity_trigger(input_name="query")

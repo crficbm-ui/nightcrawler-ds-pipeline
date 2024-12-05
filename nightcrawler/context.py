@@ -44,8 +44,8 @@ class Context(StorageContext):
         self.serpapi_filename_keyword_enrichement: str = (
             "extract_keyword_enrichement.json"
         )
-        self.serpapi_filename_reverse_image_search: str = (
-            "extract_serpapi_reverse_image_search.json"
+        self.serpapi_filename_google_lens_search: str = (
+            "extract_serpapi_google_lens_search.json"
         )
         self.serpapi_filename: str = "extract_serpapi_keywords.json"
         self.zyte_filename: str = "extract_zyte.json"

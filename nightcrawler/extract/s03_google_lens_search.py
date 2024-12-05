@@ -1,11 +1,9 @@
 from typing import List, Tuple, Dict, Callable
-from urllib.parse import quote_plus
 
 import logging
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.context import Context
 from nightcrawler.helpers.api.serp_api import SerpAPI
-from nightcrawler.helpers.utils import remove_tracking_parameters
 
 from nightcrawler.base import (
     ExtractSerpapiData,
@@ -18,7 +16,7 @@ from nightcrawler.base import (
 logger = logging.getLogger(LOGGER_NAME)
 
 
-class GoogleReverseImageApi(BaseStep):
+class GoogleLensApi(BaseStep):
     _entity_name: str = __qualname__
 
     def __init__(self, context: Context) -> None:
@@ -26,40 +24,34 @@ class GoogleReverseImageApi(BaseStep):
 
         self.context = context
 
-        # Controls how many pages of reverse image search results should be returned
+        # Controls how many pages of google lens search results should be returned
         self._num_result_pages: int = 4
 
-    def _run_reverse_image_search(
+    def _run_google_lens_search(
         self,
         image_url: str,
         page_number: int,
+        country: str = "ch",
         callback: Callable[int, None] | None = None,
     ) -> List[Tuple[str, str]]:
-        """Runs reverse image search to retrieve images and pages containing the image. See
-        https://serpapi.com/google-reverse-image for more information.
+        """Runs google lens search to retrieve images and pages containing the image. See
+        https://serpapi.com/https://serpapi.com/google-lens-api-api for more information.
 
         Args:
-            image_url (str): Url of an image for which reverse image search should be run.
+            image_url (str): Url of an image for which google lens search should be run.
             page_number (int): Which page of Google should be retrieved, starting with 1.
 
         Returns:
             List[Tuple[str, str]]: List of pairs (matched page URL, matched image URL).
         """
-        # TODO make this country / organization dependent
         params: Dict[str, str] = {
-            "location": "Switzerland",
-            "google_domain": "google.ch",
-            "gl": "ch",
-            "hl": "de",
-            "lr": "lang_de|lang_fr",
             "api_key": self.context.settings.serp_api.token,
-            "engine": "google_reverse_image",
-            # need to double-urlencode the URL to make it work with SerpAPI and Google
-            "image_url": quote_plus(quote_plus(image_url)),
-            "start": str((page_number - 1) * 10),
+            "engine": "google_lens",
+            "country": country,
+            "url": image_url,
         }
         response = SerpAPI(self.context).call_serpapi(
-            params, log_name="google_reverse_image", callback=callback
+            params, log_name="google_lens", callback=callback
         )
 
         response_urls: List[Tuple[str, str]] = self._extract_urls_from_response(
@@ -75,7 +67,7 @@ class GoogleReverseImageApi(BaseStep):
 
     @staticmethod
     def _extract_urls_from_response(response: dict) -> List[Tuple[str, str]]:
-        """Extract URLs from the SerpAPI response for reverse image search.
+        """Extract URLs from the SerpAPI response for google lens search.
 
         Args:
             response (dict): Response data from SerpAPI.
@@ -83,19 +75,19 @@ class GoogleReverseImageApi(BaseStep):
         Returns:
             List[Tuple[str, str]]: List of tuples containing the page URL and image thumbnail URL.
         """
-        # See: https://serpapi.com/google-reverse-image for an example of the response
+        # See: https://serpapi.com/google-google-lens for an example of the response
 
         # No results found
-        if "image_results" not in response:
+        if "visual_matches" not in response:
             return []
 
         # Results were found
-        image_results: List[dict] = response["image_results"]
+        image_results: List[dict] = response["visual_matches"]
         urls: List[Tuple[str, str]] = []
 
         # Iterate through results
         for image_result in image_results:
-            # See first two example shown here: https://serpapi.com/google-reverse-image to get an understanding of the image_results object returned by serpapi.
+            # See first two example shown here: https://serpapi.com/google-google-lens to get an understanding of the image_results object returned by serpapi.
             urls.append((image_result["link"], image_result.get("thumbnail", None)))
 
         return urls
@@ -112,30 +104,32 @@ class GoogleReverseImageApi(BaseStep):
             List[Tuple[str, str]]: List of tuples containing the page URL and image thumbnail URL.
         """
         try:
-            inline_urls: List[dict] = response["inline_images"]
+            inline_urls: List[dict] = response["visual_matches"]
         except KeyError:
             logger.warning(
-                "inline_images field was not found in 1st page of response. Returning empty list."
+                "visual_matches field was not found in 1st page of response. Returning empty list."
             )
             return []
 
         urls: List[Tuple[str, str]] = []
-        results_to_log: Dict[str, List[dict]] = {"inline_results_collected": []}
+        results_to_log: Dict[str, List[dict]] = {"visual_matches_collected": []}
         for image_result in inline_urls:
             # Here we are checking the entry is indeed a product, and that it also has a link field
             if "source" in image_result:
                 urls.append(
                     (image_result["source"], image_result.get("thumbnail", None))
                 )
-                results_to_log["inline_results_collected"].append(image_result)
+                results_to_log["visual_matches_collected"].append(image_result)
             else:
                 logger.warning(f'No "source" found for image result: {image_result}')
 
         logger.info(f"{len(urls)} URLs were extracted from inline_images: {urls}\n")
         return urls
 
-    def apply_step(self, image_url: str, number_of_results: int) -> PipelineResult:
-        """Perform reverse image search on multiple URLs and return structured results.
+    def apply_step(
+        self, image_url: str, country: str, number_of_results: int
+    ) -> PipelineResult:
+        """Perform google lens search on multiple URLs and return structured results.
 
         Args:
             image_url (str): A URL to search for.
@@ -145,31 +139,29 @@ class GoogleReverseImageApi(BaseStep):
             PipelineResult: Structured result data including metadata and extracted information.
         """
         results: List[ExtractSerpapiData] = []
-        logger.info(
-            f"Performing reverse image search on the following URL: {image_url}"
-        )
+        logger.info(f"Performing google lens search on the following URL: {image_url}")
         # Run SerpApi multiple times - once for each page of results
         counter = CounterCallback()
         for page_number in range(self._num_result_pages):
-            reverse_image_urls = self._run_reverse_image_search(
-                image_url, page_number + 1, callback=counter
+            google_lens_urls = self._run_google_lens_search(
+                image_url, page_number + 1, country=country, callback=counter
             )
 
             # No results found - there will be no results on the next page as well
-            if len(reverse_image_urls) == 0:
+            if len(google_lens_urls) == 0:
                 break
 
-            for image in reverse_image_urls:
+            for image in google_lens_urls:
                 results.append(
                     ExtractSerpapiData(
-                        url=remove_tracking_parameters(image[0]),
+                        url=image[0],
                         imageUrl=image[1],
-                        offerRoot="REVERSE_IMAGE_SEARCH",
+                        offerRoot="google_lens_search",
                     )
                 )
 
-        # TODO: force to only have the number of results specified in the CLI - not "nice" but the reverse_image_api does not provide this parameter
-        # either we keep it or we do not control the number of stored results from the pipeline - however this might lead to unintentional high zyte api costs as there can be easily produced a few dozen results by the reverse image search
+        # TODO: force to only have the number of results specified in the CLI - not "nice" but the google_lens_api does not provide this parameter
+        # either we keep it or we do not control the number of stored results from the pipeline - however this might lead to unintentional high zyte api costs as there can be easily produced a few dozen results by the google lens search
         # also, if we have a hard cut off, we remove the webpages where the imageUrl is empty
         skipped = [item for item in results if item.imageUrl is None]
         if skipped:
@@ -181,7 +173,7 @@ class GoogleReverseImageApi(BaseStep):
         results = results[:number_of_results]
 
         metadata = MetaData(
-            keyword="Reverse image search, no keyword provided.",
+            keyword="google lens search, no keyword provided.",
             numberOfResults=number_of_results,
             numberOfResultsAfterStage=len(results),
         )
@@ -194,7 +186,7 @@ class GoogleReverseImageApi(BaseStep):
         self.store_results(
             image_search_results,
             self.context.output_dir,
-            self.context.serpapi_filename_reverse_image_search,
+            self.context.serpapi_filename_google_lens_search,
         )
 
         return image_search_results

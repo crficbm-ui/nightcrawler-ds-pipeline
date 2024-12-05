@@ -6,7 +6,7 @@ from nightcrawler.process.s05_dataprocessor import DataProcessor
 from nightcrawler.extract.s01_serp_api import SerpapiExtractor
 from nightcrawler.extract.s02_enriched_keywords import KeywordEnricher
 from nightcrawler.extract.s04_zyte import ZyteExtractor
-from nightcrawler.extract.s03_reverse_image_search import GoogleReverseImageApi
+from nightcrawler.extract.s03_google_lens_search import GoogleLensApi
 from nightcrawler.process.s06_delivery_page_detection import DeliveryPolicyDetector
 from nightcrawler.process.s07_page_type_detection import PageTypeDetector
 from nightcrawler.process.s08_corrupted_content_detection import (
@@ -131,8 +131,8 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             BaseStep._step_counter += 1  # doing this, so that the the output files still match the step count specified in the README.md. However, this will lead to gaps in the numbering of the output files (3 will be missing).
 
     elif keyword_type == "image":
-        # Step 0: create the results directory with searchitem = url, so just name it 'reverse_image_search'.
-        context.update_output_dir("reverse_image_search")
+        # Step 0: create the results directory with searchitem = url, so just name it 'google_lens_search'.
+        context.update_output_dir("google_lens_search")
 
         # Make image publicly accessible if necessary
         image_path = f"{request.case_id}/{request.keyword_value}"
@@ -142,10 +142,11 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             else context.blob_client.make_public(image_path)
         )
 
-        # Step 3 Extract URLs using Serpapi - Perform reverse image search if image-urls were provided
-        serpapi_results = GoogleReverseImageApi(context).apply(
+        # Step 3 Extract URLs using Serpapi - Perform google lens search if image-urls were provided
+        serpapi_results = GoogleLensApi(context).apply(
             image_url=public_url,
             number_of_results=request.number_of_results,
+            country=request.organization.country_codes[0].lower(),
         )
 
         # Remove image from publicly accessible container if necessary
@@ -233,9 +234,9 @@ def apply(args: argparse.Namespace) -> None:
     logger.debug("Using org: %s", org)
 
     keyword_type = "text"
-    if args.searchitem.startswith("http") and not args.reverse_image_search:
+    if args.searchitem.startswith("http") and not args.google_lens_search:
         keyword_type = "url"
-    if args.reverse_image_search:
+    if args.google_lens_search:
         keyword_type = "image"
     request = lo.CrawlRequest(
         keyword_type=keyword_type,
