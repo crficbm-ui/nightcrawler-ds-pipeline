@@ -172,7 +172,7 @@ class ExtractSerpapiData(ObjectUtilitiesContainer):
         None  # this is only used for keyword enrichement and indicated the dataforseo localization option i.e. 'CH'. This is only used when '-e' is set
     )
     imageUrl: Optional[str] = (
-        None  # this is only used for the reverse image search and indicates the direct url to the image
+        None  # this is only used for the google lens search and indicates the direct url to the image
     )
 
 

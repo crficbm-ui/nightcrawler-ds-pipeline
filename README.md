@@ -74,8 +74,8 @@ The pipeline contains 9 processing steps:
 | Step   | Name        | Inherits from and implemented in | Description                      |
 |--------|-------------|----------------------------------|----------------------------------|
 | **1** | Extract URLs using Serpapi | [BaseStep>Extract>SerpapiExtractor](./nightcrawler/extract/s01_serp_api.py)| Extract URLs using Serpapi based on a keyword provided by the users |
-| **2** | Enrich keywords | [BaseStep>GoogleReverseImageApi](./nightcrawler/extract/s02_enriched_keywords.py) | (EXERIMENTAL) collect for each keyword additional results by adding related terms i.e. buying to the query. |
-| **3** | Reverse Image Search | [BaseStep>Extract>GoogleReverseImageApi](./nightcrawler/extract/s03_reverse_image_search.py) | Use serpapi to perform a Google reverse image search. |
+| **2** | Enrich keywords | [BaseStep>GoogleLenseApi](./nightcrawler/extract/s02_enriched_keywords.py) | (EXERIMENTAL) collect for each keyword additional results by adding related terms i.e. buying to the query. |
+| **3** | Google Lens Search | [BaseStep>Extract>GoogleLenseApi](./nightcrawler/extract/s03_google_lens.py) | Use serpapi to perform a Google Lens search. |
 | **4** | Structure data with Zyte | [BaseStep>Extract>ZyteExtractor](./nightcrawler/extract/s02_zyte.py)| Use Zyte to retrieve structured information from each URL collected by serpapi |
 | **5** | Processing | [BaseStep>DataProcessor](./nightcrawler/process/s03_dataprocessor.py) | Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --unit input of the pipeline call.  |
 | **6** | Delivery policy filtering |  [BaseStep](./nightcrawler/process/s04_filter_swiss_result.py) | delivery policy filtering based on offline analysis of domains public delivery information |
@@ -116,7 +116,7 @@ See all CLI options in the below table:
 | `-n NUMBER_OF_RESULTS, --number-of-results NUMBER_OF_RESULTS` | Option    | `fullrun`                       | Set the number of results from Serpapi (default: 50, max: 3 per Google Shopping, Google Site Search, Google, and eBay) |
 | `--country {CH,AT,CL}`                                 | Option            | `fullrun`                       | Processes URLs using a country-specific pipeline                                                                |
 | `--org ORG`                                 | Option            | `fullrun`                       | Processes URLs using an organization-specific pipeline                                                                |
-| `-r REVERSE_IMAGE_SEARCH [REVERSE_IMAGE_SEARCH ...], --reverse-image-search REVERSE_IMAGE_SEARCH [REVERSE_IMAGE_SEARCH ...]` | Option | `fullrun` | List of image URLs for reverse image search                                                                      |
+| `-r GOOGLE_LENS_SEARCH [GOOGLE_LENS_SEARCH ...], --google-lens-search GOOGLE_LENS_SEARCH [GOOGLE_LENS_SEARCH ...]` | Option | `fullrun` | List of image URLs for google lens search                                                                      |
 | `--case-id CASE_ID`                                 | Option            | `fullrun`                       | Database case identifier (only usefull for db storage)                                                                |
 | `--keyword-id KEYWORD_ID`                                 | Option            | `fullrun`                       | Database keyword identifier (only usefull for db storage)                                                                |
 
@@ -125,7 +125,7 @@ To run the full extraction pipeline you can use any of the following commands:
 ```bash
 python -m nightcrawler extract aspirin #full extraction with keyword 'aspirin'
 python -m nightcrawler extract aspirin -n=3 #full extraction with keyword 'aspirin' for the first 3 entries per serpapi (3 per google shopping, google site search, google and ebay = 12 URLs total)
-python -m nightcrawler fullrun -r -n=10 https://res.cloudinary.com/zava-www-uk/image/upload/fl_progressive/a_exif,f_auto,e_sharpen:100,c_fit,w_920,h_690,q_70/v1518547468/uk/services-setup/men-s-health-unit/erectile-dysfunction-unit/viagra-unit/m7piiauyecaogdr8mi5y.jpg #full extraction with reverse image search
+python -m nightcrawler fullrun -r -n=10 https://www.qualipet.ch/cache/f3a1a59a49af25df/d18f52c8ec6a4c4b/6020504K_1%28r800x800%29.jpg\?d\=20240610161345 --unit="Swissmedic AM" #full extraction with google lens search
 
 
 ```

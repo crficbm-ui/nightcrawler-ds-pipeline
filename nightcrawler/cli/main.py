@@ -119,10 +119,10 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
 
     common_parser.add_argument(
         "-r",
-        "--reverse-image-search",
+        "--google-lens-search",
         action="store_true",
         default=False,
-        help="Enable reverse image search (default is False)",
+        help="Enable google lens search (default is False)",
     )
 
     common_parser.add_argument(
@@ -145,7 +145,7 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
         if module.parser_name() in ["extract", "fullrun"]:
             module_parser.add_argument(
                 "searchitem",
-                help="The searchitem typically is a keyword, if so, you can type any term you want to search for. However, if you want to do a reverse image search (with -r argument), this will also accept an URL",
+                help="The searchitem typically is a keyword, if so, you can type any term you want to search for. However, if you want to do a google lens search (with -r argument), this will also accept an URL",
             )
 
     args = parser.parse_args(args_)
