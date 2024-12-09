@@ -21,6 +21,9 @@ if not logger.handlers:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
+# Disable info logs for azure blob storage
+logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.WARNING)
+
 CACHE_DIR = os.getenv("CACHE_DIR", os.path.join(ROOT_PATH, ".cache"))
 if not CACHE_DIR:
     CACHE_DIR = os.path.join(ROOT_PATH, ".cache")
