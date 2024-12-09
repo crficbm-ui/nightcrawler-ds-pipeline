@@ -200,13 +200,13 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         # Add relevant results and those that are bypassed
         # TODO: should the bypassed results have their own status so that they can be marked as such in the frontend?
         data = [
-            create_result(x)
+            create_result(request, x)
             for x in final_results.relevant_results + final_results.bypassed_results
         ]
 
         # Add erroneous results with status ERROR
         data.extend(
-            create_result(x, offer_status=lds.Offer.OfferStatus.ERROR)
+            create_result(request, x, offer_status=lds.Offer.OfferStatus.ERROR)
             for x in final_results.erroreous_results
         )
         context.store_results(data, request.case_id, request.keyword_id)
