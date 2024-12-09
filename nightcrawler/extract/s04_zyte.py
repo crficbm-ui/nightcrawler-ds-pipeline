@@ -68,14 +68,20 @@ class ZyteExtractor(Extract):
         Returns:
             List[Dict[str, Any]]: The list of responses from ZyteAPI.
         """
-        urls = [item.get("url") for item in serpapi_results.results]
+        urls = [item.get("url") for item in serpapi_results.relevant_results]
         responses = []
 
         with tqdm(total=len(urls)) as pbar:
             for url in urls:
                 if len(url) < 3:
                     logger.error("Skipping invalid url '%s' !", url)
-                    responses.append({"error": True})
+                    responses.append(
+                        {
+                            "error": True,
+                            "error_message": f"Error during {self.current_step_name}: zyte received invalid url: {url}",
+                            "error_severity": "minor",
+                        }
+                    )
                     continue
                 logger.warning("Zyte processing url %s", url)
                 try:
@@ -83,10 +89,18 @@ class ZyteExtractor(Extract):
                 except Exception as e:
                     logger.critical("Failed to call zyte for url %s", url)
                     logger.debug(e, exc_info=True)
-                    response = {"error": True}
+                    response = {
+                        "error": True,
+                        "error_message": f"Error during {self.current_step_name}: zyte extraction: {e}",
+                        "error_severity": "critical",
+                    }
                 if not response:
                     logger.error(f"Failed to collect product from {url}")
-                    response = {"error": True}
+                    response = {
+                        "error": True,
+                        "error_message": f"Error during {self.current_step_name}: zyte failed to collect product from {url}",
+                        "error_severity": "critical",
+                    }
                 responses.append(response)
                 pbar.update(1)
         return responses
@@ -107,15 +121,15 @@ class ZyteExtractor(Extract):
             PipelineResult: The updated Serpapi results with added Zyte data.
         """
         results = []
+        erroreous_results = []
         for index, response in enumerate(responses):
-            if response.get("error"):
-                continue
             product = response.get("product", {})
-            serpapi_result = serpapi_results.results[index]
+            serpapi_result = serpapi_results.relevant_results[index]
             try:
                 html = self._get_html_from_response(response)
             except Exception as e:
                 logger.error("Failed to extract html from response")
+                response["error_message"] = e
                 logger.warning(e, exc_info=True)
                 html = ""
             metadata = product.get("metadata", {})
@@ -137,20 +151,34 @@ class ZyteExtractor(Extract):
                 uniques.remove(images[0])
                 images = ([images[0]] + list(uniques))[:10]
 
-            # Extract Zyte data
-            zyte_result = ExtractZyteData(
-                **serpapi_result,
-                price=price,
-                title=product.get("name", ""),
-                fullDescription=product.get("description", ""),
-                zyteExecutionTime=response.get("seconds_taken", 0),
-                zyteProbability=metadata.get("probability", None),
-                html=html,
-                images=images,
-            )
-            results.append(zyte_result)
+            # Update serpapi_result to include the error_messages. If the error_severity is critical, add the result to erroreous_results and exclude it from the final results
+            error_message = response.get("error_message")
+            error_severity = response.get("error_severity")
+            if error_message:
+                if not hasattr(serpapi_result, "error_messages"):
+                    serpapi_result.error_messages = []
+                serpapi_result.error_messages.append(error_message)
 
-        return results
+                if error_severity == "critical":
+                    erroreous_results.append(serpapi_result)
+                    continue
+
+            if serpapi_result.url:
+                # Extract Zyte data
+                zyte_result = ExtractZyteData(
+                    **serpapi_result,
+                    price=price,
+                    title=product.get("name", ""),
+                    fullDescription=product.get("description", ""),
+                    zyteExecutionTime=response.get("seconds_taken", 0),
+                    zyteProbability=metadata.get("probability", None),
+                    html=html,
+                    images=images,
+                )
+
+                results.append(zyte_result)
+
+        return results, erroreous_results
 
     def _get_html_from_response(self, response: Dict) -> str:
         if "browserHtml" in response:
@@ -177,16 +205,16 @@ class ZyteExtractor(Extract):
         responses = self.retrieve_response(
             client, previous_step_results, api_config, callback=counter
         )
-        structured_results = self.structure_results(responses, previous_step_results)
+        structured_results, erroreous_results = self.structure_results(
+            responses, previous_step_results
+        )
 
         # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
         zyte_results = self.add_pipeline_steps_to_results(
             currentStepResults=structured_results,
             pipelineResults=previous_step_results,
+            currentStepErroreousResults=erroreous_results,
             usage={"zyte": counter.value} if counter.value else None,
         )
 
-        self.store_results(
-            zyte_results, self.context.output_dir, self.context.zyte_filename
-        )
         return zyte_results

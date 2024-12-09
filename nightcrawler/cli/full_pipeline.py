@@ -20,9 +20,11 @@ from nightcrawler.base import BaseStep, PipelineResult, MetaData, ExtractSerpapi
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.context import Context
 from nightcrawler.helpers.decorators import timeit
+from nightcrawler.helpers.utils import create_result
 
 import libnightcrawler.objects as lo
-import libnightcrawler.utils as lu
+import libnightcrawler.db.schema as lds
+
 
 logger = logging.getLogger(LOGGER_NAME)
 
@@ -93,9 +95,6 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
 
     keyword_type = request.keyword_type.lower()
     if keyword_type in ["text", "url"]:
-        # Step 0: create the results directory with searchitem = keyword
-        context.update_output_dir(request.keyword_value)
-
         if keyword_type == "text":
             # Step 1 Extract URLs using Serpapi based on a searchitem (=keyword) provided by the users
             serpapi_results = SerpapiExtractor(context, request.organization).apply(
@@ -106,10 +105,9 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             serpapi_results = PipelineResult(
                 meta=MetaData(
                     keyword=request.keyword_value,
-                    numberOfResults=1,
-                    numberOfResultsAfterStage=1,
+                    numberOfResultsManuallySet=1,
                 ),
-                results=[
+                relevant_results=[
                     ExtractSerpapiData(offerRoot="manual", url=request.keyword_value)
                 ],
             )
@@ -131,9 +129,6 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
             BaseStep._step_counter += 1  # doing this, so that the the output files still match the step count specified in the README.md. However, this will lead to gaps in the numbering of the output files (3 will be missing).
 
     elif keyword_type == "image":
-        # Step 0: create the results directory with searchitem = url, so just name it 'google_lens_search'.
-        context.update_output_dir("google_lens_search")
-
         # Make image publicly accessible if necessary
         image_path = f"{request.case_id}/{request.keyword_value}"
         public_url = (
@@ -200,23 +195,20 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         previous_step_results=suspiscousness_results
     )
 
+    # The user should see the relevant results (seen by full pipeline) and the bypassed results.
     if not context.settings.use_file_storage:
+        # Add relevant results and those that are bypassed
+        # TODO: should the bypassed results have their own status so that they can be marked as such in the frontend?
         data = [
-            request.new_result(
-                url=x.url,
-                text=x.fullDescription or "",
-                root=x.offerRoot,
-                title=x.title or "",
-                uid=lu.checksum(f"{x.url.split('?')[0]}_{x.title or ''}"),
-                platform="",
-                source="",
-                language="",
-                score=0,
-                relevant=True,
-                images=x.images,
-            )
-            for x in final_results.results
+            create_result(request, x)
+            for x in final_results.relevant_results + final_results.bypassed_results
         ]
+
+        # Add erroneous results with status ERROR
+        data.extend(
+            create_result(request, x, offer_status=lds.Offer.OfferStatus.ERROR)
+            for x in final_results.erroreous_results
+        )
         context.store_results(data, request.case_id, request.keyword_id)
         context.report_usage(request.case_id, final_results.usage)
 
@@ -248,4 +240,13 @@ def apply(args: argparse.Namespace) -> None:
         page_type_detection_method=args.page_type_detection_method,
         enrich_keyword=args.enrich_keyword,
     )
+
+    # create the output directory before the pipeline starts so that if a backoff occurs, the output directory is not recreated
+    if keyword_type in ["text", "url"]:
+        # create the results directory with searchitem = keyword
+        context.update_output_dir(request.keyword_value)
+    elif keyword_type == "image":
+        # create the results directory 'google_lens_search'
+        context.update_output_dir("google_lens_search")
+
     handle_request(context, request)

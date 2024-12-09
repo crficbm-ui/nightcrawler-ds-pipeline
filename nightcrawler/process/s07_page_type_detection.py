@@ -1,7 +1,13 @@
 import logging
 from typing import List
 
-from nightcrawler.base import PageTypeData, PipelineResult, BaseStep, PageTypes
+from nightcrawler.base import (
+    PageTypeData,
+    PipelineResult,
+    BaseStep,
+    PageTypes,
+    ProcessingSteps,
+)
 
 from nightcrawler.helpers import LOGGER_NAME
 from nightcrawler.context import Context
@@ -39,19 +45,36 @@ class PageTypeDetector(BaseStep):
         :raises ValueError: If Zyte probability is not present in the input data.
         """
         results: List[PageTypeData] = []
-        for deliver_policy_object in previous_step_result.results:
+        irrelevant_results: List[PageTypeData] = []
+        for deliver_policy_object in previous_step_result.relevant_results:
+            error_message = None
             zyte_probability = deliver_policy_object.get("zyteProbability", None)
 
             if not zyte_probability:
-                logger.error("Item does not contain Zyte probability")
+                current_step_name = ProcessingSteps.__dict__.get(
+                    f"STEP_{BaseStep._step_counter + 1}", "Unknown step"
+                )
+                error_message = f"Error during {current_step_name}: Item does not contain Zyte probability, setting it to 0."
+                logger.error(error_message)
                 zyte_probability = 0
+
+            if error_message:
+                if not hasattr(deliver_policy_object, "error_messages"):
+                    deliver_policy_object["error_messages"] = []
+                deliver_policy_object["error_messages"].append(error_message)
 
             page_type = PageTypes.OTHER
             if zyte_probability > self.threshold:
                 page_type = PageTypes.ECOMMERCE_PRODUCT
-            results.append(PageTypeData(**deliver_policy_object, pageType=page_type))
+                results.append(
+                    PageTypeData(**deliver_policy_object, pageType=page_type)
+                )
+            else:
+                irrelevant_results.append(
+                    PageTypeData(**deliver_policy_object, pageType=page_type)
+                )
 
-        return results
+        return results, irrelevant_results
 
     def _get_pagetype_from_binary_endpoint(
         self, previous_step_result: PipelineResult
@@ -60,11 +83,18 @@ class PageTypeDetector(BaseStep):
         Determine the page type based on a custom inference endpoint...
         """
         results: List[PageTypeData] = []
-        for deliver_policy_object in previous_step_result.results:
+        irrelevant_results: List[PageTypeData] = []
+        for deliver_policy_object in previous_step_result.relevant_results:
             html = deliver_policy_object.get("html", None)
 
+            # Update results to include the concatenated error_message
+            error_message = None
+
             if not html:
-                raise ValueError("Item does not contain HTML content")
+                error_message = (
+                    "Error during step 7: page type detection: html is missing"
+                )
+                raise ValueError(error_message)
 
             page_type = PageTypes.OTHER
 
@@ -75,12 +105,23 @@ class PageTypeDetector(BaseStep):
             # proba = get_proba_from_endpoint(html)
             proba = 0.5
 
+            # Update deliver_policy_object to include the concatenated error_message
+            if error_message:
+                if not hasattr(deliver_policy_object, "error_message"):
+                    deliver_policy_object.error_message = []
+                deliver_policy_object.error_message.append(error_message)
+
             if proba > self.threshold:
                 page_type = PageTypes.ECOMMERCE_PRODUCT
+                results.append(
+                    PageTypeData(**deliver_policy_object, pageType=page_type)
+                )
+            else:
+                irrelevant_results.append(
+                    PageTypeData(**deliver_policy_object, pageType=page_type)
+                )
 
-            results.append(PageTypeData(**deliver_policy_object, pageType=page_type))
-
-        return results
+        return results, irrelevant_results
 
     def apply_step(
         self, previous_step_results: PipelineResult, page_type_detection_method: str
@@ -97,19 +138,20 @@ class PageTypeDetector(BaseStep):
             logger.info(
                 "Using the a probability calculated by Zyte to determine, if the the page_type is likely to be ecommerce related."
             )
-            results = self._get_pagetype_from_zyte(previous_step_results)
+            results, irrelevant_results = self._get_pagetype_from_zyte(
+                previous_step_results
+            )
         else:
             logger.info("Using the binary inference to calculate the page type.")
-            results = self._get_pagetype_from_binary_endpoint(previous_step_results)
+            results, irrelevant_results = self._get_pagetype_from_binary_endpoint(
+                previous_step_results
+            )
 
         # Updating the PipelineResults Object (append the results to the results list and update the number of results after this stage)
         pipeline_results = self.add_pipeline_steps_to_results(
-            currentStepResults=results, pipelineResults=previous_step_results
+            currentStepResults=results,
+            pipelineResults=previous_step_results,
+            currentStepIrrelevantResults=irrelevant_results,
         )
 
-        self.store_results(
-            pipeline_results,
-            self.context.output_dir,
-            self.context.processing_filename_page_type_detection,
-        )
         return pipeline_results

@@ -51,15 +51,6 @@ def test_full_pipeline_end_to_end(caplog):
         # Count the number of JSON files in the output directory
         json_files = [f for f in os.listdir(output_directory) if f.endswith(".json")]
         json_file_reference = [
-            context.serpapi_filename,
-            context.zyte_filename,
-            context.processing_filename_raw,
-            context.processing_filename_filtered.replace("unit", unit),
-            context.processing_filename_delivery_policy,
-            context.processing_filename_page_type_detection,
-            context.processing_filename_corrupted_content_detection,
-            context.processing_filename_content_domain_detection,
-            context.processing_filename_suspiciousness_classifier,
             context.filename_final_results,
         ]
 

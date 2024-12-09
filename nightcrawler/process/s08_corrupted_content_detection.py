@@ -115,8 +115,9 @@ class CorruptedContentDetector(BaseStep):
                 A list of processed results.
         """
         results: List[Dict[str, Any]] = []
+        bypassed_results: List[Dict[str, Any]] = []
 
-        prev_results: List[ExtractZyteData] = previous_step_result.results
+        prev_results: List[ExtractZyteData] = previous_step_result.relevant_results
         for item in prev_results:
             result = self._process_one(item)
 
@@ -124,9 +125,12 @@ class CorruptedContentDetector(BaseStep):
                 **item.to_dict(),
                 **result,
             }
-            results.append(CorruptedContentData(**processed_data))
+            if processed_data["is_corrupted_content"]:
+                bypassed_results.append(CorruptedContentData(**processed_data))
+            else:
+                results.append(CorruptedContentData(**processed_data))
 
-        return results
+        return results, bypassed_results
 
     def apply_step(
         self,
@@ -143,16 +147,12 @@ class CorruptedContentDetector(BaseStep):
             PipelineResult:
                 Updated PipelineResult after processing.
         """
-        results = self._process_prev_results(previous_step_results)
+        results, bypassed_results = self._process_prev_results(previous_step_results)
 
         # Update the PipelineResults Object
         pipeline_results = self.add_pipeline_steps_to_results(
-            currentStepResults=results, pipelineResults=previous_step_results
-        )
-
-        self.store_results(
-            pipeline_results,
-            self.context.output_dir,
-            self.context.processing_filename_corrupted_content_detection,
+            currentStepResults=results,
+            pipelineResults=previous_step_results,
+            currentStepBypassedtResults=bypassed_results,
         )
         return pipeline_results

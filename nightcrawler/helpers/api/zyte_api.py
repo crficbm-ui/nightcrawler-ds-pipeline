@@ -41,6 +41,7 @@ class ZyteAPI(APICaller):
             return cached
 
         attempts = 0
+        last_exception = "All API call attempts to zyte failed."
         while attempts < self.max_retries:
             try:
                 start_time = time.time()
@@ -55,9 +56,8 @@ class ZyteAPI(APICaller):
                 )
 
                 if raw_response.status_code != 200:
-                    raise Exception(
-                        f"API call failed with status code {raw_response.status_code} and response: {raw_response.text}"
-                    )
+                    last_exception = f"API call failed with status code {raw_response.status_code} and response: {raw_response.text}"
+                    raise Exception(last_exception)
 
                 end_time = time.time()
 
@@ -70,9 +70,8 @@ class ZyteAPI(APICaller):
 
                 return response
             except Exception as e:
-                logger.warning(
-                    f"API call failed with error: {e}. Retrying in {self.retry_delay} seconds..."
-                )
+                last_exception = f"API call failed with error: {e}. Retrying in {self.retry_delay} seconds..."
+                logger.warning(last_exception)
                 attempts += 1
                 time.sleep(self.retry_delay)
-        raise Exception("All API call attempts to zyte failed.")
+        raise Exception(last_exception)

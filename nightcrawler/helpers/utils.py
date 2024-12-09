@@ -7,7 +7,8 @@ from datetime import datetime
 from typing import Any, Dict, List, Union
 
 from nightcrawler.helpers import LOGGER_NAME
-
+import libnightcrawler.utils as lu
+import libnightcrawler.db.schema as lds
 
 from urllib.parse import urlparse, urlunparse, ParseResult, parse_qsl, urlencode, quote
 import re
@@ -374,3 +375,23 @@ def filter_dict_keys(original_dict, keys_to_save):
     dict_filtered = {k: v for k, v in original_dict.items() if k in keys_to_save}
 
     return dict_filtered
+
+
+def create_result(
+    request, x, relevant=True, offer_status=lds.Offer.OfferStatus.UNPROCESSED
+):
+    """Helper function to create a new result."""
+    return request.new_result(
+        url=x.url,
+        text=x.fullDescription or "",
+        root=x.offerRoot,
+        title=x.title or "",
+        uid=lu.checksum(f"{x.url.split('?')[0]}_{x.title or ''}"),
+        platform="",
+        source="",
+        language="",
+        score=0,
+        relevant=relevant,
+        images=x.images,
+        status=offer_status,
+    )

@@ -49,7 +49,8 @@ poetry install --directory ./pyproject.toml
 ## CLI overview
 As of today, the CLI looks as follows:
 
-![image](https://github.com/user-attachments/assets/3b83f20d-7f6e-4306-aa66-22ca0f2de551)
+![nc_pipeline](https://github.com/user-attachments/assets/3ca8b11b-a688-4449-abd3-29d6781917c4)
+
 
 
 ## Basic CLI usage
@@ -80,7 +81,7 @@ The pipeline contains 9 processing steps:
 | **5** | Processing | [BaseStep>DataProcessor](./nightcrawler/process/s03_dataprocessor.py) | Apply some (for the time-being) manual filtering logic: filter based on URL, currency and blacklists. All these depend on the --unit input of the pipeline call.  |
 | **6** | Delivery policy filtering |  [BaseStep](./nightcrawler/process/s04_filter_swiss_result.py) | delivery policy filtering based on offline analysis of domains public delivery information |
 | **7** | Page type detection |  [BaseStep>DeliveryPolicyDetector](./nightcrawler/process/s05_delivery_page_detection.py)  | The pipeline uses by default a probability calculated by Zyte indicating, if the page is an ecommerce page or not. You can change this to using a custom BERT modell served on the GPU by setting the argument '--page-type-detection-method=infer'. |
-| **8** | Webpage Blocker Detection |  [BaseStep>PageTypeDetector](./nightcrawler/process/s06_page_type_detection.py) | Blocked / corrupted content detection based the prediction with a BERT model. |
+| **8** | Webpage Blocker Detection |  [BaseStep>PageTypeDetector](./nightcrawler/process/s06_page_type_detection.py) | Blocked / corrupted content detection based the prediction with a BERT model. If the content is blocked, the results should be shown to the user, therefore, they bypass the remaining pipeline steps. |
 | **9** | Product Type Relevence per Organization |  [BaseStep>BlockedContentDetector](./nightcrawler/process/s07_blocket_content_detection.py) | Classification if the product type is relvant to the target organization domain (i.e. pharmaceutical for Swissmedic AM or medical device for Swissmedic MD) |
 | **10** | Relevance Classifier |  [BaseStep>ContentDomainDetectors](./nightcrawler/process/s08_content_domain_detection.py) | Binary classifier per organisation, whether a product is classified as suspicious or not. |
 | **11** | Ranking and Filtering |  [BaseStep>ResultRanker](./nightcrawler/process/s10_result_ranker.py) | Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away|
@@ -113,7 +114,7 @@ See all CLI options in the below table:
 | `process`                                              | Positional        | All commands                    | Calls the processor class                                                                                       |
 | `fullrun`                                              | Positional        | All commands                    | Runs the full pipeline from extraction to processing                                                            |
 | `searchitem`                                              | Positional        | `fullrun`                       | Keyword or URL (with `-r` parameter) to search for                                                                                           |
-| `-n NUMBER_OF_RESULTS, --number-of-results NUMBER_OF_RESULTS` | Option    | `fullrun`                       | Set the number of results from Serpapi (default: 50, max: 3 per Google Shopping, Google Site Search, Google, and eBay) |
+| `-n NUMBER_OF_RESULTS, --number-of-results NUMBER_OF_RESULTS` | Option    | `fullrun`                       | Set the maximum number of results from Serpapi (default: 0 -> return all., max: 3 per Google Shopping, Google Site Search, Google, and eBay) |
 | `--country {CH,AT,CL}`                                 | Option            | `fullrun`                       | Processes URLs using a country-specific pipeline                                                                |
 | `--org ORG`                                 | Option            | `fullrun`                       | Processes URLs using an organization-specific pipeline                                                                |
 | `-r GOOGLE_LENS_SEARCH [GOOGLE_LENS_SEARCH ...], --google-lens-search GOOGLE_LENS_SEARCH [GOOGLE_LENS_SEARCH ...]` | Option | `fullrun` | List of image URLs for google lens search                                                                      |

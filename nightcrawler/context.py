@@ -52,23 +52,7 @@ class Context(StorageContext):
         # ----------------------------------------------------------------------------------------
         # Processing
         # ----------------------------------------------------------------------------------------
-        self.processing_filename_raw: str = "process_raw.json"
-        self.processing_filename_filtered: str = "process_filtered_country.json"
-        self.processing_filename_country_filtering: str = (
-            "process_country_filtering.json"
-        )
-        self.processing_filename_delivery_policy: str = "process_delivery_policy.json"
-        self.processing_filename_page_type_detection: str = "process_page_type.json"
-        self.processing_filename_corrupted_content_detection: str = (
-            "process_corrupted_content.json"
-        )
-        self.processing_filename_content_domain_detection: str = (
-            "process_content_domain.json"
-        )
-        self.processing_filename_suspiciousness_classifier: str = (
-            "process_suspiciousness.json"
-        )
-        self.filename_final_results: str = "final_results.json"
+        self.filename_final_results: str = "results.json"
 
     def update_output_dir(self, path: str):
         self.output_dir = create_output_dir(
