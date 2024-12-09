@@ -393,5 +393,5 @@ def create_result(
         score=0,
         relevant=relevant,
         images=x.images,
-        offerStatus=offer_status,
+        status=offer_status,
     )
