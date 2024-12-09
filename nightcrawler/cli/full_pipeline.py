@@ -190,6 +190,10 @@ def handle_request(context: Context, request: lo.CrawlRequest) -> None:
         previous_step_results=content_domain_results
     )
 
+    # output_dir has to be defined before last step that saves intermediate results
+    if not hasattr(context, "output_dir"):
+        context.update_output_dir(request.keyword_value)
+
     # Step 11: Apply any kinf of (rule-based?) ranking or filtering of results. If this last step is really needed needs be be confirmed, maybe this step will fall away.
     final_results = ResultRanker(context).apply(
         previous_step_results=suspiscousness_results
