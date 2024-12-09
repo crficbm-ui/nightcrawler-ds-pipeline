@@ -381,6 +381,22 @@ def create_result(
     request, x, relevant=True, offer_status=lds.Offer.OfferStatus.UNPROCESSED
 ):
     """Helper function to create a new result."""
+    if offer_status == lds.Offer.OfferStatus.ERROR:
+        return request.new_result(
+            url=x.url,
+            text="\n".join(x.error_messages),
+            root=x.offerRoot,
+            title=x.error_at_stage or "",
+            uid=lu.checksum(x.url),
+            platform="",
+            source="",
+            language="",
+            score=0,
+            relevant=relevant,
+            images=[],
+            status=offer_status,
+        )
+
     return request.new_result(
         url=x.url,
         text=x.fullDescription or "",
