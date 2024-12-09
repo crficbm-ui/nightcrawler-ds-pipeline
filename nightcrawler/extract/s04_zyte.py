@@ -159,7 +159,7 @@ class ZyteExtractor(Extract):
                     serpapi_result.error_messages = []
                 serpapi_result.error_messages.append(error_message)
 
-                if error_severity=="critical":
+                if error_severity == "critical":
                     erroreous_results.append(serpapi_result)
                     continue
 
@@ -173,7 +173,7 @@ class ZyteExtractor(Extract):
                     zyteExecutionTime=response.get("seconds_taken", 0),
                     zyteProbability=metadata.get("probability", None),
                     html=html,
-                    images=list(images),
+                    images=images,
                 )
 
                 results.append(zyte_result)
