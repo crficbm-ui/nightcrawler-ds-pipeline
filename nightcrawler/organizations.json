@@ -353,6 +353,183 @@
             }
         }
     },
+    "ISP": {
+        "unit": "ammep",
+        "language_codes": [
+            "de",
+            "fr",
+            "it",
+            "en"
+        ],
+        "languages": [
+            "German"
+        ],
+        "currencies": [
+            "CHF"
+        ],
+        "country_codes": [
+            "CH"
+        ],
+        "countries": [
+            "Switzerland"
+        ],
+        "whitelist": [
+            "anibis.ch",
+            "petitesannonces.ch",
+            "visomed-marketplace.ch",
+            "locanto.ch",
+            "gratisinserat.ch",
+            "tutti.ch",
+            "ricardo.ch"
+        ],
+        "blacklist": [
+            "20min.ch",
+            "aargauerzeitung.ch",
+            "admin.ch",
+            "aids.ch"
+        ],
+        "settings": {
+            "country_filtering": {
+                "FILTERER_NAME": "known_domains+url",
+                "COUNTRY": "ch",
+                "PATH_CURRENT_PROJECT_SETTINGS": "nightcrawler/process/country_filtering",
+                "DICT_MAPPING_KNOWN_DOMAINS": {
+                    "pos": "domains_pos",
+                    "unknwn": "domains_unknwn",
+                    "neg": "domains_neg"
+                },
+                "KEYS_TO_SAVE": [
+                    "filterer_name",
+                    "RESULT",
+                    "label_justif",
+                    "urls_shipping_policy_page_found_analysis",
+                    "url_shipping_policy_page_kept"
+                ],
+                "SAVE_NEW_CLASSIFIED_DOMAINS": true
+            },
+            "url_filtering": {
+                "countries": [
+                    "ch",
+                    "che"
+                ],
+                "top_level_domains": [
+                    "ch",
+                    "swiss"
+                ],
+                "sub_level_domains": [],
+                "languages": [
+                    "de-ch",
+                    "en-ch",
+                    "fr-ch",
+                    "gsw-ch",
+                    "it-ch",
+                    "pt-ch",
+                    "rm-ch",
+                    "wae-ch",
+                    "ch-de",
+                    "ch-en",
+                    "ch-fr",
+                    "ch-gsw",
+                    "ch-it",
+                    "ch-pt",
+                    "ch-rm",
+                    "ch-wae",
+                    "de_ch",
+                    "en_ch",
+                    "fr_ch",
+                    "gsw_ch",
+                    "it_ch",
+                    "pt_ch",
+                    "rm_ch",
+                    "wae_ch",
+                    "ch_de",
+                    "ch_en",
+                    "ch_fr",
+                    "ch_gsw",
+                    "ch_it",
+                    "ch_pt",
+                    "ch_rm",
+                    "ch_wae"
+                ],
+                "currencies": [
+                    "chf"
+                ]
+            },
+            "deliver_policy_config": {
+                "COUNTRY": "ch",
+                "COUNTRY_LONG": "Switzerland",
+                "PATH_CURRENT_PROJECT_SETTINGS": "nightcrawler/process/country_filtering",
+                "DICT_MAPPING_KNOWN_DOMAINS": {
+                    "pos": "domains_pos",
+                    "unknwn": "domains_unknwn",
+                    "neg": "domains_neg"
+                },
+                "KEYS_TO_SAVE": [
+                    "filterer_name",
+                    "RESULT",
+                    "label_justif",
+                    "url_shipping_policy_page_kept",
+                    "urls_shipping_policy_page_found_analysis"
+                ],
+                "SAVE_NEW_CLASSIFIED_DOMAINS": true
+            },
+            "delivery_policy_config_filterer": {
+                "keywords_shipping_policy": [
+                    "livraison",
+                    "expédit",
+                    "expedit",
+                    "lieferung",
+                    "versand",
+                    "liefer",
+                    "deliveri",
+                    "ship",
+                    "consegna",
+                    "spedizion"
+                ],
+                "urls_domains_shipping_pos": [
+                    "www.ebay.co.uk",
+                    "www.ebay.de",
+                    "www.herbkart.com",
+                    "www.hood.de",
+                    "www.ebay.com",
+                    "gloriaexports.com"
+                ],
+                "urls_domains_shipping_unknwn": [
+                    "www.etsy.com",
+                    "www.joom.com",
+                    "www.inspireuplift.com",
+                    "stockx.com",
+                    "saner.health",
+                    "www.amama.com.au",
+                    "www.biblio.com",
+                    "www.uline.com",
+                    "sparklingspices.us",
+                    "www.victorinox.com",
+                    "biaxol.com"
+                ],
+                "urls_domains_shipping_neg": [
+                    "www.eneba.com"
+                ],
+                "llm_api_config": {
+                    "model": "mistral-large-latest",
+                    "temperature": 0.0
+                },
+                "zyte_api_product_page_config": {
+                    "browserHtml": true,
+                    "screenshot": false,
+                    "product": false,
+                    "geolocation": "CH"
+                },
+                "zyte_api_policy_page_config": {
+                    "browserHtml": true,
+                    "screenshot": false,
+                    "product": false,
+                    "geolocation": "CH"
+                },
+                "use_concurrency": false
+            }
+        }
+    },
     "Ages": {
         "unit": "chocolatine",
         "language_codes": [
