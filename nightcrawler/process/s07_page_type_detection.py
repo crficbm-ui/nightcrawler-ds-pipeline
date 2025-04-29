@@ -20,7 +20,7 @@ class PageTypeDetector(BaseStep):
 
     _entity_name: str = __qualname__
 
-    THRESHOLD_ZYTE_PROB = 0.4
+    THRESHOLD_ZYTE_PROB = 0.03
 
     def __init__(self, context: Context, *args, **kwargs):
         """
