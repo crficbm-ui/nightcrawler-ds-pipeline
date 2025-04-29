@@ -78,9 +78,17 @@ class CorruptedContentDetector(BaseStep):
                 "corrupted_content_probability": 1.0,
             }
 
-        api_response = self.api.call_api(playload={"text": full_description})
-
-        prediction = api_response["response"]["prediction"]
+        #---------------------------------------------------------------------
+        #
+        # THIS HAS BEEN DEACTIVATED BY NICO FOR CHILE's DEPLOYMENT
+        # THIS HAS BEEN DEACTIVATED BY NICO FOR CHILE's DEPLOYMENT
+        # THIS HAS BEEN DEACTIVATED BY NICO FOR CHILE's DEPLOYMENT
+        #
+        #---------------------------------------------------------------------
+        print('CORRUPTED CONTENT FILTER DEACTIVATED FOR NOW')
+        # api_response = self.api.call_api(playload={"text": full_description})
+        # prediction = api_response["response"]["prediction"]
+        prediction = {"score":0.0,"label":"LABEL_1"}
 
         # TODO: this logic should be moved into corresponding API service
         probability = (

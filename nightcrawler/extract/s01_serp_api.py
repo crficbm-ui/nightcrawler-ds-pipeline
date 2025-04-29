@@ -147,7 +147,11 @@ class SerpapiExtractor(Extract):
         else:
             items = client.get_organic_results(response)
 
-        urls = [item.get("link") for item in items]
+        urls = [item.get("link") for item in items] + [item.get("product_link") for item in items]
+        urls = [url for url in urls if url is not None]
+        print('URLs')
+        print(urls)
+
         logger.debug(f"For {offer_root} retrieved {len(urls)}.")
 
         # get the urls and manually truncate them to number_of_results because ebay and shopping serpapi endpoints only know the '_ipg' argument that takes 25, 50 (default), 100 and 200
@@ -166,22 +170,23 @@ class SerpapiExtractor(Extract):
         filtered_urls = client._check_limit(urls, keyword, check_limit)
 
         results = []
+        print(filtered_urls)
         for url in filtered_urls:
             logger.debug(f"Resolving URL: {url}")
             error_messages = list()
-            try:
-                proxy_response = proxy.call_proxy(
-                    url=url,
-                    country=self.organization.country_codes[0],
-                )
-                resolved_url = proxy_response["resolved_url"]
-            except Exception as e:
-                logger.error(f"Failed to resolve URL: `{url}` with error: {e}")
-                error_messages.append(
-                    f"Error during {self.current_step_name}: {e} Falling back to unresolved URL."
-                )
-                resolved_url = url
-
+            # try:
+            #     proxy_response = proxy.call_proxy(
+            #         url=url,
+            #         country=self.organization.country_codes[0],
+            #     )
+            #     resolved_url = proxy_response["resolved_url"]
+            # except Exception as e:
+            #     logger.error(f"Failed to resolve URL: `{url}` with error: {e}")
+            #     error_messages.append(
+            #         f"Error during {self.current_step_name}: {e} Falling back to unresolved URL."
+            #     )
+            #     resolved_url = url
+            resolved_url = url
             cleaned_url = remove_tracking_parameters(resolved_url)
 
             results.append(
@@ -246,6 +251,8 @@ class SerpapiExtractor(Extract):
         # Collecting and structuring all results
         all_results = []
         for source in sources:
+            print('\n\n')
+            print(source["label"])
             response = self.retrieve_response(
                 keyword=keyword,
                 client=client,
