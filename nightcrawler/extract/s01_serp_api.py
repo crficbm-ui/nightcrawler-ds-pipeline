@@ -229,14 +229,14 @@ class SerpapiExtractor(Extract):
                 },
                 "label": "GOOGLE_SITE",
             },
-            {
-                "params": {
-                    **self._ebay_params,
-                    "_nkw": keyword,
-                    "_ipg": 200,  # this is the maximum without pagination for EBAY
-                },
-                "label": "EBAY",
-            },
+            # {
+            #     "params": {
+            #         **self._ebay_params,
+            #         "_nkw": keyword,
+            #         "_ipg": 200,  # this is the maximum without pagination for EBAY
+            #     },
+            #     "label": "EBAY",
+            # },
         ]
 
         # Only if number of results is set, define the "num" parameter

@@ -356,42 +356,57 @@
     "ISP": {
         "unit": "ammep",
         "language_codes": [
-            "de",
-            "fr",
-            "it",
-            "en"
+            "es"
         ],
         "languages": [
-            "German"
+            "Spanish"
         ],
         "currencies": [
-            "CHF"
+            "CLP"
         ],
         "country_codes": [
-            "CH"
+            "CL"
         ],
         "countries": [
-            "Switzerland"
+            "Chile"
         ],
         "whitelist": [
-            "anibis.ch",
-            "petitesannonces.ch",
-            "visomed-marketplace.ch",
-            "locanto.ch",
-            "gratisinserat.ch",
-            "tutti.ch",
-            "ricardo.ch"
+            "salcoband.cl",
+            "cruzverde.cl"
         ],
         "blacklist": [
-            "20min.ch",
-            "aargauerzeitung.ch",
-            "admin.ch",
-            "aids.ch"
+            "ispch.gob.cl",
+            "colegiofarmaceutico.cl",
+            "cooperativa.cl",
+            "elmostrador.cl",
+            "ispch.cl",
+            "t13.cl",
+            "chilevision.cl",
+            "lobarnechea.cl",
+            "clinicaalemana.cl",
+            "latercera.com",
+            "noticias.unab.cl",
+            "tele13radio.cl",
+            "biobiochile.cl",
+            "tvn.cl",
+            "emol.com",
+            "diariousach.cl",
+            "meganoticias.cl",
+            "eldinamo.cl",
+            "24horas.cl",
+            "radio13c.cl",
+            "publimetro.cl",
+            "theclinic.cl",
+            "radioimagina.cl",
+            "mega.cl",
+            "litoralpress.cl",
+            "fastcheck.cl",
+            "df.cl"
         ],
         "settings": {
             "country_filtering": {
                 "FILTERER_NAME": "known_domains+url",
-                "COUNTRY": "ch",
+                "COUNTRY": "cl",
                 "PATH_CURRENT_PROJECT_SETTINGS": "nightcrawler/process/country_filtering",
                 "DICT_MAPPING_KNOWN_DOMAINS": {
                     "pos": "domains_pos",
@@ -409,50 +424,18 @@
             },
             "url_filtering": {
                 "countries": [
-                    "ch",
-                    "che"
+                    "cl"
                 ],
                 "top_level_domains": [
-                    "ch",
-                    "swiss"
+                    "cl"
                 ],
                 "sub_level_domains": [],
                 "languages": [
-                    "de-ch",
-                    "en-ch",
-                    "fr-ch",
-                    "gsw-ch",
-                    "it-ch",
-                    "pt-ch",
-                    "rm-ch",
-                    "wae-ch",
-                    "ch-de",
-                    "ch-en",
-                    "ch-fr",
-                    "ch-gsw",
-                    "ch-it",
-                    "ch-pt",
-                    "ch-rm",
-                    "ch-wae",
-                    "de_ch",
-                    "en_ch",
-                    "fr_ch",
-                    "gsw_ch",
-                    "it_ch",
-                    "pt_ch",
-                    "rm_ch",
-                    "wae_ch",
-                    "ch_de",
-                    "ch_en",
-                    "ch_fr",
-                    "ch_gsw",
-                    "ch_it",
-                    "ch_pt",
-                    "ch_rm",
-                    "ch_wae"
+                    "es-cl",
+                    "cl-es"
                 ],
                 "currencies": [
-                    "chf"
+                    "clp"
                 ]
             },
             "deliver_policy_config": {
@@ -518,13 +501,13 @@
                     "browserHtml": true,
                     "screenshot": false,
                     "product": false,
-                    "geolocation": "CH"
+                    "geolocation": "CL"
                 },
                 "zyte_api_policy_page_config": {
                     "browserHtml": true,
                     "screenshot": false,
                     "product": false,
-                    "geolocation": "CH"
+                    "geolocation": "CL"
                 },
                 "use_concurrency": false
             }

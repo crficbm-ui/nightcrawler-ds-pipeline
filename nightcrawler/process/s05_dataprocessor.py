@@ -31,7 +31,7 @@ class DataProcessor(BaseStep):
         Filters and processes results based on the specified country and writes the filtered results to a designated output path.
 
         This function reads a JSON file from a given URL path, applies filtering to retain only those items that meet the
-        criteria for being sold in a given country [e.g., Switzerland ("result_sold_CH" is True)], and writes the filtered
+        criteria for being sold in a given country [e.g., Switzerland ("result_sold_CHILE" is True)], and writes the filtered
         results to the specified output path.
 
         Args:
@@ -59,10 +59,10 @@ class DataProcessor(BaseStep):
             zyte_results[index] = raw_results[index]
 
         # Filter results based on country
-        if country == "CH":
-            relevant_results = [item for item in raw_results if item["result_sold_CH"]]
+        if country == "CL":
+            relevant_results = [item for item in raw_results if item["result_sold_CHILE"]]
             irrelevant_results = [
-                item for item in raw_results if not item["result_sold_CH"]
+                item for item in raw_results if not item["result_sold_CHILE"]
             ]
 
             # Updating the PipelineResults Object (append the results to the results list und update the number of results after this stage)
@@ -89,46 +89,29 @@ class DataProcessor(BaseStep):
         Returns:
             List[ProcessData]: The processed JSON list, now with a 'result_sold_CH' key that determines if the product is sold in the Swiss market.
         """
-        languages = ["ch-de", "/ch/", "swiss", "/CH/", "/fr"]
+        languages = ["cl-es", "/es/"]
         shops = [
             "anastore",
-            "ayurveda101",
-            "biovea",
-            "bodysport",
-            "brack",
-            "brain-effect",
-            "ebay",
-            "gesund-gekauft",
-            "kanela",
-            "myfairtrade",
-            "nurnatur",
-            "nu3",
-            "plantavis",
-            "shop-apotheke",
-            "herbano",
-            "onebioshop",
-            "puravita",
-            "sembrador",
-            "vitaminexpress",
+            "apotheke-schweiz"
             "wish",
         ]
-        web_extensions = [".ch", "ch."]
-        price_swiss_francs = ["CHF", "SFr"]
+        web_extensions = [".cl", "cl."]
+        price_chilean_peso = ["clp"]
 
         CH_processed_json = [
             {
                 **url_item,
-                "ch_de_in_url": DataProcessor._is_substring_in_column(
+                "cl_es_in_url": DataProcessor._is_substring_in_column(
                     url_item["url"], languages
                 ),
-                "swisscompany_in_url": DataProcessor._is_substring_in_column(
+                "chilean_company_in_url": DataProcessor._is_substring_in_column(
                     url_item["url"], shops
                 ),
                 "web_extension_in_url": DataProcessor._is_substring_in_column(
                     url_item["url"], web_extensions
                 ),
-                "francs_in_url": DataProcessor._is_substring_in_column(
-                    url_item.get("price", ""), price_swiss_francs
+                "chilean_peso_in_url": DataProcessor._is_substring_in_column(
+                    url_item.get("price", ""), price_chilean_peso
                 ),
             }
             for url_item in raw_json_urls
@@ -136,15 +119,15 @@ class DataProcessor(BaseStep):
 
         # Add the 'result_sold_CH' key to each item
         features_to_check = [
-            "ch-de_in_url",
-            "swisscompany_in_url",
+            "cl_es_in_url",
+            "chilean_company_in_url",
             "web_extension_in_url",
-            "francs_in_url",
+            "chilean_peso_in_url",
         ]
         CH_processed_json = [
             ProcessData(
                 **url_item,
-                result_sold_CH=DataProcessor._has_at_least_one_feature(
+                result_sold_CHILE=DataProcessor._has_at_least_one_feature(
                     url_item, features_to_check
                 ),
             )

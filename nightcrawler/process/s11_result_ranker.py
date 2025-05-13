@@ -28,7 +28,7 @@ class ResultRanker(BaseStep):
             pipelineResults=previous_step_results,
             currentStepIrrelevantResults=[],  # TODO, add irrelevant results
         )
-
+        
         self.store_results(
             pipeline_results,
             self.context.output_dir,

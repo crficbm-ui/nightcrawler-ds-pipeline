@@ -1,6 +1,11 @@
 import logging
+import json
+from pathlib import Path
+import patoolib
 from typing import List, Dict, Any
+import torch
 
+from transformers import pipeline
 from nightcrawler.context import Context
 from nightcrawler.base import (
     DomainLabels,
@@ -18,7 +23,12 @@ logger = logging.getLogger(LOGGER_NAME)
 
 
 class ContentDomainDetector(BaseStep):
-    """Implementation of the content domain detection (step 8)"""
+    """
+    Implementation of the content domain detection (step 8)
+    
+    This step concerns itself with models which determine if a page is likely to be related to medicines, medical devices, or any other category 
+    relevant to the organization.
+    """
 
     def __init__(
         self,
@@ -85,10 +95,43 @@ class ContentDomainDetector(BaseStep):
         # THIS HAS BEEN DEACTIVATED BY NICO FOR CHILE's DEPLOYMENT
         #
         #---------------------------------------------------------------------
+        # Load and extract file
+        model_path = Path('/Users/nicolasperezgonzalez/Desktop/projects/nightcrawler-ds-pipeline/nightcrawler/model') / 'classification_hf_pipeline.tar.gz'
+        encoder_path = Path('/Users/nicolasperezgonzalez/Desktop/projects/nightcrawler-ds-pipeline/nightcrawler/model')
+        
+        print("Is file?", model_path.is_file())
+        patoolib.extract_archive(str(model_path), verbosity=-1, outdir=str(encoder_path))
+            
+        logger.info(f"Loading preprocessor model path={model_path}")
+
+        pipe = pipeline(
+            model=str(encoder_path),
+            tokenizer=str(encoder_path),
+            task="text-classification",
+            top_k=2,
+            truncation="only_first",
+        )
+
+        logger.info("Classifier pipeline loaded successfully")
+
+        params_path = f"{str(encoder_path)}/params.json"
+        
+        with open(params_path, "r") as f:
+            params = json.load(f)
+        threshold = params["threshold"]
+        logger.info("Classifier params loaded successfully")
+
+        text = title + " " + full_description
+        outputs = pipe(text)[0]
+        preds = {label_meta["label"]: label_meta["score"] for label_meta in outputs}
+        y_pred_proba = preds["LABEL_1"]
+        print('probability')
+        print(y_pred_proba)
+        
         print('CONTENT DOMAIN DETECTION FILTER DEACTIVATED FOR NOW')
         #api_response = self.api.call_api(playload={"text": title + " " + full_description})
         #prediction = api_response["response"]["prediction"]
-        prediction = {"score":0.0,"label":"LABEL_1"}
+        prediction = {"score":y_pred_proba,"label":"LABEL_1"}
 
         # TODO: this logic should be moved into corresponding API service
         probability = (

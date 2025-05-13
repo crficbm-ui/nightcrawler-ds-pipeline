@@ -220,11 +220,11 @@ class ProcessData(ExtractZyteData):
 
     """
 
-    ch_de_in_url: Optional[bool] = False
-    swisscompany_in_url: Optional[bool] = False
+    cl_es_in_url: Optional[bool] = False
+    chilean_company_in_url: Optional[bool] = False
     web_extension_in_url: Optional[bool] = False
-    francs_in_url: Optional[bool] = False
-    result_sold_CH: Optional[bool] = False
+    chilean_peso_in_url: Optional[bool] = False
+    result_sold_CHILE: Optional[bool] = False
 
 
 @dataclass
