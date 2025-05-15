@@ -96,8 +96,9 @@ class ContentDomainDetector(BaseStep):
         #
         #---------------------------------------------------------------------
         # Load and extract file
-        model_path = Path('/Users/nicolasperezgonzalez/Desktop/projects/nightcrawler-ds-pipeline/nightcrawler/model') / 'classification_hf_pipeline.tar.gz'
-        encoder_path = Path('/Users/nicolasperezgonzalez/Desktop/projects/nightcrawler-ds-pipeline/nightcrawler/model')
+        ROOT_DIR = Path(__file__).parent.parent
+        model_path = ROOT_DIR / 'model' / 'classification_hf_pipeline.tar.gz'
+        encoder_path = ROOT_DIR / 'model'
         
         print("Is file?", model_path.is_file())
         patoolib.extract_archive(str(model_path), verbosity=-1, outdir=str(encoder_path))
