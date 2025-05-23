@@ -267,6 +267,7 @@ The tests are found in `./tests/smoke` and can be run as follows:
 ``` bash
 pytest --cov=nightcrawler tests/smoke -s
 ``` 
+> **_NOTE:_** We have added within the ISP branch for deployment a BERT model, which is not available directly. In order to use the repository, you can reactivate this part of the code, or contact us to provide this model to you.
 
 > **_NOTE:_**  The `-s` flag is used to print the stdout along the pytest logs. It is not needed but in case of a failing test it provides you with the stdout for debuging reasons.
 
@@ -277,6 +278,7 @@ The unit tests are more granular im comparison with the smoke test and test the 
 pytest --cov=nightcrawler --cov-report=html tests/unit -s
 ``` 
 > **_NOTE:_**  The `--cov-report` flag is optional and will provide an htmlcov holder in the root-directory.
+
 
 ## Git Tag History
 So far, no tags have been created (alho, 12.08.2024).
