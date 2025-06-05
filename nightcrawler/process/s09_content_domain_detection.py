@@ -106,8 +106,8 @@ class ContentDomainDetector(BaseStep):
         
         print("Is file?", model_path.is_file())
         #patoolib.extract_archive(str(model_path), verbosity=-1, outdir=str(encoder_path))
-        with rarfile.RarFile(str(model_path), 'r') as rar_ref:
-            rar_ref.extractall(str(encoder_path))
+        #with rarfile.RarFile(str(model_path), 'r') as rar_ref:
+       #     rar_ref.extractall(str(encoder_path))
         
 
         logger.info(f"Loading preprocessor model path={model_path}")

@@ -15,7 +15,7 @@ RUN apt-get update -y && apt-get install -y \
     curl \
     libpq-dev \
     build-essential \
-    unrar \
+    unrar-free \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
