@@ -2321,6 +2321,17 @@ files = [
 ]
 
 [[package]]
+name = "rarfile"
+version = "4.2"
+description = "RAR archive reader for Python"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "rarfile-4.2-py3-none-any.whl", hash = "sha256:8757e1e3757e32962e229cab2432efc1f15f210823cc96ccba0f6a39d17370c9"},
+    {file = "rarfile-4.2.tar.gz", hash = "sha256:8e1c8e72d0845ad2b32a47ab11a719bc2e41165ec101fd4d3fe9e92aa3f469ef"},
+]
+
+[[package]]
 name = "requests"
 version = "2.32.3"
 description = "Python HTTP for Humans."
@@ -2817,4 +2828,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "780563c4c61da09ee0cb7f2df48af49012ae016d9a2bd44b76ac4712cedbd04c"
+content-hash = "7572d33ef9dcd20db94b2b98b4fa50f2e68915a961497c9e26ac98355fd659c5"
