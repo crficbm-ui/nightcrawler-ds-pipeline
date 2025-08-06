@@ -353,8 +353,249 @@
             }
         }
     },
-    "ISP": {
-        "unit": "ammep",
+    "ISPMED": {
+        "unit": "ISP MEDICAMENTOS",
+        "language_codes": [
+            "es"
+        ],
+        "languages": [
+            "Spanish"
+        ],
+        "currencies": [
+            "CLP"
+        ],
+        "country_codes": [
+            "CL"
+        ],
+        "countries": [
+            "Chile"
+        ],
+        "whitelist": [
+            "mercadolibre.cl"
+        ],
+        "blacklist": [
+            "ispch.gob.cl",
+            "colegiofarmaceutico.cl",
+            "cooperativa.cl",
+            "elmostrador.cl",
+            "ispch.cl",
+            "t13.cl",
+            "chilevision.cl",
+            "lobarnechea.cl",
+            "clinicaalemana.cl",
+            "latercera.com",
+            "noticias.unab.cl",
+            "tele13radio.cl",
+            "biobiochile.cl",
+            "tvn.cl",
+            "emol.com",
+            "diariousach.cl",
+            "meganoticias.cl",
+            "eldinamo.cl",
+            "24horas.cl",
+            "radio13c.cl",
+            "publimetro.cl",
+            "theclinic.cl",
+            "radioimagina.cl",
+            "mega.cl",
+            "litoralpress.cl",
+            "fastcheck.cl",
+            "df.cl",
+            // Comercio electrónico autorizado al 19.05.2025
+            "farmaciaskol.cl",
+            "mifarmaciaonline.cl",
+            "farmaciasamiga.cl",
+            "anticonceptivo.cl",
+            "anticonceptivo.cl ",
+            "aprofar.cl ",
+            "araucomed.com ",
+            "belgochilena.cl ",
+            "biofar.cl ",
+            "buhochile.com ",
+            "clinicalpharma.cl",
+            "cofar.cl",
+            "comprafarmaciamapuche.cl",
+            "cruzverde.cl ",
+            "drsimi.cl",
+            "easypharma.cl ",
+            "ecofarmacias.cl",
+            "farmaciabioalba.cl",
+            "farmaciabosques.com",
+            "farmaciachilespa.cl ",
+            "farmaciacurie.cl",
+            "farmaciaelcarmen.cl ",
+            "farmaciaelquimico.cl",
+            "farmaciafutaleufu.cl ",
+            "farmacialabotika.cl ",
+            "farmacialoscopihues.cl ",
+            "farmaciamapuche.cl ",
+            "farmaciamariana.cl",
+            "farmaciasahumada.cl",
+            "farmaciasahumada.cl ",
+            "farmaciasanjuan.cl",
+            "farmaciasantagemita.cl ",
+            "farmaciasblumel.cl",
+            "farmaciasermecoop.cl ",
+            "farmaciasgacema.cl",
+            "farmaciasgeminis.cl",
+            "farmaciasguardian.cl ",
+            "farmaciasknop.com ",
+            "farmaciasmeddica.cl",
+            "farmaciasmolyfarma.cl",
+            "farmaciasrpfarma.cl ",
+            "farmaciasvaldivia.cl ",
+            "farmaciasximenapolanco.cl",
+            "farmacy.cl ",
+            "farmadoc.cl ",
+            "farmagente.cl",
+            "farmagran.cl ",
+            "farmalisto.cl",
+            "farmallano.cl ",
+            "farmaloop.cl",
+            "farmaloop.cl ",
+            "farmam.cl ",
+            "farmatica.cl ",
+            "farmatuya.com",
+            "farmaulloa.cl",
+            "farmauno.cl ",
+            "farmazon.cl ",
+            "farmex.cl",
+            "farmex.cl ",
+            "farplus.cl ",
+            "fibiza.cl",
+            "fraccion.cl ",
+            "fundacionjpr.cl",
+            "ligaepilepsia.cl ",
+            "lobarnechea.yapp.cl",
+            "market-care.com ",
+            "mekiapp.com ",
+            "mercadofarma.cl ",
+            "mercadolibre.cl",
+            "miremedio.cl",
+            "nibitha.cl ",
+            "novasalud.cl ",
+            "openfarma.cl ",
+            "pharol.cl",
+            "profar.cl",
+            "redfarma.cl",
+            "remedia.cl ",
+            "salcobrand.cl ",
+            "surfarma.cl ",
+            "todofarma.cl ",
+            "zupharma.cl"
+        ],
+        "settings": {
+            "country_filtering": {
+                "FILTERER_NAME": "known_domains+url",
+                "COUNTRY": "cl",
+                "PATH_CURRENT_PROJECT_SETTINGS": "nightcrawler/process/country_filtering",
+                "DICT_MAPPING_KNOWN_DOMAINS": {
+                    "pos": "domains_pos",
+                    "unknwn": "domains_unknwn",
+                    "neg": "domains_neg"
+                },
+                "KEYS_TO_SAVE": [
+                    "filterer_name",
+                    "RESULT",
+                    "label_justif",
+                    "urls_shipping_policy_page_found_analysis",
+                    "url_shipping_policy_page_kept"
+                ],
+                "SAVE_NEW_CLASSIFIED_DOMAINS": true
+            },
+            "url_filtering": {
+                "countries": [
+                    "cl"
+                ],
+                "top_level_domains": [
+                    "cl"
+                ],
+                "sub_level_domains": [],
+                "languages": [
+                    "es-cl",
+                    "cl-es"
+                ],
+                "currencies": [
+                    "clp"
+                ]
+            },
+            "deliver_policy_config": {
+                "COUNTRY": "ch",
+                "COUNTRY_LONG": "Switzerland",
+                "PATH_CURRENT_PROJECT_SETTINGS": "nightcrawler/process/country_filtering",
+                "DICT_MAPPING_KNOWN_DOMAINS": {
+                    "pos": "domains_pos",
+                    "unknwn": "domains_unknwn",
+                    "neg": "domains_neg"
+                },
+                "KEYS_TO_SAVE": [
+                    "filterer_name",
+                    "RESULT",
+                    "label_justif",
+                    "url_shipping_policy_page_kept",
+                    "urls_shipping_policy_page_found_analysis"
+                ],
+                "SAVE_NEW_CLASSIFIED_DOMAINS": true
+            },
+            "delivery_policy_config_filterer": {
+                "keywords_shipping_policy": [
+                    "livraison",
+                    "expédit",
+                    "expedit",
+                    "lieferung",
+                    "versand",
+                    "liefer",
+                    "deliveri",
+                    "ship",
+                    "consegna",
+                    "spedizion"
+                ],
+                "urls_domains_shipping_pos": [
+                    "www.ebay.co.uk",
+                    "www.ebay.de",
+                    "www.herbkart.com",
+                    "www.hood.de",
+                    "www.ebay.com",
+                    "gloriaexports.com"
+                ],
+                "urls_domains_shipping_unknwn": [
+                    "www.etsy.com",
+                    "www.joom.com",
+                    "www.inspireuplift.com",
+                    "stockx.com",
+                    "saner.health",
+                    "www.amama.com.au",
+                    "www.biblio.com",
+                    "www.uline.com",
+                    "sparklingspices.us",
+                    "www.victorinox.com",
+                    "biaxol.com"
+                ],
+                "urls_domains_shipping_neg": [
+                    "www.eneba.com"
+                ],
+                "llm_api_config": {
+                    "model": "mistral-large-latest",
+                    "temperature": 0.0
+                },
+                "zyte_api_product_page_config": {
+                    "browserHtml": true,
+                    "screenshot": false,
+                    "product": false,
+                    "geolocation": "CL"
+                },
+                "zyte_api_policy_page_config": {
+                    "browserHtml": true,
+                    "screenshot": false,
+                    "product": false,
+                    "geolocation": "CL"
+                },
+                "use_concurrency": false
+            }
+        }
+    },
+    "ISPDM": {
+        "unit": "ISP DISPOSITOS MEDICOS",
         "language_codes": [
             "es"
         ],
