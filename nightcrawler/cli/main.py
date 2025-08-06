@@ -119,7 +119,7 @@ def parse_args(args_: List[str]) -> argparse.Namespace:
 
     common_parser.add_argument(
         "--unit",
-        choices=["Swissmedic AM", "Swissmedic MEP", "Ages", "ISP"],
+        choices=["Swissmedic AM", "Swissmedic MEP", "Ages", "ISPMED", "ISPDM"],
         required=True,
         help="Processes URLs using org. unit specific settings.",
     )
