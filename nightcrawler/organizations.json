@@ -612,8 +612,7 @@
             "Chile"
         ],
         "whitelist": [
-            "salcoband.cl",
-            "cruzverde.cl"
+            "mercadolibre.cl"
         ],
         "blacklist": [
             "ispch.gob.cl",
