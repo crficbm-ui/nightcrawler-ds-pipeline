@@ -25,17 +25,17 @@ RUN curl -sSL https://install.python-poetry.org | python3.10 -
 ENV PATH="/root/.local/bin:$PATH"
 
 # Clone the repository
-RUN git clone --branch deployment-chile-isp https://github.com/smc40/nightcrawler-ds-pipeline.git .
+RUN git clone --branch deployment-chile-isp https://github.com/crficbm-ui/nightcrawler-ds-pipeline.git .
 
 # Set environment variables
 ENV CLI_VERSION="0.0.5"
-ENV SERP_API_TOKEN="..."
+ENV SERP_API_TOKEN="97a6d4b847339c1f3b0a69c13f7e9ef48487990e18ef2791100d4691548133c1"
 ENV SMARTPROXY_USERNAME="1234"
 ENV SMARTPROXY_PASSWORD="12312"
 ENV SMARTPROXY_PORT="91022"
-ENV ZYTE_API_TOKEN="..."
-ENV DATAFORSEO_USERNAME="..."
-ENV DATAFORSEO_PASSWORD="..."
+ENV ZYTE_API_TOKEN="454764ad4f454d4aa54f476e4b9fd787"
+ENV DATAFORSEO_USERNAME="alexander.horst@swissmedic.ch"
+ENV DATAFORSEO_PASSWORD="cf2758c34b808e0e"
 ENV MISTRAL_API_KEY="1234"
 ENV CONTENT_DOMAIN_ENDPOINT="123"
 ENV CONTENT_DOMAIN_USERNAME="123"
